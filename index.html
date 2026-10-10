@@ -178,6 +178,9 @@
   body[data-theme="discord"] #box{gap:14px}
   body[data-theme="discord"] .av-sb{border-radius:12px;background:var(--accent)}
 
+  #chtabs{display:flex;gap:4px;background:var(--row);padding:3px;border-radius:999px}
+  #chtabs button{border:none;background:none;color:var(--text);padding:5px 12px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+  #chtabs button.on{background:var(--accent);color:var(--on-accent,#fff)}
   /* Channels: gallery posts only show in the gallery, chat posts only in chat */
   body:not(.in-gal) .msg[data-ch="gal"]{display:none}
   body.in-gal .msg:not([data-ch="gal"]){display:none}
@@ -282,7 +285,7 @@
 
 <button id="sb-arrow" class="arrow" title="Hide / show messages bar"></button>
 <div id="main">
-  <div id="hdrwrap"><div id="hdr"><button id="hdr-set" title="Settings">⚙️</button><span id="status">Not connected</span><div id="online"></div></div>
+  <div id="hdrwrap"><div id="hdr"><button id="hdr-set" title="Settings">⚙️</button><span id="status">Not connected</span><div id="chtabs"><button type="button" data-ch="main" class="on">💬 Chat</button><button type="button" data-ch="gal">🖼️ Image Gallery</button></div><div id="online"></div></div>
     <button id="hdr-arrow" class="arrow" title="Hide / show top bar"></button></div>
   <div id="box"></div>
   <div id="tray">
@@ -802,12 +805,14 @@ function setChannel(c){
   document.body.classList.toggle("in-gal", c === "gal");
   $("ch-main").classList.toggle("active", c === "main");
   $("ch-gal").classList.toggle("active", c === "gal");
+  document.querySelectorAll("#chtabs button").forEach(b => b.classList.toggle("on", b.dataset.ch === c));
   $("emo-panel").style.display = "none"; hideSug();
   $("sb").classList.remove("open");
   const b = $("box"); b.scrollTop = b.scrollHeight;
 }
 $("ch-main").onclick = () => setChannel("main");
 $("ch-gal").onclick = () => setChannel("gal");
+document.querySelectorAll("#chtabs button").forEach(b => b.onclick = () => setChannel(b.dataset.ch));
 
 function postMsg(b, img){
   const now = Date.now(), o = { i: newId(), u: usr, c: uid, b, ts: now, v: now };
@@ -883,7 +888,7 @@ function startEdit(id){
     const nv = replaceCodes(inp.value.trim());
     inp.remove(); bub.style.display = ""; w.classList.remove("editing");
     if(ok && nv && nv !== l.b){
-      l.b = nv; l.edited = true; l.eb = usr; l.v = Date.now();
+      l.b = nv; l.v = Date.now();
       persist(); applyToDom(l); send({ t: "Y", i: newId(), e: [l] });
     }
   };
@@ -916,7 +921,6 @@ function renderRow(m){
     const bub = document.createElement("div"); bub.className = "bubble"; bub.textContent = m.b;
     if(m.f && FONT_MAP[m.f]) bub.style.fontFamily = FONT_MAP[m.f];
     bub.dataset.bubble = "1";
-    if(m.edited){ const s = document.createElement("span"); s.className = "edited"; s.textContent = editedText(m); bub.appendChild(s); }
     styleBubble(bub, m.c || "");
     wrap.appendChild(bub);
   }
@@ -945,7 +949,6 @@ function applyToDom(l){
   if(!e){ renderRow(l); return; }
   const bub = e.querySelector("[data-bubble]"); if(!bub || l.img) return;
   bub.textContent = l.b;
-  if(l.edited){ const s = document.createElement("span"); s.className = "edited"; s.textContent = editedText(l); bub.appendChild(s); }
 }
 function rerender(){
   document.querySelectorAll("#box .msg[data-ts]").forEach(e => e.remove());
