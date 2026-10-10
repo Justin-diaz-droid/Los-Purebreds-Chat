@@ -6,6 +6,7 @@
 <title>Los-Purebreds-Chat</title>
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue&family=Dancing+Script&family=Lobster&family=Orbitron&family=Pacifico&family=Press+Start+2P&family=Roboto+Mono&display=swap">
 <style>
   :root{
     --bg:#000; --side:#1c1c1e; --line:#2c2c2e; --row:#2c2c2e; --accent:#0a84ff;
@@ -33,6 +34,9 @@
   #emo-grid span{font-size:24px;cursor:pointer;padding:3px;border-radius:6px}
   #emo-grid span:hover{background:var(--row)}
   .stg-box{max-height:55vh;overflow-y:auto}
+  .av.has-pfp{display:flex}
+  .av,.oav{background-size:cover;background-position:center}
+  #pfpprev{width:48px;height:48px;border-radius:50%;margin:4px 0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;background-size:cover;background-position:center}
   .goback{display:block;text-align:center;padding:8px;border-radius:8px;background:var(--row);color:var(--text);text-decoration:none;font-size:13px;font-weight:600;margin-bottom:8px}
   .goback:hover{filter:brightness(1.2)}
   .stg-box input[type=checkbox]{width:auto;margin-right:6px;vertical-align:middle}
@@ -174,6 +178,11 @@
     <button class="stg-btn" id="stg-toggle">⚙️ Settings</button>
     <div class="stg-box" id="sd">
       <label>Name</label><input type="text" id="hi" maxlength="12">
+      <label>Message font (everyone sees it)</label><select id="font"></select>
+      <label>Profile picture (everyone sees it)</label>
+      <div id="pfpprev"></div>
+      <button id="pfpbtn" type="button">Choose picture</button><input type="file" id="pfpfile" accept="image/*" style="display:none">
+      <button id="pfprm" type="button">Remove picture</button>
       <label><input type="checkbox" id="hh">Hide top bar</label>
       <label><input type="checkbox" id="hs">Hide messages sidebar</label>
       <label>Theme</label>
@@ -284,28 +293,80 @@ $("hh").onchange = e => { save("hide_hdr", e.target.checked ? "1" : "0"); applyB
 $("hs").onchange = e => { save("hide_sb", e.target.checked ? "1" : "0"); applyBars(); };
 $("showbars").onclick = () => { save("hide_hdr", "0"); save("hide_sb", "0"); applyBars(); };
 
+/* ---------- fonts & profile pictures (shared with everyone) ---------- */
+const FONT_MAP = {
+  "Arial":"Arial, sans-serif", "Georgia":"Georgia, serif", "Times New Roman":"'Times New Roman', serif",
+  "Courier New":"'Courier New', monospace", "Trebuchet MS":"'Trebuchet MS', sans-serif", "Impact":"Impact, sans-serif",
+  "Comic Neue":"'Comic Neue', 'Comic Sans MS', cursive", "Pacifico":"Pacifico, cursive", "Lobster":"Lobster, cursive",
+  "Dancing Script":"'Dancing Script', cursive", "Bangers":"Bangers, cursive", "Orbitron":"Orbitron, sans-serif",
+  "Press Start 2P":"'Press Start 2P', monospace", "Roboto Mono":"'Roboto Mono', monospace"
+};
+let myFont = "", myAvatar = "";
+const avatars = {};
+(function(){
+  const sel = $("font"), d = document.createElement("option"); d.value = ""; d.textContent = "Default"; sel.appendChild(d);
+  Object.keys(FONT_MAP).forEach(k => { const o = document.createElement("option"); o.value = k; o.textContent = k; o.style.fontFamily = FONT_MAP[k]; sel.appendChild(o); });
+})();
+function okFont(f){ return typeof f === "string" && Object.prototype.hasOwnProperty.call(FONT_MAP, f) ? f : ""; }
+function okAv(a){ return typeof a === "string" && a.length < 30000 && /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(a) ? a : ""; }
+function paintAv(el, name){
+  const a = avatars[name];
+  if(a){ el.style.background = 'url("' + a + '") center/cover'; el.textContent = ""; el.classList.add("has-pfp"); }
+  else { el.style.background = colorFor(name); el.textContent = (name[0] || "?").toUpperCase(); el.classList.remove("has-pfp"); }
+}
+function refreshAvatars(){
+  document.querySelectorAll(".msg[data-user]").forEach(w => { const a = w.querySelector(".av"); if(a) paintAv(a, w.dataset.user); });
+  const pv = $("pfpprev"); paintAv(pv, usr); pv.classList.remove("has-pfp");
+}
+function cacheAvatars(){ save("chat_avatars", JSON.stringify(avatars)); }
+function me(){ return { n: usr, a: myAvatar }; }
+function announce(){ if(isHost) pushRoster(); else send({ t: "P", u: usr, a: myAvatar, i: newId() }); }
+$("pfpbtn").onclick = () => $("pfpfile").click();
+$("pfpfile").onchange = e => {
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    const im = new Image();
+    im.onload = () => {
+      const cv = document.createElement("canvas"), n = 80, m = Math.min(im.width, im.height);
+      cv.width = cv.height = n;
+      cv.getContext("2d").drawImage(im, (im.width - m) / 2, (im.height - m) / 2, m, m, 0, 0, n, n);
+      myAvatar = cv.toDataURL("image/jpeg", 0.75); save("chat_pfp", myAvatar);
+      avatars[usr] = myAvatar; cacheAvatars(); refreshAvatars(); announce(); sys("Profile picture updated.");
+    };
+    im.src = ev.target.result;
+  };
+  r.readAsDataURL(f); e.target.value = "";
+};
+$("pfprm").onclick = () => { myAvatar = ""; save("chat_pfp", ""); delete avatars[usr]; cacheAvatars(); refreshAvatars(); announce(); };
+
 /* ---------- who's online ---------- */
 function renderOnline(list){
+  list.forEach(e => { if(e.a) avatars[e.n] = e.a; }); cacheAvatars();
   const box = $("online"); box.innerHTML = "";
-  list.slice(0, 10).forEach(n => {
-    const a = document.createElement("div"); a.className = "oav"; a.title = n;
-    a.textContent = (n[0] || "?").toUpperCase(); a.style.background = colorFor(n); box.appendChild(a);
+  list.slice(0, 10).forEach(e => {
+    const a = document.createElement("div"); a.className = "oav"; a.title = e.n; paintAv(a, e.n); box.appendChild(a);
   });
   const c = document.createElement("span"); c.className = "ocount";
   c.textContent = list.length + " online" + (list.length > 10 ? " (+" + (list.length - 10) + ")" : "");
   box.appendChild(c);
+  refreshAvatars();
 }
 function pushRoster(){
   if(!isHost) return;
-  const list = [usr, ...conns.map(c => c.userName).filter(Boolean)];
+  const list = [me(), ...conns.filter(c => c.userName).map(c => ({ n: c.userName, a: c.avatar || "" }))];
   renderOnline(list); send({ t: "R", i: newId(), list });
 }
 
 /* ---------- startup ---------- */
 window.addEventListener("load", () => {
   usr = load("chat_usr", "User");
+  myFont = okFont(load("chat_font", "")); $("font").value = myFont; $("inp").style.fontFamily = FONT_MAP[myFont] || "";
+  myAvatar = okAv(load("chat_pfp", ""));
+  try { const c = JSON.parse(load("chat_avatars", "{}")); Object.keys(c).forEach(k => { if(okAv(c[k])) avatars[k] = c[k]; }); } catch(e){}
+  if(myAvatar) avatars[usr] = myAvatar;
   $("hi").value = usr; $("g-name").value = usr === "User" ? "" : usr; updateYou();
-  setTheme(load("chat_theme", "imessage")); applyWall(); applyBars();
+  setTheme(load("chat_theme", "imessage")); applyWall(); applyBars(); refreshAvatars();
   try { logs = JSON.parse(load("chat_history", "[]")); } catch(e){ logs = []; }
   logs.forEach(renderRow);
 });
@@ -327,8 +388,10 @@ $("hdr-set").onclick = () => { $("sb").classList.toggle("open"); $("sd").style.d
 $("stg-toggle").onclick = () => { const d = $("sd"); d.style.display = d.style.display === "block" ? "none" : "block"; };
 $("save").onclick = () => {
   const old = usr;
+  myFont = $("font").value; save("chat_font", myFont); $("inp").style.fontFamily = FONT_MAP[myFont] || "";
   usr = ($("hi").value.trim() || usr).slice(0, 12); $("hi").value = usr; save("chat_usr", usr);
   setTheme($("theme").value); updateYou();
+  if(myAvatar) avatars[usr] = myAvatar; refreshAvatars();
   if(usr !== old){ send({ t: "N", u: old, b: usr, i: newId() }); sys("You changed your name to " + usr + "."); if(isHost) pushRoster(); }
   else sys("Settings saved.");
   $("sd").style.display = "none"; $("sb").classList.remove("open");
@@ -339,7 +402,7 @@ function setStatus(t){ $("status").textContent = t; }
 function ready(){ $("inp").disabled = false; $("fi").disabled = false; }
 
 function connect(){
-  setStatus("Connecting..."); renderOnline([usr]);
+  setStatus("Connecting..."); renderOnline([me()]);
   peer = new Peer(ROOM_ID);
   peer.on("open", () => {
     isHost = true; ready();
@@ -359,14 +422,14 @@ function connect(){
 function addConn(c){
   c.on("open", () => {
     conns.push(c); ready();
-    if(!isHost) c.send({ t: "P", u: usr, i: newId() });
+    if(!isHost) c.send({ t: "P", u: usr, a: myAvatar, i: newId() });
     setStatus("Online — " + conns.length + " connected");
     sys(isHost ? "A friend joined." : "Connected to the room.");
   });
   c.on("data", d => handle(d, c));
   c.on("close", () => {
     conns = conns.filter(x => x !== c);
-    if(isHost) pushRoster(); else renderOnline([usr]);
+    if(isHost) pushRoster(); else renderOnline([me()]);
     setStatus(isHost ? "Online (hosting)" : "Disconnected — refresh to rejoin");
     sys("A friend left.");
   });
@@ -378,10 +441,10 @@ function validId(i){ return typeof i === "string" && i.length > 0 && i.length < 
 
 function handle(d, from){
   if(!d || typeof d !== "object" || !validId(d.i)) return;
-  if(d.t === "P"){ if(isHost && typeof d.u === "string"){ from.userName = d.u.slice(0, 12); pushRoster(); } return; }
-  if(d.t === "R"){ if(!isHost && Array.isArray(d.list)) renderOnline(d.list.slice(0, 50).map(x => String(x).slice(0, 12))); return; }
+  if(d.t === "P"){ if(isHost && typeof d.u === "string"){ from.userName = d.u.slice(0, 12); from.avatar = okAv(d.a); pushRoster(); } return; }
+  if(d.t === "R"){ if(!isHost && Array.isArray(d.list)) renderOnline(d.list.slice(0, 50).filter(x => x && typeof x.n === "string").map(x => ({ n: x.n.slice(0, 12), a: okAv(x.a) }))); return; }
   if(d.t === "T" && typeof d.b === "string" && d.b.length < 2000){
-    addMsg(String(d.u).slice(0,12), d.b, "peer", d.i, 0);
+    addMsg(String(d.u).slice(0,12), d.b, "peer", d.i, 0, okFont(d.f));
   } else if(d.t === "M" && typeof d.b === "string" && d.b.startsWith("data:image/")){
     addMsg(String(d.u).slice(0,12), d.b, "peer", d.i, 1);
   } else if(d.t === "N" && typeof d.u === "string" && typeof d.b === "string"){
@@ -520,8 +583,8 @@ function sendText(){
   if(!v) return;
   hideSug();
   const id = newId();
-  send({ t: "T", b: v, u: usr, i: id });
-  addMsg(usr, v, "me", id, 0);
+  send({ t: "T", b: v, u: usr, i: id, f: myFont });
+  addMsg(usr, v, "me", id, 0, myFont);
   el.value = "";
 }
 $("inp").addEventListener("keydown", e => { if(e.key === "Enter" && !sugList.length) sendText(); });
@@ -541,11 +604,11 @@ $("fi").addEventListener("change", e => {
 });
 
 /* ---------- messages ---------- */
-function addMsg(u, b, cls, id, img){
+function addMsg(u, b, cls, id, img, f){
   if(logs.some(l => l.i === id)) return;
-  logs.push({ u, b, cls, i: id, img });
+  logs.push({ u, b, cls, i: id, img, f });
   persist();
-  renderRow({ u, b, cls, i: id, img });
+  renderRow({ u, b, cls, i: id, img, f });
 }
 
 function persist(){
@@ -567,8 +630,7 @@ function renderRow(m){
   w.className = "msg " + m.cls; w.id = m.i;
 
   const av = document.createElement("div");
-  av.className = "av"; av.textContent = (m.u[0] || "?").toUpperCase();
-  av.style.background = colorFor(m.u);
+  av.className = "av"; w.dataset.user = m.u; paintAv(av, m.u);
 
   const col = document.createElement("div"); col.className = "col";
   const lbl = document.createElement("span"); lbl.className = "lbl"; lbl.textContent = m.u; lbl.style.setProperty("--uc", colorFor(m.u));
@@ -578,6 +640,7 @@ function renderRow(m){
     const im = document.createElement("img"); im.className = "img"; im.src = m.b; col.appendChild(im);
   } else {
     const bub = document.createElement("div"); bub.className = "bubble"; bub.textContent = m.b;
+    if(m.f && FONT_MAP[m.f]) bub.style.fontFamily = FONT_MAP[m.f];
     bub.dataset.bubble = "1";
     if(m.edited){ const s = document.createElement("span"); s.className = "edited"; s.textContent = " (Edited)"; bub.appendChild(s); }
     col.appendChild(bub);
