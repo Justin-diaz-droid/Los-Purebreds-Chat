@@ -33,6 +33,17 @@
   #emo-grid span{font-size:24px;cursor:pointer;padding:3px;border-radius:6px}
   #emo-grid span:hover{background:var(--row)}
   .stg-box{max-height:55vh;overflow-y:auto}
+  .stg-box input[type=checkbox]{width:auto;margin-right:6px;vertical-align:middle}
+  #hdr{gap:12px;flex-wrap:wrap}
+  #online{display:flex;align-items:center;font-size:12px;color:var(--muted)}
+  .oav{position:relative;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;border:2px solid var(--bg);margin-left:-8px}
+  .oav:first-child{margin-left:0}
+  .oav::after{content:"";position:absolute;right:-2px;bottom:-2px;width:9px;height:9px;border-radius:50%;background:#32d74b;border:2px solid var(--bg)}
+  #online .ocount{margin-left:8px}
+  .hide-hdr #hdr{display:none}
+  .hide-sb #sb{display:none !important}
+  #showbars{display:none;position:fixed;top:8px;right:8px;z-index:8;width:34px;height:34px;border-radius:50%;border:none;background:var(--accent);color:var(--on-accent,#fff);font-size:16px;cursor:pointer;opacity:.85}
+  .hide-hdr #showbars,.hide-sb #showbars{display:block}
   body[data-theme="tiktok"]{
     --bg:#121212; --side:#000; --line:#2f2f2f; --row:#1f1f1f; --accent:#fe2c55;
     --text:#fff; --muted:#a1a1a5; --input:#2f2f2f; --me:#fe2c55; --peer:#2f2f2f;
@@ -41,6 +52,33 @@
   body[data-theme="tiktok"] .av-sb{background:linear-gradient(135deg,#25f4ee,#fe2c55)}
   body[data-theme="tiktok"] .hdr-sb{text-shadow:2px 2px #25f4ee,-2px -2px #fe2c55}
   body[data-theme="tiktok"] .bubble{border-radius:18px}
+  body[data-theme="roblox"]{
+    --bg:#232527; --side:#191a1c; --line:#393b3d; --row:#2f3133; --accent:#00a2ff;
+    --text:#fff; --muted:#bdbebe; --input:#393b3d; --me:rgba(0,0,0,.45); --peer:rgba(0,0,0,.45);
+  }
+  body[data-theme="roblox"] .msg,body[data-theme="roblox"] .msg.me{align-self:flex-start;max-width:70%;flex-direction:row}
+  body[data-theme="roblox"] .me .col{align-items:flex-start}
+  body[data-theme="roblox"] .lbl{color:var(--uc,#00a2ff);font-weight:700;font-size:13px}
+  body[data-theme="roblox"] .bubble,body[data-theme="roblox"] .me .bubble{border-radius:6px;padding:5px 10px;font-size:14px;background:rgba(0,0,0,.45);color:#fff}
+  body[data-theme="roblox"] .pill{border-radius:6px;border:none}
+  body[data-theme="roblox"] .av-sb{border-radius:8px;background:var(--accent)}
+  body[data-theme="instagram"]{
+    --bg:#000; --side:#000; --line:#262626; --row:#121212; --accent:#0095f6;
+    --text:#f5f5f5; --muted:#a8a8a8; --input:#000; --me:linear-gradient(135deg,#3797f0,#8a3ab9); --peer:#262626;
+  }
+  body[data-theme="instagram"] .bubble{border-radius:22px}
+  body[data-theme="instagram"] .pill{border:1px solid #363636;border-radius:22px}
+  body[data-theme="instagram"] .av-sb{background:linear-gradient(45deg,#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5)}
+  body[data-theme="instagram"] .row-ch{border-left-color:#d62976}
+  body[data-theme="twitter"]{
+    --bg:#000; --side:#000; --line:#2f3336; --row:#16181c; --accent:#1d9bf0;
+    --text:#e7e9ea; --muted:#71767b; --input:#202327; --me:#1d9bf0; --peer:#2f3336;
+  }
+  body[data-theme="twitter"] .bubble{border-radius:20px}
+  body[data-theme="twitter"] .me .bubble{border-bottom-right-radius:4px}
+  body[data-theme="twitter"] .peer .bubble{border-bottom-left-radius:4px}
+  body[data-theme="twitter"] .pill{border-radius:20px;border:none}
+  body[data-theme="twitter"] .av-sb{background:#1d9bf0}
   #emo-sug{display:none;position:absolute;bottom:62px;left:60px;width:270px;max-height:340px;overflow-y:auto;background:#fff;color:#202124;border-radius:8px;box-shadow:0 1px 3px rgba(60,64,67,.3),0 4px 8px 3px rgba(60,64,67,.15);padding:6px 0;z-index:7}
   #emo-sug .hd{display:flex;justify-content:space-between;align-items:center;padding:10px 16px 8px;font-size:11px;letter-spacing:.8px;font-weight:500;color:#5f6368}
   #emo-sug .hd i{font-style:normal;font-size:18px;line-height:1}
@@ -58,7 +96,7 @@
   .stg-box{display:none;background:var(--row);padding:10px;border-radius:8px;margin-top:6px}
   .stg-box label{font-size:11px;color:var(--muted);display:block;margin:6px 0 2px}
   .stg-box input,.stg-box select{width:100%;padding:6px;background:var(--input);border:1px solid var(--line);color:var(--text);border-radius:6px}
-  .stg-box button{width:100%;margin-top:8px;background:var(--accent);border:none;color:#fff;padding:6px;border-radius:6px;font-weight:bold;cursor:pointer}
+  .stg-box button{width:100%;margin-top:8px;background:var(--accent);border:none;color:var(--on-accent,#fff);padding:6px;border-radius:6px;font-weight:bold;cursor:pointer}
   .stg-box .clr-btn{background:none;color:#ff453a;font-size:11px;text-align:left;padding:0;font-weight:normal}
   #main{flex-grow:1;display:flex;flex-direction:column;background:var(--bg);min-width:0}
   #hdr{min-height:55px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--line);font-size:13px;color:var(--muted);text-align:center;padding:6px}
@@ -72,7 +110,7 @@
   .me .col{align-items:flex-end}
   .lbl{font-size:11px;color:var(--muted);margin:0 4px 2px}
   .bubble{padding:10px 16px;border-radius:20px;font-size:15px;line-height:1.4;overflow-wrap:anywhere;white-space:pre-wrap}
-  .me .bubble{background:var(--me);color:#fff}
+  .me .bubble{background:var(--me);color:var(--on-accent,#fff)}
   .peer .bubble{background:var(--peer)}
   .img{max-width:240px;border-radius:16px;margin-top:4px;display:block}
   .act{display:none;margin-top:4px;gap:8px}
@@ -103,7 +141,7 @@
   #gate .card{background:var(--side);padding:28px;border-radius:16px;width:min(340px,90vw);display:flex;flex-direction:column;gap:10px;text-align:center}
   #gate h1{margin:0 0 6px;font-size:22px}
   #gate input,#gate select{padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--text);font-size:15px}
-  #gate button{padding:10px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:bold;font-size:15px;cursor:pointer}
+  #gate button{padding:10px;border:none;border-radius:8px;background:var(--accent);color:var(--on-accent,#fff);font-weight:bold;font-size:15px;cursor:pointer}
   #gerr{color:#ff453a;font-size:13px;min-height:16px}
   #hdr-set{display:none;background:none;border:none;font-size:20px;cursor:pointer;margin-right:10px}
   @media(max-width:600px){#sb{display:none;position:fixed;top:0;bottom:0;left:0;width:240px;z-index:5}#sb.open{display:flex}#hdr-set{display:inline-block}.msg{max-width:85%}}
@@ -116,7 +154,7 @@
     <h1>Los-Purebreds-Chat</h1>
     <input id="g-code" type="text" placeholder="Room code" autocomplete="off">
     <input id="g-name" type="text" placeholder="Your name" maxlength="12" autocomplete="off">
-    <select id="g-theme"><option value="imessage">iMessage theme</option><option value="discord">Discord theme</option><option value="whatsapp">WhatsApp theme</option><option value="tiktok">TikTok theme</option></select>
+    <select id="g-theme"><option value="imessage">iMessage theme</option><option value="discord">Discord theme</option><option value="whatsapp">WhatsApp theme</option><option value="tiktok">TikTok theme</option><option value="roblox">Roblox theme</option><option value="instagram">Instagram theme</option><option value="twitter">Twitter theme</option></select>
     <div id="gerr"></div>
     <button id="g-go">Join</button>
   </div>
@@ -132,9 +170,11 @@
     <button class="stg-btn" id="stg-toggle">⚙️ Settings</button>
     <div class="stg-box" id="sd">
       <label>Name</label><input type="text" id="hi" maxlength="12">
+      <label><input type="checkbox" id="hh">Hide top bar</label>
+      <label><input type="checkbox" id="hs">Hide messages sidebar</label>
       <label>Theme</label>
-      <select id="theme"><option value="imessage">iMessage</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option></select>
-      <label>Wallpaper color</label><input type="color" id="wcol" value="#000000" style="padding:0;height:30px">
+      <select id="theme"><option value="imessage">iMessage</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option></select>
+      <label>Wallpaper &amp; accent color</label><input type="color" id="wcol" value="#000000" style="padding:0;height:30px">
       <label>Wallpaper image (stays on this device)</label>
       <button id="wimg" type="button">Choose image</button><input type="file" id="wfile" accept="image/*" style="display:none">
       <label>Image dimming</label><input type="range" id="wdim" min="0" max="80" value="30" style="padding:0">
@@ -144,8 +184,9 @@
   </div>
 </div>
 
+<button id="showbars" title="Show bars">☰</button>
 <div id="main">
-  <div id="hdr"><button id="hdr-set" title="Settings">⚙️</button><span id="status">Not connected</span></div>
+  <div id="hdr"><button id="hdr-set" title="Settings">⚙️</button><span id="status">Not connected</span><div id="online"></div></div>
   <div id="box"></div>
   <div id="tray">
     <label for="fi" class="plus">+</label>
@@ -169,20 +210,36 @@ function save(k, v){ try { localStorage.setItem(k, v); } catch(e){ console.warn(
 
 /* ---------- theme ---------- */
 function setTheme(t){
-  if(!["imessage","discord","whatsapp","tiktok"].includes(t)) t = "imessage";
+  if(!["imessage","discord","whatsapp","tiktok","roblox","instagram","twitter"].includes(t)) t = "imessage";
   document.body.dataset.theme = t;
   $("theme").value = t; $("g-theme").value = t;
-  $("chname").textContent = {discord:"# purebred-chat",whatsapp:"WhatsApp Group",tiktok:"TikTok Inbox",imessage:"iMessage Channel"}[t];
-  $("inp").placeholder = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",imessage:"iMessage"}[t];
+  $("chname").textContent = {discord:"# purebred-chat",whatsapp:"WhatsApp Group",tiktok:"TikTok Inbox",roblox:"Roblox Chat",instagram:"Instagram Direct",twitter:"Twitter Messages",imessage:"iMessage Channel"}[t];
+  $("inp").placeholder = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage"}[t];
   save("chat_theme", t);
+  applyWall();
 }
 
 /* ---------- wallpaper (stored only in this browser) ---------- */
+function accentFrom(hex){
+  let [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+  const lum = (r, g, b) => (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  while(lum(r, g, b) < 0.25 && (r + g + b) < 765){ r = Math.min(255, r + 25); g = Math.min(255, g + 25); b = Math.min(255, b + 25); } // keep it visible on dark UI
+  const toHex = n => n.toString(16).padStart(2, "0");
+  return { color: "#" + toHex(r) + toHex(g) + toHex(b), text: lum(r, g, b) > 0.6 ? "#000" : "#fff" };
+}
 function applyWall(){
   const box = $("box"), k = load("wall_kind", "none"), dim = (+load("wall_dim", "30")) / 100;
   box.style.backgroundImage = ""; box.style.backgroundColor = "";
   $("wdim").value = load("wall_dim", "30"); $("wcol").value = load("wall_color", "#000000");
-  if(k === "color") box.style.backgroundColor = load("wall_color", "#000000");
+  const st = document.body.style;
+  ["--accent", "--me", "--on-accent"].forEach(v => st.removeProperty(v));
+  if(k === "color"){
+    const c = load("wall_color", "#000000");
+    box.style.backgroundColor = c;
+    const a = accentFrom(c);
+    st.setProperty("--accent", a.color); st.setProperty("--on-accent", a.text);
+    if(document.body.dataset.theme !== "discord") st.setProperty("--me", a.color);
+  }
   else if(k === "image"){
     const img = load("wall_img", "");
     if(img){
@@ -213,11 +270,38 @@ $("wfile").onchange = e => {
 };
 $("wreset").onclick = () => { save("wall_kind", "none"); try{ localStorage.removeItem("wall_img"); }catch(e){} applyWall(); };
 
+/* ---------- hide / show bars ---------- */
+function applyBars(){
+  const h = load("hide_hdr", "0") === "1", sb = load("hide_sb", "0") === "1";
+  document.body.classList.toggle("hide-hdr", h); document.body.classList.toggle("hide-sb", sb);
+  $("hh").checked = h; $("hs").checked = sb;
+}
+$("hh").onchange = e => { save("hide_hdr", e.target.checked ? "1" : "0"); applyBars(); };
+$("hs").onchange = e => { save("hide_sb", e.target.checked ? "1" : "0"); applyBars(); };
+$("showbars").onclick = () => { save("hide_hdr", "0"); save("hide_sb", "0"); applyBars(); };
+
+/* ---------- who's online ---------- */
+function renderOnline(list){
+  const box = $("online"); box.innerHTML = "";
+  list.slice(0, 10).forEach(n => {
+    const a = document.createElement("div"); a.className = "oav"; a.title = n;
+    a.textContent = (n[0] || "?").toUpperCase(); a.style.background = colorFor(n); box.appendChild(a);
+  });
+  const c = document.createElement("span"); c.className = "ocount";
+  c.textContent = list.length + " online" + (list.length > 10 ? " (+" + (list.length - 10) + ")" : "");
+  box.appendChild(c);
+}
+function pushRoster(){
+  if(!isHost) return;
+  const list = [usr, ...conns.map(c => c.userName).filter(Boolean)];
+  renderOnline(list); send({ t: "R", i: newId(), list });
+}
+
 /* ---------- startup ---------- */
 window.addEventListener("load", () => {
   usr = load("chat_usr", "User");
   $("hi").value = usr; $("g-name").value = usr === "User" ? "" : usr; updateYou();
-  setTheme(load("chat_theme", "imessage")); applyWall();
+  setTheme(load("chat_theme", "imessage")); applyWall(); applyBars();
   try { logs = JSON.parse(load("chat_history", "[]")); } catch(e){ logs = []; }
   logs.forEach(renderRow);
 });
@@ -241,7 +325,7 @@ $("save").onclick = () => {
   const old = usr;
   usr = ($("hi").value.trim() || usr).slice(0, 12); $("hi").value = usr; save("chat_usr", usr);
   setTheme($("theme").value); updateYou();
-  if(usr !== old){ send({ t: "N", u: old, b: usr, i: newId() }); sys("You changed your name to " + usr + "."); }
+  if(usr !== old){ send({ t: "N", u: old, b: usr, i: newId() }); sys("You changed your name to " + usr + "."); if(isHost) pushRoster(); }
   else sys("Settings saved.");
   $("sd").style.display = "none"; $("sb").classList.remove("open");
 };
@@ -251,7 +335,7 @@ function setStatus(t){ $("status").textContent = t; }
 function ready(){ $("inp").disabled = false; $("fi").disabled = false; }
 
 function connect(){
-  setStatus("Connecting...");
+  setStatus("Connecting..."); renderOnline([usr]);
   peer = new Peer(ROOM_ID);
   peer.on("open", () => {
     isHost = true; ready();
@@ -271,12 +355,14 @@ function connect(){
 function addConn(c){
   c.on("open", () => {
     conns.push(c); ready();
+    if(!isHost) c.send({ t: "P", u: usr, i: newId() });
     setStatus("Online — " + conns.length + " connected");
     sys(isHost ? "A friend joined." : "Connected to the room.");
   });
   c.on("data", d => handle(d, c));
   c.on("close", () => {
     conns = conns.filter(x => x !== c);
+    if(isHost) pushRoster(); else renderOnline([usr]);
     setStatus(isHost ? "Online (hosting)" : "Disconnected — refresh to rejoin");
     sys("A friend left.");
   });
@@ -288,12 +374,15 @@ function validId(i){ return typeof i === "string" && i.length > 0 && i.length < 
 
 function handle(d, from){
   if(!d || typeof d !== "object" || !validId(d.i)) return;
+  if(d.t === "P"){ if(isHost && typeof d.u === "string"){ from.userName = d.u.slice(0, 12); pushRoster(); } return; }
+  if(d.t === "R"){ if(!isHost && Array.isArray(d.list)) renderOnline(d.list.slice(0, 50).map(x => String(x).slice(0, 12))); return; }
   if(d.t === "T" && typeof d.b === "string" && d.b.length < 2000){
     addMsg(String(d.u).slice(0,12), d.b, "peer", d.i, 0);
   } else if(d.t === "M" && typeof d.b === "string" && d.b.startsWith("data:image/")){
     addMsg(String(d.u).slice(0,12), d.b, "peer", d.i, 1);
   } else if(d.t === "N" && typeof d.u === "string" && typeof d.b === "string"){
     sys(d.u.slice(0,12) + " is now " + d.b.slice(0,12));
+    if(isHost){ from.userName = d.b.slice(0, 12); pushRoster(); }
   } else if(d.t === "D"){
     const l = logs.find(x => x.i === d.i);
     if(!l || l.cls !== "peer") return;
@@ -478,7 +567,7 @@ function renderRow(m){
   av.style.background = colorFor(m.u);
 
   const col = document.createElement("div"); col.className = "col";
-  const lbl = document.createElement("span"); lbl.className = "lbl"; lbl.textContent = m.u;
+  const lbl = document.createElement("span"); lbl.className = "lbl"; lbl.textContent = m.u; lbl.style.setProperty("--uc", colorFor(m.u));
   col.appendChild(lbl);
 
   if(m.img){
