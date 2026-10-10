@@ -32,7 +32,7 @@
   .goback:hover{filter:brightness(1.2)}
   .stg-box input[type=checkbox]{width:auto;margin-right:6px;vertical-align:middle}
   #hdr{gap:12px;flex-wrap:wrap}
-  #online{display:flex;align-items:center;font-size:12px;color:var(--muted)}
+  #online{display:flex;align-items:center;font-size:12px;color:var(--bar-text,var(--muted))}
   .oav{position:relative;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;border:2px solid var(--bg);margin-left:-8px}
   .oav:first-child{margin-left:0}
   .oav::after{content:"";position:absolute;right:-2px;bottom:-2px;width:9px;height:9px;border-radius:50%;background:#32d74b;border:2px solid var(--bg)}
@@ -112,19 +112,21 @@
   .stg-box button.alt{background:var(--input);color:var(--text);border:1px solid var(--line);font-weight:normal}
   *{box-sizing:border-box}
   body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif,"Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji";background:var(--bg);color:var(--text);margin:0;display:flex;height:100vh;overflow:hidden}
-  #sb{width:220px;background:var(--side);display:flex;flex-direction:column;border-right:1px solid var(--line);justify-content:space-between;flex-shrink:0}
-  .hdr-sb{padding:20px 16px;font-weight:bold;font-size:20px;border-bottom:1px solid var(--line)}
-  .row-ch{padding:12px 16px;background:var(--row);display:flex;align-items:center;gap:10px;border-left:4px solid var(--accent)}
+  /* --bar / --bar-text are set by the accent color picker and tint the three bars */
+  #sb{width:220px;background:var(--bar,var(--side));display:flex;flex-direction:column;border-right:1px solid var(--line);justify-content:space-between;flex-shrink:0}
+  .hdr-sb{padding:20px 16px;font-weight:bold;font-size:20px;border-bottom:1px solid var(--line);color:var(--bar-text,var(--text))}
+  .row-ch{padding:12px 16px;background:var(--row);color:var(--text);display:flex;align-items:center;gap:10px;border-left:4px solid var(--accent)}
   .av-sb{width:40px;height:40px;border-radius:50%;background:#8e8e93;display:flex;align-items:center;justify-content:center;font-weight:bold;color:#fff}
   .stg-sb{padding:14px;border-top:1px solid var(--line)}
-  .stg-btn{background:none;border:none;color:var(--accent);font-size:14px;cursor:pointer;font-weight:500}
-  .stg-box{display:none;background:var(--row);padding:10px;border-radius:8px;margin-top:6px}
+  .stg-btn{background:none;border:none;color:var(--bar-text,var(--accent));font-size:14px;cursor:pointer;font-weight:500}
+  #youare{font-size:12px;color:var(--bar-text,var(--muted));margin-bottom:6px;opacity:.85}
+  .stg-box{display:none;background:var(--row);color:var(--text);padding:10px;border-radius:8px;margin-top:6px}
   .stg-box label{font-size:11px;color:var(--muted);display:block;margin:6px 0 2px}
   .stg-box input,.stg-box select{width:100%;padding:6px;background:var(--input);border:1px solid var(--line);color:var(--text);border-radius:6px}
   .stg-box button{width:100%;margin-top:8px;background:var(--accent);border:none;color:var(--on-accent,#fff);padding:6px;border-radius:6px;font-weight:bold;cursor:pointer}
   .stg-box .clr-btn{background:none;color:#ff453a;font-size:11px;text-align:left;padding:0;font-weight:normal}
   #main{flex-grow:1;display:flex;flex-direction:column;background:var(--bg);min-width:0}
-  #hdr{min-height:55px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--line);font-size:13px;color:var(--muted);text-align:center;padding:6px}
+  #hdr{min-height:55px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--line);font-size:13px;color:var(--bar-text,var(--muted));background:var(--bar,transparent);text-align:center;padding:6px}
   #box{flex-grow:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:10px}
   .msg{display:flex;gap:10px;max-width:65%}
   .msg.me{align-self:flex-end;flex-direction:row-reverse}
@@ -134,19 +136,30 @@
   .col{display:flex;flex-direction:column;min-width:0}
   .me .col{align-items:flex-end}
   .lbl{font-size:11px;color:var(--muted);margin:0 4px 2px}
+  .bwrap{position:relative;max-width:100%}
   .bubble{padding:10px 16px;border-radius:20px;font-size:15px;line-height:1.4;overflow-wrap:anywhere;white-space:pre-wrap}
   .me .bubble{background:var(--me);color:var(--on-accent,#fff)}
   .peer .bubble{background:var(--peer)}
   .img{max-width:240px;border-radius:16px;margin-top:4px;display:block}
-  .act{display:none;margin-top:4px;gap:8px}
-  .msg:hover .act{display:flex}
-  .act button{background:none;border:none;color:#ff9f0a;font-size:11px;cursor:pointer;padding:0}
-  .act .del{color:#ff453a}
+
+  /* Edit / delete: small floating icon pill that appears on hover (or tap on touch screens) */
+  .act{position:absolute;top:-14px;display:none;gap:2px;padding:3px;background:var(--side);border:1px solid var(--line);border-radius:999px;box-shadow:0 2px 10px rgba(0,0,0,.45);z-index:2}
+  .me .act{right:6px}
+  .peer .act{left:6px}
+  body[data-theme="roblox"] .me .act{right:auto;left:6px}
+  body[data-theme="discord"] .act{left:auto;right:6px}
+  .msg:hover .act,.msg.tap .act,.act:focus-within{display:flex}
+  .msg.editing .act{display:none !important}
+  .act button{width:26px;height:26px;border:none;border-radius:50%;background:none;color:var(--muted);cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;transition:background .12s,color .12s}
+  .act button svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .act button:hover{background:var(--row);color:var(--text)}
+  .act .del:hover{background:rgba(255,69,58,.18);color:#ff453a}
   .edited{font-size:10px;color:var(--muted);font-style:italic}
-  #tray{padding:12px 20px;display:flex;align-items:center;gap:12px;border-top:1px solid var(--line)}
+  .editin{background:var(--input);color:var(--text);border:1px solid var(--accent);border-radius:14px;padding:8px 14px;font-size:15px;outline:none;width:min(320px,60vw);max-width:100%}
+  #tray{padding:12px 20px;display:flex;align-items:center;gap:12px;border-top:1px solid var(--line);background:var(--bar,transparent)}
   .pill{display:flex;flex-grow:1;background:var(--input);border:1px solid var(--line);border-radius:20px;padding:8px 14px}
   #inp{flex-grow:1;background:none;border:none;color:var(--text);outline:none;font-size:15px}
-  .plus{font-size:22px;color:var(--accent);cursor:pointer;user-select:none}
+  .plus{font-size:22px;color:var(--bar-text,var(--accent));cursor:pointer;user-select:none}
 
   /* Discord theme layout */
   body[data-theme="discord"] .msg,
@@ -193,7 +206,7 @@
   </div>
   <div class="stg-sb">
     <a class="goback" href="https://docs.google.com/document/d/1oa90mU-jYczqySulirTvHqqNWTSaNwPGnnArgBdVGrs/edit?tab=t.pqncc0vmsgzp" rel="noopener">← Go back</a>
-    <div id="youare" style="font-size:12px;color:var(--muted);margin-bottom:6px"></div>
+    <div id="youare"></div>
     <button class="stg-btn" id="stg-toggle">⚙️ Settings</button>
     <div class="stg-box" id="sd">
       <details class="sec" open>
@@ -223,7 +236,7 @@
         <div class="sec-body">
           <label>Theme</label>
           <select id="theme"><option value="imessage">iMessage</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option></select>
-          <label>Wallpaper &amp; accent color</label><input type="color" id="wcol" value="#000000" style="padding:0;height:30px">
+          <label>Wallpaper &amp; accent color (also tints top bar, message bar &amp; left bar)</label><input type="color" id="wcol" value="#000000" style="padding:0;height:30px">
           <label>Wallpaper image (stays on this device)</label>
           <button id="wimg" type="button">Choose image</button><input type="file" id="wfile" accept="image/*" style="display:none">
           <label>Image dimming</label><input type="range" id="wdim" min="0" max="80" value="30" style="padding:0">
@@ -288,7 +301,7 @@ function setTheme(t){
   restyleAll();
 }
 
-/* ---------- wallpaper (stored only in this browser) ---------- */
+/* ---------- wallpaper + accent (stored only in this browser) ---------- */
 function accentFrom(hex){
   let [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
   const lum = (r, g, b) => (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
@@ -301,12 +314,13 @@ function applyWall(){
   box.style.backgroundImage = ""; box.style.backgroundColor = "";
   $("wdim").value = load("wall_dim", "30"); $("wcol").value = load("wall_color", "#000000");
   const st = document.body.style;
-  ["--accent", "--me", "--on-accent"].forEach(v => st.removeProperty(v));
+  ["--accent", "--me", "--on-accent", "--bar", "--bar-text"].forEach(v => st.removeProperty(v));
   if(k === "color"){
     const c = load("wall_color", "#000000");
     box.style.backgroundColor = c;
     const a = accentFrom(c);
     st.setProperty("--accent", a.color); st.setProperty("--on-accent", a.text);
+    st.setProperty("--bar", a.color); st.setProperty("--bar-text", a.text);   // top bar, message bar, left bar
     if(document.body.dataset.theme !== "discord") st.setProperty("--me", a.color);
   }
   else if(k === "image"){
@@ -557,6 +571,7 @@ function cleanEntry(e){
   else if(e.b.length >= 2000) return null;
   o.b = e.b;
   if(e.edited) o.edited = true;
+  if(typeof e.eb === "string" && e.eb) o.eb = e.eb.slice(0, 12);   // who made the last edit
   return o;
 }
 function mergeEntry(o){
@@ -802,6 +817,44 @@ function colorFor(name){
 
 const isMine = m => (m.c && m.c === uid) || m.u === usr;
 
+const ICON_EDIT = '<svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+const ICON_DEL = '<svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
+function iconBtn(cls, title, svg, fn){
+  const b = document.createElement("button"); b.type = "button"; b.className = cls; b.title = title; b.setAttribute("aria-label", title);
+  b.innerHTML = svg; b.onclick = ev => { ev.stopPropagation(); fn(); }; return b;
+}
+function editedText(l){ return l.eb && l.eb !== l.u ? " (Edited by " + l.eb + ")" : " (Edited)"; }
+
+/* inline editing: works on ANY text message, yours or a friend's */
+function startEdit(id){
+  const l = logs.find(x => x.i === id), w = $(id);
+  if(!l || l.img || l.del || !w) return;
+  const bub = w.querySelector("[data-bubble]"); if(!bub || w.classList.contains("editing")) return;
+  const inp = document.createElement("input");
+  inp.type = "text"; inp.className = "editin"; inp.value = l.b; inp.maxLength = 1999;
+  if(l.f && FONT_MAP[l.f]) inp.style.fontFamily = FONT_MAP[l.f];
+  w.classList.add("editing"); w.classList.remove("tap");
+  bub.style.display = "none"; bub.parentNode.insertBefore(inp, bub);
+  let done = false;
+  const finish = ok => {
+    if(done) return; done = true;
+    const nv = replaceCodes(inp.value.trim());
+    inp.remove(); bub.style.display = ""; w.classList.remove("editing");
+    if(ok && nv && nv !== l.b){
+      l.b = nv; l.edited = true; l.eb = usr; l.v = Date.now();
+      persist(); applyToDom(l); send({ t: "Y", i: newId(), e: [l] });
+    }
+  };
+  inp.addEventListener("keydown", e => { if(e.key === "Enter") finish(true); else if(e.key === "Escape") finish(false); });
+  inp.addEventListener("blur", () => finish(true));
+  inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length);
+}
+function deleteMsg(id){
+  const l = logs.find(x => x.i === id); if(!l) return;
+  Object.keys(l).forEach(k => { if(k !== "i" && k !== "ts") delete l[k]; });
+  l.del = true; l.v = Date.now(); persist(); applyToDom(l); send({ t: "Y", i: newId(), e: [l] });
+}
+
 function renderRow(m){
   if(m.del) return;
   const box = $("box"), mine = isMine(m);
@@ -814,38 +867,31 @@ function renderRow(m){
   const lbl = document.createElement("span"); lbl.className = "lbl"; lbl.textContent = m.u; lbl.style.setProperty("--uc", colorFor(m.u));
   col.appendChild(lbl);
 
+  const wrap = document.createElement("div"); wrap.className = "bwrap";
   if(m.img){
-    const im = document.createElement("img"); im.className = "img"; im.src = m.b; col.appendChild(im);
+    const im = document.createElement("img"); im.className = "img"; im.src = m.b; wrap.appendChild(im);
   } else {
     const bub = document.createElement("div"); bub.className = "bubble"; bub.textContent = m.b;
     if(m.f && FONT_MAP[m.f]) bub.style.fontFamily = FONT_MAP[m.f];
     bub.dataset.bubble = "1";
-    if(m.edited){ const s = document.createElement("span"); s.className = "edited"; s.textContent = " (Edited)"; bub.appendChild(s); }
+    if(m.edited){ const s = document.createElement("span"); s.className = "edited"; s.textContent = editedText(m); bub.appendChild(s); }
     styleBubble(bub, m.c || "");
-    col.appendChild(bub);
+    wrap.appendChild(bub);
   }
 
   const act = document.createElement("div"); act.className = "act";
-  if(mine && !m.img){
-    const b = document.createElement("button"); b.textContent = "Edit";
-    b.onclick = () => {
-      const l = logs.find(x => x.i === m.i); if(!l) return;
-      const nv = prompt("Edit message:", l.b);
-      if(nv && nv.trim()){ l.b = replaceCodes(nv.trim()); l.edited = true; l.v = Date.now(); persist(); applyToDom(l); send({ t: "Y", i: newId(), e: [l] }); }
-    };
-    act.appendChild(b);
-  }
-  if(mine){
-    const b = document.createElement("button"); b.className = "del"; b.textContent = "Delete";
-    b.onclick = () => {
-      const l = logs.find(x => x.i === m.i); if(!l) return;
-      Object.keys(l).forEach(k => { if(k !== "i" && k !== "ts") delete l[k]; });
-      l.del = true; l.v = Date.now(); persist(); applyToDom(l); send({ t: "Y", i: newId(), e: [l] });
-    };
-    act.appendChild(b);
-  }
-  col.appendChild(act);
+  if(!m.img) act.appendChild(iconBtn("edt", "Edit message", ICON_EDIT, () => startEdit(m.i)));
+  if(mine) act.appendChild(iconBtn("del", "Delete message", ICON_DEL, () => deleteMsg(m.i)));
+  if(act.children.length) wrap.appendChild(act);
+  col.appendChild(wrap);
   w.append(av, col);
+
+  // tap a message to show its buttons on touch screens
+  w.addEventListener("click", ev => {
+    if(ev.target.closest(".act") || ev.target.closest(".editin")) return;
+    document.querySelectorAll(".msg.tap").forEach(x => { if(x !== w) x.classList.remove("tap"); });
+    w.classList.toggle("tap");
+  });
 
   const nxt = m.ts ? [...box.querySelectorAll(".msg[data-ts]")].find(r => +r.dataset.ts > m.ts) : null;
   if(nxt) box.insertBefore(w, nxt); else { box.appendChild(w); box.scrollTop = box.scrollHeight; }
@@ -857,7 +903,7 @@ function applyToDom(l){
   if(!e){ renderRow(l); return; }
   const bub = e.querySelector("[data-bubble]"); if(!bub || l.img) return;
   bub.textContent = l.b;
-  if(l.edited){ const s = document.createElement("span"); s.className = "edited"; s.textContent = " (Edited)"; bub.appendChild(s); }
+  if(l.edited){ const s = document.createElement("span"); s.className = "edited"; s.textContent = editedText(l); bub.appendChild(s); }
 }
 function rerender(){
   document.querySelectorAll("#box .msg[data-ts]").forEach(e => e.remove());
