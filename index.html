@@ -14,8 +14,20 @@
     --bg:#313338; --side:#2b2d31; --line:#1f2023; --row:#404249; --accent:#5865f2;
     --text:#dbdee1; --muted:#949ba4; --input:#383a40; --me:transparent; --peer:transparent;
   }
+  body[data-theme="whatsapp"]{
+    --bg:#0b141a; --side:#111b21; --line:#222d34; --row:#202c33; --accent:#00a884;
+    --text:#e9edef; --muted:#8696a0; --input:#2a3942; --me:#005c4b; --peer:#202c33;
+  }
+  body[data-theme="whatsapp"] .bubble{border-radius:8px;padding:6px 10px}
+  body[data-theme="whatsapp"] .pill{border-radius:8px;border:none}
+  body[data-theme="whatsapp"] .av-sb{background:var(--accent)}
+  #tray{position:relative}
+  #emo-btn{font-size:22px;cursor:pointer;user-select:none}
+  #emo-panel{display:none;position:absolute;bottom:62px;left:20px;background:var(--side);border:1px solid var(--line);border-radius:12px;padding:8px;width:280px;max-height:200px;overflow-y:auto;flex-wrap:wrap;gap:2px;z-index:6}
+  #emo-panel span{font-size:24px;cursor:pointer;padding:3px;border-radius:6px}
+  #emo-panel span:hover{background:var(--row)}
   *{box-sizing:border-box}
-  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);margin:0;display:flex;height:100vh;overflow:hidden}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif,"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji";background:var(--bg);color:var(--text);margin:0;display:flex;height:100vh;overflow:hidden}
   #sb{width:220px;background:var(--side);display:flex;flex-direction:column;border-right:1px solid var(--line);justify-content:space-between;flex-shrink:0}
   .hdr-sb{padding:20px 16px;font-weight:bold;font-size:20px;border-bottom:1px solid var(--line)}
   .row-ch{padding:12px 16px;background:var(--row);display:flex;align-items:center;gap:10px;border-left:4px solid var(--accent)}
@@ -83,7 +95,7 @@
     <h1>Los-Purebreds-Chat</h1>
     <input id="g-code" type="text" placeholder="Room code" autocomplete="off">
     <input id="g-name" type="text" placeholder="Your name" maxlength="12" autocomplete="off">
-    <select id="g-theme"><option value="imessage">iMessage theme</option><option value="discord">Discord theme</option></select>
+    <select id="g-theme"><option value="imessage">iMessage theme</option><option value="discord">Discord theme</option><option value="whatsapp">WhatsApp theme</option></select>
     <div id="gerr"></div>
     <button id="g-go">Join</button>
   </div>
@@ -100,9 +112,8 @@
     <div class="stg-box" id="sd">
       <label>Name</label><input type="text" id="hi" maxlength="12">
       <label>Theme</label>
-      <select id="theme"><option value="imessage">iMessage</option><option value="discord">Discord</option></select>
+      <select id="theme"><option value="imessage">iMessage</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option></select>
       <button id="save">Save</button>
-      <button class="clr-btn" id="wipe">Wipe History</button>
     </div>
   </div>
 </div>
@@ -113,6 +124,8 @@
   <div id="tray">
     <label for="fi" class="plus">+</label>
     <input type="file" id="fi" accept="image/*" style="display:none" disabled>
+    <span id="emo-btn" title="Emoji">😊</span>
+    <div id="emo-panel"></div>
     <div class="pill"><input type="text" id="inp" placeholder="Message" disabled></div>
   </div>
 </div>
@@ -128,11 +141,11 @@ function save(k, v){ try { localStorage.setItem(k, v); } catch(e){ console.warn(
 
 /* ---------- theme ---------- */
 function setTheme(t){
-  if(t !== "imessage" && t !== "discord") t = "imessage";
+  if(!["imessage","discord","whatsapp"].includes(t)) t = "imessage";
   document.body.dataset.theme = t;
   $("theme").value = t; $("g-theme").value = t;
-  $("chname").textContent = t === "discord" ? "# purebred-chat" : "iMessage Channel";
-  $("inp").placeholder = t === "discord" ? "Message #purebred-chat" : "iMessage";
+  $("chname").textContent = {discord:"# purebred-chat",whatsapp:"WhatsApp Group",imessage:"iMessage Channel"}[t];
+  $("inp").placeholder = {discord:"Message #purebred-chat",whatsapp:"Type a message",imessage:"iMessage"}[t];
   save("chat_theme", t);
 }
 
@@ -167,9 +180,6 @@ $("save").onclick = () => {
   if(usr !== old){ send({ t: "N", u: old, b: usr, i: newId() }); sys("You changed your name to " + usr + "."); }
   else sys("Settings saved.");
   $("sd").style.display = "none"; $("sb").classList.remove("open");
-};
-$("wipe").onclick = () => {
-  if(confirm("Clear history?")){ try{ localStorage.removeItem("chat_history"); }catch(e){} logs = []; $("box").innerHTML = ""; sys("Chat logs wiped."); }
 };
 
 /* ---------- networking (host relays to everyone) ---------- */
@@ -221,12 +231,25 @@ function handle(d, from){
   } else if(d.t === "N" && typeof d.u === "string" && typeof d.b === "string"){
     sys(d.u.slice(0,12) + " is now " + d.b.slice(0,12));
   } else if(d.t === "D"){
+    const l = logs.find(x => x.i === d.i);
+    if(!l || l.cls !== "peer") return;
     removeMsg(d.i);
   } else if(d.t === "V" && typeof d.b === "string" && d.b.length < 2000){
+    const l = logs.find(x => x.i === d.i);
+    if(!l || l.cls !== "peer" || l.img || l.u !== String(d.u).slice(0,12)) return;
     editMsg(d.i, d.b);
   } else return;
   if(isHost) send(d, from); // relay to the other friends
 }
+
+/* ---------- emoji picker ---------- */
+const EMOJIS = "😀 😂 🤣 😊 😍 😘 😎 🤔 😅 😭 😡 🥺 😴 🤯 🥳 😉 🙄 😬 😇 🤪 😏 😢 😱 🤗 👍 👎 👏 🙌 🙏 💪 🤝 👋 ✌️ 🤞 🔥 💯 ✨ 🎉 ❤️ 💔 💙 💀 👀 🐶 🐱 🐴 🦄 🍕 🍔 🍟 🌮 🍺 ⚽ 🏀 🎮 🎵 🚀 🌙 ☀️".split(" ");
+EMOJIS.forEach(e => {
+  const sp = document.createElement("span"); sp.textContent = e;
+  sp.onclick = () => { const i = $("inp"); i.value += e; i.focus(); };
+  $("emo-panel").appendChild(sp);
+});
+$("emo-btn").onclick = () => { const p = $("emo-panel"); p.style.display = p.style.display === "flex" ? "none" : "flex"; };
 
 /* ---------- sending ---------- */
 function newId(){ return "msg-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8); }
@@ -299,11 +322,12 @@ function renderRow(m){
   }
 
   const act = document.createElement("div"); act.className = "act";
-  if(m.cls === "peer" && !m.img){
-    const b = document.createElement("button"); b.textContent = "Edit Message";
+  if(m.cls === "me" && !m.img){
+    const b = document.createElement("button"); b.textContent = "Edit";
     b.onclick = () => {
-      const nv = prompt("Edit message:", m.b);
-      if(nv && nv.trim()){ send({ t: "V", i: m.i, b: nv.trim() }); editMsg(m.i, nv.trim()); }
+      const cur = (logs.find(l => l.i === m.i) || m).b;
+      const nv = prompt("Edit message:", cur);
+      if(nv && nv.trim()){ send({ t: "V", i: m.i, u: usr, b: nv.trim() }); editMsg(m.i, nv.trim()); }
     };
     act.appendChild(b);
   }
