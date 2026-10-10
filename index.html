@@ -26,6 +26,12 @@
   #emo-panel{display:none;position:absolute;bottom:62px;left:20px;background:var(--side);border:1px solid var(--line);border-radius:12px;padding:8px;width:280px;max-height:200px;overflow-y:auto;flex-wrap:wrap;gap:2px;z-index:6}
   #emo-panel span{font-size:24px;cursor:pointer;padding:3px;border-radius:6px}
   #emo-panel span:hover{background:var(--row)}
+  #emo-sug{display:none;position:absolute;bottom:62px;left:60px;width:270px;max-height:340px;overflow-y:auto;background:#fff;color:#202124;border-radius:8px;box-shadow:0 1px 3px rgba(60,64,67,.3),0 4px 8px 3px rgba(60,64,67,.15);padding:6px 0;z-index:7}
+  #emo-sug .hd{display:flex;justify-content:space-between;align-items:center;padding:10px 16px 8px;font-size:11px;letter-spacing:.8px;font-weight:500;color:#5f6368}
+  #emo-sug .hd i{font-style:normal;font-size:18px;line-height:1}
+  #emo-sug .item{display:flex;gap:12px;align-items:center;padding:8px 16px;font-size:13px;cursor:pointer;color:#3c4043}
+  #emo-sug .item .e{font-size:17px;width:20px;text-align:center}
+  #emo-sug .item.sel,#emo-sug .item:hover{background:#e8e8e8}
   *{box-sizing:border-box}
   body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif,"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji";background:var(--bg);color:var(--text);margin:0;display:flex;height:100vh;overflow:hidden}
   #sb{width:220px;background:var(--side);display:flex;flex-direction:column;border-right:1px solid var(--line);justify-content:space-between;flex-shrink:0}
@@ -126,6 +132,7 @@
     <input type="file" id="fi" accept="image/*" style="display:none" disabled>
     <span id="emo-btn" title="Emoji">😊</span>
     <div id="emo-panel"></div>
+    <div id="emo-sug"></div>
     <div class="pill"><input type="text" id="inp" placeholder="Message" disabled></div>
   </div>
 </div>
@@ -251,18 +258,80 @@ EMOJIS.forEach(e => {
 });
 $("emo-btn").onclick = () => { const p = $("emo-panel"); p.style.display = p.style.display === "flex" ? "none" : "flex"; };
 
+/* ---------- :shortcodes: like Discord / Google Docs ---------- */
+const EMOJI_MAP = {};
+("smile=😄 grin=😁 joy=😂 rofl=🤣 smiley=😃 blush=😊 wink=😉 heart_eyes=😍 kissing_heart=😘 sunglasses=😎 thinking=🤔 sweat_smile=😅 cry=😢 sob=😭 angry=😡 rage=🤬 pleading=🥺 sleeping=😴 exploding_head=🤯 partying=🥳 eyeroll=🙄 grimacing=😬 innocent=😇 zany=🤪 smirk=😏 scream=😱 hugging=🤗 neutral=😐 expressionless=😑 sad=😞 worried=😟 confused=😕 upside_down=🙃 nerd=🤓 cold=🥶 hot=🥵 sick=🤢 skull=💀 ghost=👻 clown=🤡 poop=💩 100=💯 fire=🔥 sparkles=✨ tada=🎉 star=⭐ zap=⚡ boom=💥 sweat_drops=💦 " +
+"thumbsup=👍 thumbsdown=👎 clap=👏 raised_hands=🙌 pray=🙏 muscle=💪 handshake=🤝 wave=👋 peace=✌️ crossed_fingers=🤞 ok_hand=👌 point_up=☝️ point_right=👉 point_left=👈 fist=✊ eyes=👀 brain=🧠 " +
+"heart=❤️ broken_heart=💔 blue_heart=💙 green_heart=💚 purple_heart=💜 yellow_heart=💛 black_heart=🖤 white_heart=🤍 orange_heart=🧡 " +
+"dog=🐶 cat=🐱 horse=🐴 unicorn=🦄 monkey=🐵 pig=🐷 frog=🐸 snake=🐍 bear=🐻 lion=🦁 " +
+"pizza=🍕 burger=🍔 fries=🍟 taco=🌮 beer=🍺 coffee=☕ cake=🎂 cookie=🍪 apple=🍎 banana=🍌 " +
+"soccer=⚽ basketball=🏀 football=🏈 video_game=🎮 music=🎵 guitar=🎸 rocket=🚀 car=🚗 moon=🌙 sun=☀️ rainbow=🌈 snowflake=❄️ money=💰 gift=🎁 crown=👑 trophy=🏆 check=✅ x=❌ warning=⚠️ question=❓ lol=😂 skull_crossbones=☠️ thumbs-up=👍 thumbs-down=👎 slightly-happy=🙂 scrunched-eyes=😣 party-popper=🎉 plus-sign=➕ plus=➕ heart-eyes=😍 raised-hands=🙌").split(" ").forEach(p => {
+  const i = p.indexOf("="); if(i > 0) EMOJI_MAP[p.slice(0, i)] = p.slice(i + 1);
+});
+function replaceCodes(t){ return t.replace(/:([a-z0-9_-]+):/gi, (m, n) => EMOJI_MAP[n.toLowerCase()] || m); }
+let sugList = [], sugIdx = 0;
+const DEFAULT_SUG = ["thumbs-up","clap","slightly-happy","smile","joy","scrunched-eyes","rage","party-popper","plus-sign"];
+function hideSug(){ $("emo-sug").style.display = "none"; sugList = []; }
+function highlightSug(){
+  [...$("emo-sug").querySelectorAll(".item")].forEach((d, n) => {
+    d.classList.toggle("sel", n === sugIdx);
+    if(n === sugIdx) d.scrollIntoView({ block: "nearest" });
+  });
+}
+function pickSug(name){
+  const el = $("inp"), pos = el.selectionStart, before = el.value.slice(0, pos), after = el.value.slice(pos);
+  const nb = before.replace(/(^|\s):[a-z0-9_-]*$/i, (m, a) => a + EMOJI_MAP[name] + " ");
+  el.value = nb + after; el.setSelectionRange(nb.length, nb.length); el.focus(); hideSug();
+}
+function showSug(){
+  const el = $("inp"), m = el.value.slice(0, el.selectionStart).match(/(?:^|\s):([a-z0-9_-]*)$/i);
+  if(!m){ hideSug(); return; }
+  const q = m[1].toLowerCase();
+  sugList = q ? Object.keys(EMOJI_MAP).filter(k => k.startsWith(q)).slice(0, 9) : DEFAULT_SUG.slice();
+  sugIdx = 0;
+  if(!sugList.length){ hideSug(); return; }
+  const box = $("emo-sug"); box.innerHTML = "";
+  const hd = document.createElement("div"); hd.className = "hd";
+  hd.append(document.createTextNode("EMOJIS"));
+  const ch = document.createElement("i"); ch.textContent = "›"; hd.appendChild(ch);
+  box.appendChild(hd);
+  sugList.forEach(k => {
+    const d = document.createElement("div"); d.className = "item";
+    const e = document.createElement("span"); e.className = "e"; e.textContent = EMOJI_MAP[k];
+    const n = document.createElement("span"); n.textContent = ":" + k + ":";
+    d.append(e, n);
+    d.onmousedown = ev => { ev.preventDefault(); pickSug(k); };
+    box.appendChild(d);
+  });
+  box.style.display = "block"; highlightSug();
+}
+$("inp").addEventListener("input", () => {
+  const el = $("inp"), before = el.value, pos = el.selectionStart, after = replaceCodes(before);
+  if(after !== before){ el.value = after; const np = Math.max(0, pos + after.length - before.length); el.setSelectionRange(np, np); }
+  showSug();
+});
+$("inp").addEventListener("keydown", e => {
+  if(!sugList.length) return;
+  if(e.key === "ArrowDown"){ e.preventDefault(); sugIdx = (sugIdx + 1) % sugList.length; highlightSug(); }
+  else if(e.key === "ArrowUp"){ e.preventDefault(); sugIdx = (sugIdx - 1 + sugList.length) % sugList.length; highlightSug(); }
+  else if(e.key === "Tab" || e.key === "Enter"){ e.preventDefault(); pickSug(sugList[sugIdx]); }
+  else if(e.key === "Escape") hideSug();
+});
+$("inp").addEventListener("blur", () => setTimeout(hideSug, 120));
+
 /* ---------- sending ---------- */
 function newId(){ return "msg-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8); }
 
 function sendText(){
-  const el = $("inp"), v = el.value.trim();
+  const el = $("inp"), v = replaceCodes(el.value.trim());
   if(!v) return;
+  hideSug();
   const id = newId();
   send({ t: "T", b: v, u: usr, i: id });
   addMsg(usr, v, "me", id, 0);
   el.value = "";
 }
-$("inp").addEventListener("keydown", e => { if(e.key === "Enter") sendText(); });
+$("inp").addEventListener("keydown", e => { if(e.key === "Enter" && !sugList.length) sendText(); });
 
 $("fi").addEventListener("change", e => {
   const f = e.target.files[0];
@@ -327,7 +396,7 @@ function renderRow(m){
     b.onclick = () => {
       const cur = (logs.find(l => l.i === m.i) || m).b;
       const nv = prompt("Edit message:", cur);
-      if(nv && nv.trim()){ send({ t: "V", i: m.i, u: usr, b: nv.trim() }); editMsg(m.i, nv.trim()); }
+      if(nv && nv.trim()){ const fixed = replaceCodes(nv.trim()); send({ t: "V", i: m.i, u: usr, b: fixed }); editMsg(m.i, fixed); }
     };
     act.appendChild(b);
   }
