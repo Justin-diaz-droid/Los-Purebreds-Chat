@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Los Purebreds Chat</title>
+  <!-- Loads the open-source peer engine directly into the browser -->
+  <script src="https://unpkg.com"></script>
+  <style>
+    body { font-family: 'Whitney', 'Helvetica Neue', Helvetica, Arial, sans-serif; background: #313338; color: #dbdee1; margin: 0; padding: 0; display: flex; height: 100vh; overflow: hidden; }
+    
+    /* Discord Sidebar Elements */
+    #sidebar { width: 240px; background: #2b2d31; display: flex; flex-direction: column; border-right: 1px solid #1f2023; }
+    .server-header { padding: 12px; font-weight: bold; color: #fff; font-size: 15px; border-bottom: 1px solid #1f2023; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+    .channel-list { padding: 10px; flex-grow: 1; }
+    .channel { color: #949ba4; padding: 6px 8px; border-radius: 4px; display: flex; align-items: center; gap: 6px; font-size: 15px; margin-bottom: 2px; }
+    .channel-active { background: #404249; color: #f2f3f5; font-weight: 500; }
+    
+    /* Main Chat Container */
+    #main-chat { flex-grow: 1; display: flex; flex-direction: column; background: #313338; position: relative; }
+    .chat-header { height: 48px; padding: 0 16px; display: flex; align-items: center; border-bottom: 1px solid #1f2023; font-weight: bold; color: #fff; font-size: 16px; gap: 8px; }
+    .status-container { padding: 12px 16px; background: #1e1f22; border-bottom: 1px solid #2b2d31; }
+    .token-text { font-size: 12px; color: #b5bac1; font-family: monospace; background: #2b2d31; padding: 6px; border-radius: 4px; word-break: break-all; margin-bottom: 8px; }
+    
+    /* Connection Config Area */
+    .connect-row { display: flex; gap: 8px; }
+    .connect-row input { flex-grow: 1; background: #1e1f22; border: none; padding: 8px; color: #dbdee1; border-radius: 4px; font-size: 13px; }
+    .connect-row button { background: #5865f2; color: #fff; border: none; padding: 8px 14px; border-radius: 4px; font-weight: 500; cursor: pointer; font-size: 13px; }
+    .connect-row button:hover { background: #4752c4; }
+
+    /* Message Stream Area */
+    #messages-container { flex-grow: 1; overflow-y: auto; padding: 16px 0; display: flex; flex-direction: column; }
+    .message-wrapper { display: flex; padding: 2px 16px; position: relative; gap: 16px; }
+    .message-wrapper:hover { background: #2e3035; }
+    .avatar { width: 40px; height: 40px; border-radius: 50%; background: #5865f2; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; flex-shrink: 0; font-size: 16px; }
+    .avatar.peer { background: #23a55a; }
+    .message-content-area { flex-grow: 1; }
+    .meta-row { display: flex; align-items: baseline; gap: 8px; }
+    .author-name { font-weight: 500; color: #f2f3f5; font-size: 16px; }
+    .author-name.peer { color: #23a55a; }
+    .timestamp { font-size: 12px; color: #949ba4; }
+    .text-body { color: #dbdee1; font-size: 15px; margin-top: 4px; word-break: break-word; white-space: pre-wrap; }
+    .edited-tag { font-size: 10px; color: #949ba4; margin-left: 4px; }
+    
+    /* Action Controls Hover Overlay */
+    .action-overlay { display: none; position: absolute; right: 16px; top: -10px; background: #313338; border: 1px solid #232428; border-radius: 4px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+    .message-wrapper:hover .action-overlay { display: flex; }
+    .action-btn { padding: 6px 10px; background: none; border: none; color: #b5bac1; cursor: pointer; font-size: 12px; }
+    .action-btn:hover { background: #35373c; color: #fff; }
+    .action-btn.delete-btn:hover { color: #f23f43; }
+
+    /* Text Input Tray */
+    #input-tray { padding: 0 16px 24px 16px; background: #313338; }
+    .input-box-wrapper { background: #383a40; border-radius: 8px; padding: 10px 16px; display: flex; align-items: center; }
+    #message-input-field { background: none; border: none; color: #dbdee1; flex-grow: 1; font-size: 15px; outline: none; }
+    #message-input-field::placeholder { color: #6d737d; }
+
+    /* Inline Editor Window */
+    .edit-mode-container { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; width: 100%; }
+    .edit-input { background: #383a40; border: none; padding: 8px; color: #dbdee1; border-radius: 4px; font-size: 15px; width: 95%; outline: none; }
+    .edit-hints { font-size: 11px; color: #b5bac1; }
+    .edit-hints span { color: #00a8fc; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <!-- Discord Layout Left Side Navigation Sidebar -->
+  <div id="sidebar">
+    <div class="server-header">Los Purebreds</div>
+    <div class="channel-list">
+      <div class="channel channel-active">
+        <span style="font-size:18px; color:#80848e;">#</span> general-chat
+      </div>
+    </div>
+  </div>
+
+  <!-- Primary Messaging Control Center -->
+  <div id="main-chat">
+    <div class="chat-header"><span style="color:#80848e; font-size:22px;">#</span> general-chat</div>
+    
+    <!-- Infrastructure Networking Token Drawer -->
+    <div class="status-container">
+      <div class="token-text" id="my-token-readout">System status: Provisioning client networking profiles...</div>
+      <div class="connect-row">
+        <input type="text" id="peer-id-target" placeholder="Enter room code / target friend token string...">
+        <button onclick="initiateHandshake()">Connect</button>
+      </div>
+    </div>
+
+    <!-- Core Message Display Pipeline -->
+    <div id="messages-container">
+      <div class="message-wrapper">
+        <div class="avatar">SYS</div>
+        <div class="message-content-area">
+          <div class="meta-row">
+            <span class="author-name">System Log</span>
+          </div>
+          <div class="text-body" style="color: #bcbec4; font-style: italic;">Provide your secure link token to open your communication channel array.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interface Input Tray -->
+    <div id="input-tray">
+      <div class="input-box-wrapper">
+        <input type="text" id="message-input-field" placeholder="Message #general-chat" onkeypress="if(event.key==='Enter') dispatchMessage()" disabled>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let peerNode = new Peer();
+    let currentSessionLink = null;
+    let localMessageCounter = 0;
+
+    // Monitor token activation sequences
+    peerNode.on('open', (assignedId) => {
+      document.getElementById('my-token-readout').innerHTML = `<strong>Your Session Key:</strong> ${assignedId} (Share this code)`;
+    });
+
+    // Handle automated incoming terminal connections
+    peerNode.on('connection', (inboundLink) => {
+      currentSessionLink = inboundLink;
+      bindNetworkEvents();
+    });
+
+    // Force link pipeline handshakes
+    function initiateHandshake() {
+      const pinValue = document.getElementById('peer-id-target').value.trim();
+      if (!pinValue) return;
+      currentSessionLink = peerNode.connect(pinValue);
+      bindNetworkEvents();
+    }
+
+    // Capture, package, and evaluate real-time signals
+    function bindNetworkEvents() {
+      currentSessionLink.on('open', () => {
+        document.getElementById('message-input-field').disabled = false;
+        document.getElementById('message-input-field').placeholder = "Message #general-chat";
+        injectSystemBroadcast("Connection validated. P2P communication stream online.");
+      });
+
+      currentSessionLink.on('data', (payload) => {
+        if (payload.action === 'CHAT') {
+          renderMessageBlock("Friend", payload.content, "peer", payload.msgId);
+        } else if (payload.action === 'EDIT') {
+          applyRemoteEdit(payload.msgId, payload.content);
+        } else if (payload.action === 'DELETE') {
+          applyRemoteDeletion(payload.msgId);
+        }
+      });
+
+      currentSessionLink.on('close', () => {
+        injectSystemBroadcast("Connection terminated by remote entity.");
+        document.getElementById('message-input-field').disabled = true;
+      });
+    }
+
+    // Construct transmission payloads
+    function dispatchMessage() {
+      const inputEl = document.getElementById('message-input-field');
+      const text = inputEl.value.trim();
+      if (!text || !currentSessionLink) return;
+
+      localMessageCounter++;
+      const uniqueMsgId = `msg-${peerNode.id}-${localMessageCounter}`;
+
+      // Emit straight data to peer browser frame
+      currentSessionLink.send({ action: 'CHAT', content: text, msgId: uniqueMsgId });
+      renderMessageBlock("You", text, "me", uniqueMsgId);
+      inputEl.value = "";
+    }
+
+    // Build functional UI nodes inside containers
+    function renderMessageBlock(sender, text, userClass, id) {
+      const feed = document.getElementById('messages-container');
+      const wrap = document.createElement('div');
+      wrap.className = 'message-wrapper';
+      wrap.id = id;
+
+      const initialChar = sender.charAt(0).toUpperCase();
+      const isMe = (userClass === "me");
+
+      wrap.innerHTML = `
+        <div class="avatar ${userClass}">${initialChar}</div>
+        <div class="message-content-area">
+          <div class="meta-row">
+            <span class="author-name ${userClass}">${sender}</span>
+            <span class="timestamp">Today at ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+          </div>
+          <div class="text-body" id="body-${id}">${escapeHtml(text)}</div>
+        </div>
+        ${isMe ? `
+          <div class="action-overlay">
+            <button class="action-btn" onclick="openInlineEditor('${id}')">Edit</button>
+            <button class="action-btn delete-btn" onclick="requestUnsendMessage('${id}')">Delete</button>
+          </div>
+        ` : ''}
+      `;
+      feed.appendChild(wrap);
+      feed.scrollTop = feed.scrollHeight;
+    }
+
+    // Execute editing adjustments
+    function openInlineEditor(id) {
+      const textNode = document.getElementById(`body-${id}`);
