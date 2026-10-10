@@ -1,168 +1,68 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Los Purebreds Chat</title>
-  <script src="https://unpkg.com"></script>
-  <style>
-    body { font-family: sans-serif; background: #313338; color: #dbdee1; margin: 0; padding: 0; display: flex; height: 100vh; overflow: hidden; }
-    #sidebar { width: 240px; background: #2b2d31; display: flex; flex-direction: column; border-right: 1px solid #1f2023; }
-    .server-header { padding: 12px; font-weight: bold; color: #fff; font-size: 15px; border-bottom: 1px solid #1f2023; }
-    .channel-list { padding: 10px; flex-grow: 1; }
-    .channel { color: #949ba4; padding: 6px 8px; border-radius: 4px; display: flex; align-items: center; gap: 6px; font-size: 15px; }
-    .channel-active { background: #404249; color: #f2f3f5; font-weight: 500; }
-    #main-chat { flex-grow: 1; display: flex; flex-direction: column; background: #313338; position: relative; }
-    .chat-header { height: 48px; padding: 0 16px; display: flex; align-items: center; border-bottom: 1px solid #1f2023; font-weight: bold; color: #fff; font-size: 16px; }
-    .status-container { padding: 12px 16px; background: #1e1f22; border-bottom: 1px solid #2b2d31; }
-    .token-text { font-size: 13px; color: #dbdee1; background: #2b2d31; padding: 8px; border-radius: 4px; border-left: 4px solid #23a55a; }
-    #messages-container { flex-grow: 1; overflow-y: auto; padding: 16px 0; display: flex; flex-direction: column; }
-    .message-wrapper { display: flex; padding: 6px 16px; position: relative; gap: 16px; }
-    .message-wrapper:hover { background: #2e3035; }
-    .avatar { width: 40px; height: 40px; border-radius: 50%; background: #5865f2; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; flex-shrink: 0; }
-    .avatar.peer { background: #23a55a; }
-    .message-content-area { flex-grow: 1; }
-    .meta-row { display: flex; align-items: baseline; gap: 8px; }
-    .author-name { font-weight: 500; color: #f2f3f5; font-size: 16px; }
-    .author-name.peer { color: #23a55a; }
-    .timestamp { font-size: 12px; color: #949ba4; }
-    .text-body { color: #dbdee1; font-size: 15px; margin-top: 4px; word-break: break-word; white-space: pre-wrap; }
-    .chat-image { max-width: 300px; max-height: 300px; border-radius: 8px; margin-top: 8px; display: block; }
-    .action-overlay { display: none; position: absolute; right: 16px; top: -10px; background: #313338; border: 1px solid #232428; border-radius: 4px; }
-    .message-wrapper:hover .action-overlay { display: flex; }
-    .action-btn { padding: 6px 10px; background: none; border: none; color: #b5bac1; cursor: pointer; font-size: 12px; }
-    .action-btn.delete-btn:hover { color: #f23f43; }
-    #input-tray { padding: 0 16px 24px 16px; background: #313338; }
-    .input-box-wrapper { background: #383a40; border-radius: 8px; padding: 10px 16px; display: flex; align-items: center; gap: 12px; }
-    #message-input-field { background: none; border: none; color: #dbdee1; flex-grow: 1; font-size: 15px; outline: none; }
-    .upload-btn-label { width: 24px; height: 24px; background: #4e5058; color: #b5bac1; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; cursor: pointer; }
-    #image-file-input { display: none; }
-    .connect-btn { background: #23a55a; color: white; border: none; padding: 8px 16px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 8px; display: block; }
-    .connect-btn:hover { background: #1a7f43; }
-  </style>
-</head>
-<body>
-  <div id="sidebar">
-    <div class="server-header">Los Purebreds</div>
-    <div class="channel-list"><div class="channel channel-active"># general-chat</div></div>
-  </div>
-  <div id="main-chat">
-    <div class="chat-header"># general-chat</div>
-    <div class="status-container">
-      <div class="token-text" id="my-token-readout"><strong>Los Purebreds Secure Line.</strong> Click the button below to establish a connection.</div>
-      <button class="connect-btn" id="main-connect-trigger" onclick="launchPurebredLink()">Initialize Network Link</button>
-    </div>
-    <div id="messages-container">
-      <div class="message-wrapper">
-        <div class="avatar">SYS</div>
-        <div class="message-content-area">
-          <div class="meta-row"><span class="author-name">System</span></div>
-          <div class="text-body" style="font-style: italic;">Awaiting network alignment. Click "Initialize Network Link" above to start.</div>
-        </div>
-      </div>
-    </div>
-    <div id="input-tray">
-      <div class="input-box-wrapper">
-        <label for="image-file-input" class="upload-btn-label" id="upload-label-element" style="pointer-events: none; opacity: 0.5;">+</label>
-        <input type="file" id="image-file-input" accept="image/*" onchange="handleImageUpload(event)" disabled>
-        <input type="text" id="message-input-field" placeholder="Awaiting network link..." onkeypress="if(event.key==='Enter') dispatchMessage()" disabled>
-      </div>
+<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Los Purebreds Chat</title>
+<script src="https://unpkg.com"></script>
+<style>
+  body{font-family:sans-serif;background:#313338;color:#dbdee1;margin:0;display:flex;height:100vh;}
+  #sb{width:200px;background:#2b2d31;padding:12px;font-weight:bold;color:#fff;}
+  #main{flex-grow:1;display:flex;flex-direction:column;background:#313338;}
+  #hdr{height:48px;padding:0 16px;display:flex;align-items:center;border-bottom:1px solid #1f2023;font-weight:bold;color:#fff;}
+  #msg-box{flex-grow:1;overflow-y:auto;padding:16px;}
+  .msg{display:flex;margin-bottom:12px;gap:12px;position:relative;}
+  .avatar{width:36px;height:36px;border-radius:50%;background:#5865f2;display:flex;align-items:center;justify-content:center;font-weight:bold;color:#fff;}
+  .avatar.peer{background:#23a55a;}
+  .img{max-width:250px;border-radius:6px;margin-top:6px;display:block;}
+  .del-btn{position:absolute;right:10px;background:#f23f43;color:#fff;border:none;border-radius:4px;padding:2px 6px;cursor:pointer;display:none;}
+  .msg:hover .del-btn{display:block;}
+  #tray{padding:20px;display:flex;align-items:center;gap:12px;background:#383a40;margin:16px;border-radius:8px;}
+  #inp{flex-grow:1;background:none;border:none;color:#dbdee1;outline:none;font-size:15px;}
+  .btn{background:#23a55a;color:#fff;border:none;padding:8px 16px;border-radius:4px;font-weight:bold;cursor:pointer;}
+</style></head><body>
+  <div id="sb">Los Purebreds<div style="color:#949ba4;margin-top:12px;font-size:14px;"># general-chat</div></div>
+  <div id="main">
+    <div id="hdr"># general-chat <button class="btn" id="cbtn" onclick="init()" style="margin-left:auto;">Connect</button></div>
+    <div id="msg-box"><div class="msg"><div class="avatar">SYS</div><div><b>System</b><br><i style="color:#bcbec4;">Click "Connect" to log into the purebred line.</i></div></div></div>
+    <div id="tray">
+      <label for="f" style="font-size:20px;cursor:pointer;color:#b5bac1;user-select:none;">+</label>
+      <input type="file" id="f" accept="image/*" onchange="upImg(event)" style="display:none;" disabled>
+      <input type="text" id="inp" placeholder="Awaiting connection..." onkeypress="if(event.key==='Enter') sendTxt()" disabled>
     </div>
   </div>
-
-  <script>
-    let peerNode = null;
-    let currentSessionLink = null;
-    let localMessageCounter = 0;
-    const FIXED_ROOM_ID = "purebred";
-
-    function launchPurebredLink() {
-      document.getElementById('main-connect-trigger').disabled = true;
-      document.getElementById('main-connect-trigger').innerText = "Connecting...";
-      
-      // Forces the peer engine address to be exactly "purebred"
-      peerNode = new Peer(FIXED_ROOM_ID);
-
-      peerNode.on('open', (id) => {
-        injectSystemBroadcast(`Room opened under key "${id}". Awaiting partner node...`);
-        // If your friend has already initialized the room, this line links you instantly
-        currentSessionLink = peerNode.connect(FIXED_ROOM_ID);
-        bindNetworkEvents();
-      });
-
-      peerNode.on('connection', (inboundLink) => {
-        currentSessionLink = inboundLink;
-        bindNetworkEvents();
-      });
-
-      peerNode.on('error', (err) => {
-        if (err.type === 'unavailable-id') {
-          // If the room "purebred" is already taken (meaning your friend clicked it first), connect directly to them
-          peerNode = new Peer();
-          peerNode.on('open', () => {
-            currentSessionLink = peerNode.connect(FIXED_ROOM_ID);
-            bindNetworkEvents();
-          });
-        }
-      });
-    }
-
-    function bindNetworkEvents() {
-      currentSessionLink.on('open', () => {
-        document.getElementById('message-input-field').disabled = false;
-        document.getElementById('image-file-input').disabled = false;
-        document.getElementById('upload-label-element').style.pointerEvents = "auto";
-        document.getElementById('upload-label-element').style.opacity = "1";
-        document.getElementById('message-input-field').placeholder = "Message #general-chat";
-        document.getElementById('my-token-readout').innerHTML = "<strong>Network Link Secured.</strong> Communication array online.";
-        document.getElementById('main-connect-trigger').style.display = "none";
-        injectSystemBroadcast("Connection validated. Secure tunnel online.");
-      });
-      currentSessionLink.on('data', (p) => {
-        if (p.action === 'CHAT') renderMessageBlock("Friend", p.content, "peer", p.msgId, p.isImage);
-        else if (p.action === 'DELETE') { const el = document.getElementById(p.msgId); if(el) el.remove(); }
-      });
-    }
-
-    function dispatchMessage() {
-      const el = document.getElementById('message-input-field'); if (!el.value.trim() || !currentSessionLink) return;
-      localMessageCounter++; const id = `msg-${localMessageCounter}`;
-      currentSessionLink.send({ action: 'CHAT', content: el.value.trim(), msgId: id, isImage: false });
-      renderMessageBlock("You", el.value.trim(), "me", id, false); el.value = "";
-    }
-
-    function handleImageUpload(e) {
-      const file = e.target.files[0]; if (!file || !currentSessionLink) return;
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        localMessageCounter++; const id = `msg-${localMessageCounter}`;
-        currentSessionLink.send({ action: 'CHAT', content: evt.target.result, msgId: id, isImage: true });
-        renderMessageBlock("You", evt.target.result, "me", id, true);
-      };
-      reader.readAsDataURL(file);
-    }
-
-    function renderMessageBlock(sender, text, cls, id, isImg) {
-      const feed = document.getElementById('messages-container');
-      const wrap = document.createElement('div'); wrap.className = 'message-wrapper'; wrap.id = id;
-      let bodyHtml = isImg ? `<img src="${text}" class="chat-image" id="body-${id}">` : `<div class="text-body" id="body-${id}">${escapeHtml(text)}</div>`;
-      wrap.innerHTML = `
-        <div class="avatar ${cls}">${sender.charAt(0)}</div>
-        <div class="message-content-area">
-          <div class="meta-row"><span class="author-name ${cls}">${sender}</span></div>
-          ${bodyHtml}
-        </div>
-        ${cls === 'me' ? `<div class="action-overlay"><button class="action-btn delete-btn" onclick="currentSessionLink.send({action:'DELETE',msgId:'id'); document.getElementById('{id}').remove()">Delete</button></div>` : ''}
-      `;
-      feed.appendChild(wrap); feed.scrollTop = feed.scrollHeight;
-    }
-
-    function injectSystemBroadcast(info) {
-      const feed = document.getElementById('messages-container');
-      feed.innerHTML += `<div class="message-wrapper"><div class="avatar" style="background:#4e5058;">SYS</div><div class="message-content-area"><div class="meta-row"><span class="author-name" style="color:#b5bac1;">System</span></div><div class="text-body" style="color:#23a55a;">${info}</div></div></div>`;
-      feed.scrollTop = feed.scrollHeight;
-    }
-
-    function escapeHtml(str) { return str.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
-  </script>
-</body>
-</html>
+<script>
+  let p=null,c=null,cnt=0,rm="purebred";
+  function init(){
+    document.getElementById('cbtn').innerText="Connecting...";
+    p=new Peer(rm);
+    p.on('open',()=>{log("Room hosting active. Waiting for friend...","#23a55a");c=p.connect(rm);events();});
+    p.on('connection',(l)=>{c=l;events();});
+    p.on('error',(e)=>{if(e.type==='unavailable-id'){p=new Peer();p.on('open',()=>{c=p.connect(rm);events();});}});
+  }
+  function events(){
+    c.on('open',()=>{
+      document.getElementById('inp').disabled=false;document.getElementById('f').disabled=false;
+      document.getElementById('inp').placeholder="Message #general-chat";document.getElementById('cbtn').style.display="none";
+      log("Secure pipeline connected!","#23a55a");
+    });
+    c.on('data',(d)=>{if(d.a==='C')add("Friend",d.c,"peer",d.i,d.m);if(d.a==='D'){let e=document.getElementById(d.i);if(e)e.remove();}});
+  }
+  function sendTxt(){
+    let e=document.getElementById('inp'),v=e.value.trim();if(!v||!c)return;
+    cnt++;let id=`m-${cnt}`;c.send({a:'C',c:v,i:id,m:0});add("You",v,"me",id,0);e.value="";
+  }
+  function upImg(e){
+    let f=e.target.files[0];if(!f||!c)return;let r=new FileReader();
+    r.onload=(evt)=>{cnt++;let id=`m-${cnt}`;c.send({a:'C',c:evt.target.result,i:id,m:1});add("You",evt.target.result,"me",id,1);};
+    r.readAsDataURL(f);
+  }
+  function add(s,t,cls,id,img){
+    let b=document.getElementById('msg-box'),w=document.createElement('div');w.className='msg';w.id=id;
+    let html=img?`<img src="${t}" class="img">`:`<span style="color:#dbdee1;">${escape(t)}</span>`;
+    w.innerHTML=`<div class="avatar ${cls}">${s[0]}</div><div><b>${s}</b><br>${html}</div>`;
+    if(cls==='me')w.innerHTML+=`<button class="del-btn" onclick="c.send({a:'D',i:'${id}'});document.getElementById('${id}').remove()">Delete</button>`;
+    b.appendChild(w);b.scrollTop=b.scrollHeight;
+  }
+  function log(txt,color){
+    let b=document.getElementById('msg-box');
+    b.innerHTML+=`<div class="msg"><div class="avatar" style="background:#4e5058;">SYS</div><div><b>System</b><br><span style="color:${color}; font-weight:bold;">${txt}</span></div></div>`;
+    b.scrollTop=b.scrollHeight;
+  }
+  function escape(str){return str.toString().replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+</script></body></html>
