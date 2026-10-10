@@ -47,9 +47,14 @@
   .oav::after{content:"";position:absolute;right:-2px;bottom:-2px;width:9px;height:9px;border-radius:50%;background:#32d74b;border:2px solid var(--bg)}
   #online .ocount{margin-left:8px}
   .hide-hdr #hdr{display:none}
+  #hdrwrap{position:relative;z-index:3}
+  .arrow{position:absolute;z-index:8;border:none;background:var(--row);color:var(--text);cursor:pointer;opacity:.65;padding:0;line-height:1;transition:opacity .15s}
+  .arrow:hover{opacity:1}
+  #hdr-arrow{top:100%;left:50%;transform:translateX(-50%);width:54px;height:16px;border-radius:0 0 10px 10px;font-size:9px}
+  #sb-arrow{position:fixed;top:50%;left:220px;transform:translateY(-50%);width:16px;height:54px;border-radius:0 10px 10px 0;font-size:18px}
+  .hide-sb #sb-arrow{left:0}
+  @media(max-width:600px){#sb-arrow{left:0}#sb.open ~ #sb-arrow{left:240px}}
   .hide-sb #sb{display:none !important}
-  #showbars{display:none;position:fixed;top:8px;right:8px;z-index:8;width:34px;height:34px;border-radius:50%;border:none;background:var(--accent);color:var(--on-accent,#fff);font-size:16px;cursor:pointer;opacity:.85}
-  .hide-hdr #showbars,.hide-sb #showbars{display:block}
   body[data-theme="tiktok"]{
     --bg:#121212; --side:#000; --line:#2f2f2f; --row:#1f1f1f; --accent:#fe2c55;
     --text:#fff; --muted:#a1a1a5; --input:#2f2f2f; --me:#fe2c55; --peer:#2f2f2f;
@@ -197,9 +202,10 @@
   </div>
 </div>
 
-<button id="showbars" title="Show bars">☰</button>
+<button id="sb-arrow" class="arrow" title="Hide / show messages bar"></button>
 <div id="main">
-  <div id="hdr"><button id="hdr-set" title="Settings">⚙️</button><span id="status">Not connected</span><div id="online"></div></div>
+  <div id="hdrwrap"><div id="hdr"><button id="hdr-set" title="Settings">⚙️</button><span id="status">Not connected</span><div id="online"></div></div>
+    <button id="hdr-arrow" class="arrow" title="Hide / show top bar"></button></div>
   <div id="box"></div>
   <div id="tray">
     <label for="fi" class="plus">+</label>
@@ -287,11 +293,23 @@ $("wreset").onclick = () => { save("wall_kind", "none"); try{ localStorage.remov
 function applyBars(){
   const h = load("hide_hdr", "0") === "1", sb = load("hide_sb", "0") === "1";
   document.body.classList.toggle("hide-hdr", h); document.body.classList.toggle("hide-sb", sb);
-  $("hh").checked = h; $("hs").checked = sb;
+  $("hh").checked = h; $("hs").checked = sb; updateArrows();
 }
 $("hh").onchange = e => { save("hide_hdr", e.target.checked ? "1" : "0"); applyBars(); };
 $("hs").onchange = e => { save("hide_sb", e.target.checked ? "1" : "0"); applyBars(); };
-$("showbars").onclick = () => { save("hide_hdr", "0"); save("hide_sb", "0"); applyBars(); };
+const isMobile = () => window.matchMedia("(max-width:600px)").matches;
+function updateArrows(){
+  const sbShown = isMobile() ? $("sb").classList.contains("open") : load("hide_sb", "0") !== "1";
+  $("sb-arrow").textContent = sbShown ? "‹" : "›";
+  $("hdr-arrow").textContent = load("hide_hdr", "0") === "1" ? "▼" : "▲";
+}
+$("sb-arrow").onclick = () => {
+  if(isMobile()) $("sb").classList.toggle("open");
+  else { save("hide_sb", load("hide_sb", "0") === "1" ? "0" : "1"); applyBars(); }
+};
+$("hdr-arrow").onclick = () => { save("hide_hdr", load("hide_hdr", "0") === "1" ? "0" : "1"); applyBars(); };
+new MutationObserver(updateArrows).observe($("sb"), { attributes: true });
+window.addEventListener("resize", updateArrows);
 
 /* ---------- fonts & profile pictures (shared with everyone) ---------- */
 const FONT_MAP = {
