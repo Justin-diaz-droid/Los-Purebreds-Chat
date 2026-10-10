@@ -24,15 +24,6 @@
   body[data-theme="whatsapp"] .pill{border-radius:8px;border:none}
   body[data-theme="whatsapp"] .av-sb{background:var(--accent)}
   #tray{position:relative}
-  #emo-btn{font-size:22px;cursor:pointer;user-select:none}
-  #emo-panel{display:none;flex-direction:column;position:absolute;bottom:62px;left:20px;background:var(--side);border:1px solid var(--line);border-radius:12px;padding:8px;width:320px;height:330px;gap:6px;z-index:6}
-  #emo-q{width:100%;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--text)}
-  #emo-tabs{display:flex;gap:2px;overflow-x:auto;flex-shrink:0}
-  #emo-tabs span{font-size:18px;padding:3px 6px;border-radius:6px;cursor:pointer}
-  #emo-tabs span.on,#emo-tabs span:hover{background:var(--row)}
-  #emo-grid{flex:1;overflow-y:auto;display:flex;flex-wrap:wrap;align-content:flex-start;gap:2px}
-  #emo-grid span{font-size:24px;cursor:pointer;padding:3px;border-radius:6px}
-  #emo-grid span:hover{background:var(--row)}
   .stg-box{max-height:55vh;overflow-y:auto}
   .av.has-pfp{display:flex}
   .av,.oav{background-size:cover;background-position:center}
@@ -90,12 +81,35 @@
   body[data-theme="twitter"] .peer .bubble{border-bottom-left-radius:4px}
   body[data-theme="twitter"] .pill{border-radius:20px;border:none}
   body[data-theme="twitter"] .av-sb{background:#1d9bf0}
-  #emo-sug{display:none;position:absolute;bottom:62px;left:60px;width:270px;max-height:340px;overflow-y:auto;background:#fff;color:#202124;border-radius:8px;box-shadow:0 1px 3px rgba(60,64,67,.3),0 4px 8px 3px rgba(60,64,67,.15);padding:6px 0;z-index:7}
-  #emo-sug .hd{display:flex;justify-content:space-between;align-items:center;padding:10px 16px 8px;font-size:11px;letter-spacing:.8px;font-weight:500;color:#5f6368}
+  /* Google Docs-style light emoji picker */
+  #emo-btn{font-size:22px;cursor:pointer;user-select:none}
+  #emo-panel{display:none;flex-direction:column;position:absolute;bottom:62px;left:20px;width:min(352px,92vw);height:380px;background:#fff;color:#202124;border:1px solid #dadce0;border-radius:8px;box-shadow:0 1px 3px rgba(60,64,67,.3),0 4px 8px 3px rgba(60,64,67,.15);z-index:6;overflow:hidden;font-family:"Google Sans",Roboto,Arial,sans-serif}
+  #emo-q{margin:10px 10px 6px;padding:8px 14px;border:1px solid #dadce0;border-radius:20px;font-size:13px;color:#202124;background:#f1f3f4;outline:none;width:auto}
+  #emo-q:focus{background:#fff;border-color:#1a73e8}
+  #emo-tabs{display:flex;border-bottom:1px solid #dadce0;flex-shrink:0;padding:0 4px}
+  #emo-tabs span{flex:1;text-align:center;font-size:18px;padding:6px 0 5px;cursor:pointer;border-bottom:3px solid transparent;opacity:.65}
+  #emo-tabs span.on{border-bottom-color:#1a73e8;opacity:1}
+  #emo-tabs span:hover{background:#f1f3f4}
+  #emo-title{font-size:11px;font-weight:500;color:#5f6368;padding:8px 12px 2px;letter-spacing:.6px;text-transform:uppercase}
+  #emo-grid{flex:1;overflow-y:auto;display:flex;flex-wrap:wrap;align-content:flex-start;padding:2px 8px}
+  #emo-grid span{font-size:22px;cursor:pointer;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:4px}
+  #emo-grid span:hover{background:#e8eaed}
+  #emo-grid .none{width:100%;padding:20px;text-align:center;font-size:13px;color:#5f6368;cursor:default}
+  #emo-foot{border-top:1px solid #dadce0;padding:6px 12px;font-size:12px;color:#5f6368;min-height:30px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #emo-sug{display:none;position:absolute;bottom:62px;left:60px;width:min(300px,86vw);max-height:360px;overflow-y:auto;background:#fff;color:#202124;border-radius:8px;box-shadow:0 1px 3px rgba(60,64,67,.3),0 4px 8px 3px rgba(60,64,67,.15);padding:6px 0;z-index:7;font-family:"Google Sans",Roboto,Arial,sans-serif}
+  #emo-sug .hd{display:flex;justify-content:space-between;align-items:center;padding:10px 16px 8px;font-size:11px;letter-spacing:.8px;font-weight:500;color:#5f6368;position:sticky;top:-6px;background:#fff}
   #emo-sug .hd i{font-style:normal;font-size:18px;line-height:1}
-  #emo-sug .item{display:flex;gap:12px;align-items:center;padding:8px 16px;font-size:13px;cursor:pointer;color:#3c4043}
-  #emo-sug .item .e{font-size:17px;width:20px;text-align:center}
-  #emo-sug .item.sel,#emo-sug .item:hover{background:#e8e8e8}
+  #emo-sug .item{display:flex;gap:12px;align-items:center;padding:7px 16px;font-size:13px;cursor:pointer;color:#3c4043}
+  #emo-sug .item .e{font-size:18px;width:22px;text-align:center}
+  #emo-sug .item.sel,#emo-sug .item:hover{background:#e8eaed}
+  /* Settings sections */
+  details.sec{border:1px solid var(--line);border-radius:8px;margin-bottom:8px;background:var(--side)}
+  details.sec summary{padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;color:var(--text);list-style:none;user-select:none}
+  details.sec summary::-webkit-details-marker{display:none}
+  details.sec summary::after{content:"▾";float:right;color:var(--muted)}
+  details.sec[open] summary::after{content:"▴"}
+  details.sec .sec-body{padding:0 12px 12px;border-top:1px solid var(--line)}
+  .stg-box button.alt{background:var(--input);color:var(--text);border:1px solid var(--line);font-weight:normal}
   *{box-sizing:border-box}
   body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif,"Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji";background:var(--bg);color:var(--text);margin:0;display:flex;height:100vh;overflow:hidden}
   #sb{width:220px;background:var(--side);display:flex;flex-direction:column;border-right:1px solid var(--line);justify-content:space-between;flex-shrink:0}
@@ -182,27 +196,47 @@
     <div id="youare" style="font-size:12px;color:var(--muted);margin-bottom:6px"></div>
     <button class="stg-btn" id="stg-toggle">⚙️ Settings</button>
     <div class="stg-box" id="sd">
-      <label>Name</label><input type="text" id="hi" maxlength="12">
-      <label>Message font (everyone sees it)</label><select id="font"></select>
-      <label>Profile picture (everyone sees it)</label>
-      <div id="pfpprev"></div>
-      <button id="pfpbtn" type="button">Choose picture</button><input type="file" id="pfpfile" accept="image/*" style="display:none">
-      <button id="pfprm" type="button">Remove picture</button>
-      <label>My bubble color (everyone sees it)</label>
-      <input type="color" id="bcol" value="#0a84ff" style="padding:0;height:30px">
-      <button id="bcolrm" type="button">Use theme color</button>
-      <label>My bubble image (overrides color)</label>
-      <button id="bimgbtn" type="button">Choose image</button><input type="file" id="bimgfile" accept="image/*" style="display:none">
-      <button id="bimgrm" type="button">Remove bubble image</button>
-      <label><input type="checkbox" id="hh">Hide top bar</label>
-      <label><input type="checkbox" id="hs">Hide messages sidebar</label>
-      <label>Theme</label>
-      <select id="theme"><option value="imessage">iMessage</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option></select>
-      <label>Wallpaper &amp; accent color</label><input type="color" id="wcol" value="#000000" style="padding:0;height:30px">
-      <label>Wallpaper image (stays on this device)</label>
-      <button id="wimg" type="button">Choose image</button><input type="file" id="wfile" accept="image/*" style="display:none">
-      <label>Image dimming</label><input type="range" id="wdim" min="0" max="80" value="30" style="padding:0">
-      <button id="wreset" type="button">Reset wallpaper</button>
+      <details class="sec" open>
+        <summary>👤 Profile</summary>
+        <div class="sec-body">
+          <label>Name</label><input type="text" id="hi" maxlength="12">
+          <label>Profile picture (everyone sees it)</label>
+          <div id="pfpprev"></div>
+          <button id="pfpbtn" type="button">Choose picture</button><input type="file" id="pfpfile" accept="image/*" style="display:none">
+          <button id="pfprm" type="button" class="alt">Remove picture</button>
+        </div>
+      </details>
+      <details class="sec">
+        <summary>💬 Messages</summary>
+        <div class="sec-body">
+          <label>Message font (everyone sees it)</label><select id="font"></select>
+          <label>My bubble color (everyone sees it)</label>
+          <input type="color" id="bcol" value="#0a84ff" style="padding:0;height:30px">
+          <button id="bcolrm" type="button" class="alt">Use theme color</button>
+          <label>My bubble image (overrides color)</label>
+          <button id="bimgbtn" type="button">Choose image</button><input type="file" id="bimgfile" accept="image/*" style="display:none">
+          <button id="bimgrm" type="button" class="alt">Remove bubble image</button>
+        </div>
+      </details>
+      <details class="sec">
+        <summary>🎨 Appearance</summary>
+        <div class="sec-body">
+          <label>Theme</label>
+          <select id="theme"><option value="imessage">iMessage</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option></select>
+          <label>Wallpaper &amp; accent color</label><input type="color" id="wcol" value="#000000" style="padding:0;height:30px">
+          <label>Wallpaper image (stays on this device)</label>
+          <button id="wimg" type="button">Choose image</button><input type="file" id="wfile" accept="image/*" style="display:none">
+          <label>Image dimming</label><input type="range" id="wdim" min="0" max="80" value="30" style="padding:0">
+          <button id="wreset" type="button" class="alt">Reset wallpaper</button>
+        </div>
+      </details>
+      <details class="sec">
+        <summary>🧩 Layout</summary>
+        <div class="sec-body">
+          <label><input type="checkbox" id="hh">Hide top bar</label>
+          <label><input type="checkbox" id="hs">Hide messages sidebar</label>
+        </div>
+      </details>
       <button id="save">Save</button>
     </div>
   </div>
@@ -545,69 +579,127 @@ function answerSummary(d, from){
   flush();
 }
 
-/* ---------- emoji picker (all Unicode emoji) ---------- */
+/* ---------- emoji library (loads the full Unicode set automatically) ---------- */
 const GROUP_ICONS = { 0:"😀", 1:"👋", 3:"🐶", 4:"🍔", 5:"✈️", 6:"⚽", 7:"💡", 8:"❤️", 9:"🏳️" };
-const EMO_LIST = [];
-Object.keys(EMO_DATA).forEach(g => EMO_DATA[g].split(";").forEach(row => {
-  const [e, n, t] = row.split("|");
-  EMO_LIST.push({ e, g, names: n ? n.split(",") : [], tags: t ? t.split(",") : [] });
-}));
-(function buildPicker(){
-  const panel = $("emo-panel");
-  const q = document.createElement("input"); q.id = "emo-q"; q.placeholder = "Search emojis"; q.autocomplete = "off";
-  const tabs = document.createElement("div"); tabs.id = "emo-tabs";
-  const grid = document.createElement("div"); grid.id = "emo-grid";
-  panel.append(q, tabs, grid);
-  function fill(list){
-    grid.innerHTML = "";
-    list.forEach(o => {
-      const sp = document.createElement("span"); sp.textContent = o.e; sp.title = ":" + (o.names[0] || "") + ":";
-      sp.onclick = () => { const i = $("inp"); i.value += o.e; i.focus(); };
-      grid.appendChild(sp);
-    });
-  }
-  function show(g){
-    [...tabs.children].forEach(t => t.classList.toggle("on", t.dataset.g === String(g)));
-    fill(EMO_LIST.filter(o => String(o.g) === String(g))); grid.scrollTop = 0;
-  }
-  Object.keys(GROUP_ICONS).forEach(g => {
-    const t = document.createElement("span"); t.textContent = GROUP_ICONS[g]; t.dataset.g = g; t.onclick = () => { q.value = ""; show(g); };
-    tabs.appendChild(t);
-  });
-  q.addEventListener("input", () => {
-    const v = q.value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-");
-    if(!v){ show(0); return; }
-    [...tabs.children].forEach(t => t.classList.remove("on"));
-    fill(EMO_LIST.filter(o => o.names.some(n => n.includes(v)) || o.tags.some(t => t.includes(v))).slice(0, 200));
-  });
-  show(0);
-})();
-$("emo-btn").onclick = () => { const p = $("emo-panel"); p.style.display = p.style.display === "flex" ? "none" : "flex"; };
-
-/* ---------- :shortcodes: like Discord / Google Docs ---------- */
+const GROUP_NAMES = { 0:"Smileys & emotion", 1:"People", 3:"Animals & nature", 4:"Food & drink", 5:"Travel & places", 6:"Activities", 7:"Objects", 8:"Symbols", 9:"Flags" };
+let EMO_LIST = [], emoLoading = true;
 const EMOJI_MAP = {};
+const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+function addEmo(list, e, g, names, tags){
+  names = names.map(n => String(n).toLowerCase()).filter(Boolean);
+  list.push({ e, g: String(g), names, tags: (tags || []).map(t => String(t).toLowerCase()) });
+  names.forEach(n => {
+    if(!EMOJI_MAP[n]) EMOJI_MAP[n] = e;
+    const u = n.replace(/-/g, "_"); if(u !== n && !EMOJI_MAP[u]) EMOJI_MAP[u] = e;
+  });
+}
+// common shortcodes always work, even offline
+const QUICK = {};
 ("smile=😄 grin=😁 joy=😂 rofl=🤣 smiley=😃 blush=😊 wink=😉 heart_eyes=😍 kissing_heart=😘 sunglasses=😎 thinking=🤔 sweat_smile=😅 cry=😢 sob=😭 angry=😡 rage=🤬 pleading=🥺 sleeping=😴 exploding_head=🤯 partying=🥳 eyeroll=🙄 grimacing=😬 innocent=😇 zany=🤪 smirk=😏 scream=😱 hugging=🤗 neutral=😐 expressionless=😑 sad=😞 worried=😟 confused=😕 upside_down=🙃 nerd=🤓 cold=🥶 hot=🥵 sick=🤢 skull=💀 ghost=👻 clown=🤡 poop=💩 100=💯 fire=🔥 sparkles=✨ tada=🎉 star=⭐ zap=⚡ boom=💥 sweat_drops=💦 " +
 "thumbsup=👍 thumbsdown=👎 clap=👏 raised_hands=🙌 pray=🙏 muscle=💪 handshake=🤝 wave=👋 peace=✌️ crossed_fingers=🤞 ok_hand=👌 point_up=☝️ point_right=👉 point_left=👈 fist=✊ eyes=👀 brain=🧠 " +
 "heart=❤️ broken_heart=💔 blue_heart=💙 green_heart=💚 purple_heart=💜 yellow_heart=💛 black_heart=🖤 white_heart=🤍 orange_heart=🧡 " +
 "dog=🐶 cat=🐱 horse=🐴 unicorn=🦄 monkey=🐵 pig=🐷 frog=🐸 snake=🐍 bear=🐻 lion=🦁 " +
 "pizza=🍕 burger=🍔 fries=🍟 taco=🌮 beer=🍺 coffee=☕ cake=🎂 cookie=🍪 apple=🍎 banana=🍌 " +
 "soccer=⚽ basketball=🏀 football=🏈 video_game=🎮 music=🎵 guitar=🎸 rocket=🚀 car=🚗 moon=🌙 sun=☀️ rainbow=🌈 snowflake=❄️ money=💰 gift=🎁 crown=👑 trophy=🏆 check=✅ x=❌ warning=⚠️ question=❓ lol=😂 skull_crossbones=☠️ thumbs-up=👍 thumbs-down=👎 slightly-happy=🙂 scrunched-eyes=😣 party-popper=🎉 plus-sign=➕ plus=➕ heart-eyes=😍 raised-hands=🙌").split(" ").forEach(p => {
-  const i = p.indexOf("="); if(i > 0) EMOJI_MAP[p.slice(0, i)] = p.slice(i + 1);
+  const i = p.indexOf("="); if(i > 0){ QUICK[p.slice(0, i)] = p.slice(i + 1); EMOJI_MAP[p.slice(0, i)] = p.slice(i + 1); }
 });
-EMO_LIST.forEach(o => o.names.forEach(n => {
-  if(!EMOJI_MAP[n]) EMOJI_MAP[n] = o.e;
-  const u = n.replace(/-/g, "_"); if(u !== n && !EMOJI_MAP[u]) EMOJI_MAP[u] = o.e;
-}));
+function quickList(){
+  const seen = new Set(), list = [];
+  Object.keys(QUICK).forEach(k => { if(!seen.has(QUICK[k])){ seen.add(QUICK[k]); addEmo(list, QUICK[k], 0, [k], []); } });
+  return list;
+}
+// 1) use embedded data if you pasted it, 2) otherwise start with the quick list and download the full set
+if(typeof EMO_DATA === "object" && Object.keys(EMO_DATA).length){
+  Object.keys(EMO_DATA).forEach(g => EMO_DATA[g].split(";").forEach(row => {
+    const [e, n, t] = row.split("|");
+    addEmo(EMO_LIST, e, g, n ? n.split(",") : [], t ? t.split(",") : []);
+  }));
+  emoLoading = false;
+} else { EMO_LIST = quickList(); }
+
+async function loadEmojiLib(){
+  const base = "https://cdn.jsdelivr.net/npm/emojibase-data@15.3.2/en/";
+  try {
+    const [dr, sr] = await Promise.all([fetch(base + "data.json"), fetch(base + "shortcodes/github.json").catch(() => null)]);
+    if(!dr.ok) throw new Error("emoji data " + dr.status);
+    const data = await dr.json();
+    let sc = {}; try { if(sr && sr.ok) sc = await sr.json(); } catch(e){}
+    const list = [];
+    data.forEach(o => {
+      if(!o || !o.emoji || o.group === undefined || o.group === 2) return;
+      const codes = [].concat(sc[o.hexcode] || []);
+      addEmo(list, o.emoji, o.group, [...codes, slug(o.label || "")], o.tags || []);
+    });
+    if(list.length > 200) EMO_LIST = list;
+  } catch(err){ console.warn("Full emoji set unavailable, using quick list", err); }
+  emoLoading = false;
+  if(window.refreshEmojiPicker) window.refreshEmojiPicker();
+}
+if(emoLoading) loadEmojiLib();
+
+/* ---------- emoji picker (Google Docs style, light) ---------- */
+function insertAtCursor(t){
+  const i = $("inp"), s = i.selectionStart == null ? i.value.length : i.selectionStart, e = i.selectionEnd == null ? s : i.selectionEnd;
+  i.value = i.value.slice(0, s) + t + i.value.slice(e);
+  const p = s + t.length; i.focus(); try { i.setSelectionRange(p, p); } catch(x){}
+}
+(function buildPicker(){
+  const panel = $("emo-panel");
+  const q = document.createElement("input"); q.id = "emo-q"; q.placeholder = "Search emojis"; q.autocomplete = "off";
+  const tabs = document.createElement("div"); tabs.id = "emo-tabs";
+  const title = document.createElement("div"); title.id = "emo-title";
+  const grid = document.createElement("div"); grid.id = "emo-grid";
+  const foot = document.createElement("div"); foot.id = "emo-foot";
+  panel.append(q, tabs, title, grid, foot);
+  let cur = "0";
+  function fill(list){
+    grid.innerHTML = "";
+    if(!list.length){ const n = document.createElement("div"); n.className = "none"; n.textContent = emoLoading ? "Loading emojis…" : "No emoji found"; grid.appendChild(n); return; }
+    const frag = document.createDocumentFragment();
+    list.forEach(o => {
+      const sp = document.createElement("span"); sp.textContent = o.e;
+      sp.onmouseenter = () => { foot.textContent = o.e + "   :" + (o.names[0] || "") + ":"; };
+      sp.onclick = () => insertAtCursor(o.e);
+      frag.appendChild(sp);
+    });
+    grid.appendChild(frag);
+  }
+  function show(g){
+    cur = String(g);
+    [...tabs.children].forEach(t => t.classList.toggle("on", t.dataset.g === cur));
+    title.textContent = GROUP_NAMES[cur] || "";
+    fill(EMO_LIST.filter(o => o.g === cur)); grid.scrollTop = 0;
+    foot.textContent = emoLoading ? "Loading all emojis…" : EMO_LIST.length + " emojis";
+  }
+  Object.keys(GROUP_ICONS).forEach(g => {
+    const t = document.createElement("span"); t.textContent = GROUP_ICONS[g]; t.dataset.g = g; t.title = GROUP_NAMES[g];
+    t.onclick = () => { q.value = ""; show(g); };
+    tabs.appendChild(t);
+  });
+  function search(){
+    const raw = q.value.trim().toLowerCase(), v = slug(raw);
+    if(!raw){ show(cur); return; }
+    [...tabs.children].forEach(t => t.classList.remove("on"));
+    title.textContent = "Results";
+    fill(EMO_LIST.filter(o => o.names.some(n => n.includes(v)) || o.tags.some(t => t.includes(raw))).slice(0, 300));
+  }
+  q.addEventListener("input", search);
+  window.refreshEmojiPicker = () => { if(q.value.trim()) search(); else show(cur); };
+  show("0");
+})();
+$("emo-btn").onclick = () => { const p = $("emo-panel"); p.style.display = p.style.display === "flex" ? "none" : "flex"; if(p.style.display === "flex") $("emo-q").focus(); };
+
+/* ---------- :shortcodes: popup (searches every emoji name) ---------- */
 function suggest(q){
   const keys = Object.keys(EMOJI_MAP), seen = new Set(), out = [];
   for(const pass of [0, 1]) for(const k of keys){
-    if(out.length >= 9) return out;
+    if(out.length >= 60) return out;
     if(!(pass === 0 ? k.startsWith(q) : k.includes(q)) || seen.has(EMOJI_MAP[k])) continue;
     seen.add(EMOJI_MAP[k]); out.push(k);
   }
   return out;
 }
-function replaceCodes(t){ return t.replace(/:([a-z0-9_-]+):/gi, (m, n) => EMOJI_MAP[n.toLowerCase()] || m); }
+function replaceCodes(t){ return t.replace(/:([a-z0-9_+-]+):/gi, (m, n) => EMOJI_MAP[n.toLowerCase()] || m); }
 let sugList = [], sugIdx = 0;
 const DEFAULT_SUG = ["thumbs-up","clap","slightly-happy","smile","joy","scrunched-eyes","rage","party-popper","plus-sign"];
 function hideSug(){ $("emo-sug").style.display = "none"; sugList = []; }
@@ -619,14 +711,14 @@ function highlightSug(){
 }
 function pickSug(name){
   const el = $("inp"), pos = el.selectionStart, before = el.value.slice(0, pos), after = el.value.slice(pos);
-  const nb = before.replace(/(^|\s):[a-z0-9_-]*$/i, (m, a) => a + EMOJI_MAP[name] + " ");
+  const nb = before.replace(/(^|\s):[a-z0-9_+-]*$/i, (m, a) => a + EMOJI_MAP[name] + " ");
   el.value = nb + after; el.setSelectionRange(nb.length, nb.length); el.focus(); hideSug();
 }
 function showSug(){
-  const el = $("inp"), m = el.value.slice(0, el.selectionStart).match(/(?:^|\s):([a-z0-9_-]*)$/i);
+  const el = $("inp"), m = el.value.slice(0, el.selectionStart).match(/(?:^|\s):([a-z0-9_+-]*)$/i);
   if(!m){ hideSug(); return; }
   const q = m[1].toLowerCase();
-  sugList = q ? suggest(q) : DEFAULT_SUG.slice();
+  sugList = q ? suggest(q) : DEFAULT_SUG.filter(k => EMOJI_MAP[k]);
   sugIdx = 0;
   if(!sugList.length){ hideSug(); return; }
   const box = $("emo-sug"); box.innerHTML = "";
