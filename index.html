@@ -29,7 +29,7 @@
 
     /* Message Stream Area */
     #messages-container { flex-grow: 1; overflow-y: auto; padding: 16px 0; display: flex; flex-direction: column; }
-    .message-wrapper { display: flex; padding: 2px 16px; position: relative; gap: 16px; }
+    .message-wrapper { display: flex; padding: 6px 16px; position: relative; gap: 16px; }
     .message-wrapper:hover { background: #2e3035; }
     .avatar { width: 40px; height: 40px; border-radius: 50%; background: #5865f2; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; flex-shrink: 0; font-size: 16px; }
     .avatar.peer { background: #23a55a; }
@@ -39,10 +39,11 @@
     .author-name.peer { color: #23a55a; }
     .timestamp { font-size: 12px; color: #949ba4; }
     .text-body { color: #dbdee1; font-size: 15px; margin-top: 4px; word-break: break-word; white-space: pre-wrap; }
+    .chat-image { max-width: 300px; max-height: 300px; border-radius: 8px; margin-top: 8px; display: block; border: 1px solid #232428; }
     .edited-tag { font-size: 10px; color: #949ba4; margin-left: 4px; }
     
     /* Action Controls Hover Overlay */
-    .action-overlay { display: none; position: absolute; right: 16px; top: -10px; background: #313338; border: 1px solid #232428; border-radius: 4px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+    .action-overlay { display: none; position: absolute; right: 16px; top: -10px; background: #313338; border: 1px solid #232428; border-radius: 4px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 10; }
     .message-wrapper:hover .action-overlay { display: flex; }
     .action-btn { padding: 6px 10px; background: none; border: none; color: #b5bac1; cursor: pointer; font-size: 12px; }
     .action-btn:hover { background: #35373c; color: #fff; }
@@ -50,9 +51,14 @@
 
     /* Text Input Tray */
     #input-tray { padding: 0 16px 24px 16px; background: #313338; }
-    .input-box-wrapper { background: #383a40; border-radius: 8px; padding: 10px 16px; display: flex; align-items: center; }
+    .input-box-wrapper { background: #383a40; border-radius: 8px; padding: 10px 16px; display: flex; align-items: center; gap: 12px; }
     #message-input-field { background: none; border: none; color: #dbdee1; flex-grow: 1; font-size: 15px; outline: none; }
     #message-input-field::placeholder { color: #6d737d; }
+    
+    /* Plus Button Style for Image Upload */
+    .upload-btn-label { width: 24px; height: 24px; background: #4e5058; color: #b5bac1; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; cursor: pointer; transition: background 0.2s, color 0.2s; user-select: none; }
+    .upload-btn-label:hover { background: #dbdee1; color: #313338; }
+    #image-file-input { display: none; }
 
     /* Inline Editor Window */
     .edit-mode-container { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; width: 100%; }
@@ -102,7 +108,9 @@
     <!-- Interface Input Tray -->
     <div id="input-tray">
       <div class="input-box-wrapper">
-        <input type="text" id="message-input-field" placeholder="Message #general-chat" onkeypress="if(event.key==='Enter') dispatchMessage()" disabled>
+        <label for="image-file-input" class="upload-btn-label" id="upload-label-element" style="pointer-events: none; opacity: 0.5;">+</label>
+        <input type="file" id="image-file-input" accept="image/*" onchange="handleImageUpload(event)" disabled>
+        <input type="text" id="message-input-field" placeholder="Connect to open chat channel..." onkeypress="if(event.key==='Enter') dispatchMessage()" disabled>
       </div>
     </div>
   </div>
@@ -112,36 +120,49 @@
     let currentSessionLink = null;
     let localMessageCounter = 0;
 
-    // Monitor token activation sequences
     peerNode.on('open', (assignedId) => {
-      document.getElementById('my-token-readout').innerHTML = `<strong>Your Session Key:</strong> ${assignedId} (Share this code)`;
+      const currentUrl = window.location.href.split('?')[0];
+      const inviteLink = `${currentUrl}?room=${assignedId}`;
+      document.getElementById('my-token-readout').innerHTML = `<strong>Your Instant Invite Link:</strong><br><a href="${inviteLink}" target="_blank" style="color:#5865f2; word-break:break-all;">${inviteLink}</a>`;
+      
+      const urlParams = new URLSearchParams(window.location.search);
+      const roomParam = urlParams.get('room');
+      if (roomParam) {
+        document.getElementById('peer-id-target').value = roomParam;
+        injectSystemBroadcast("Auto-invite detected. Attempting shortcut handshake...");
+        setTimeout(() => { initiateHandshakeByToken(roomParam); }, 1000);
+      }
     });
 
-    // Handle automated incoming terminal connections
     peerNode.on('connection', (inboundLink) => {
       currentSessionLink = inboundLink;
       bindNetworkEvents();
     });
 
-    // Force link pipeline handshakes
     function initiateHandshake() {
       const pinValue = document.getElementById('peer-id-target').value.trim();
       if (!pinValue) return;
-      currentSessionLink = peerNode.connect(pinValue);
+      initiateHandshakeByToken(pinValue);
+    }
+
+    function initiateHandshakeByToken(token) {
+      currentSessionLink = peerNode.connect(token);
       bindNetworkEvents();
     }
 
-    // Capture, package, and evaluate real-time signals
     function bindNetworkEvents() {
       currentSessionLink.on('open', () => {
         document.getElementById('message-input-field').disabled = false;
+        document.getElementById('image-file-input').disabled = false;
+        document.getElementById('upload-label-element').style.pointerEvents = "auto";
+        document.getElementById('upload-label-element').style.opacity = "1";
         document.getElementById('message-input-field').placeholder = "Message #general-chat";
         injectSystemBroadcast("Connection validated. P2P communication stream online.");
       });
 
       currentSessionLink.on('data', (payload) => {
         if (payload.action === 'CHAT') {
-          renderMessageBlock("Friend", payload.content, "peer", payload.msgId);
+          renderMessageBlock("Friend", payload.content, "peer", payload.msgId, payload.isImage);
         } else if (payload.action === 'EDIT') {
           applyRemoteEdit(payload.msgId, payload.content);
         } else if (payload.action === 'DELETE') {
@@ -152,54 +173,12 @@
       currentSessionLink.on('close', () => {
         injectSystemBroadcast("Connection terminated by remote entity.");
         document.getElementById('message-input-field').disabled = true;
+        document.getElementById('image-file-input').disabled = true;
+        document.getElementById('upload-label-element').style.pointerEvents = "none";
+        document.getElementById('upload-label-element').style.opacity = "0.5";
       });
     }
 
-    // Construct transmission payloads
     function dispatchMessage() {
       const inputEl = document.getElementById('message-input-field');
       const text = inputEl.value.trim();
-      if (!text || !currentSessionLink) return;
-
-      localMessageCounter++;
-      const uniqueMsgId = `msg-${peerNode.id}-${localMessageCounter}`;
-
-      // Emit straight data to peer browser frame
-      currentSessionLink.send({ action: 'CHAT', content: text, msgId: uniqueMsgId });
-      renderMessageBlock("You", text, "me", uniqueMsgId);
-      inputEl.value = "";
-    }
-
-    // Build functional UI nodes inside containers
-    function renderMessageBlock(sender, text, userClass, id) {
-      const feed = document.getElementById('messages-container');
-      const wrap = document.createElement('div');
-      wrap.className = 'message-wrapper';
-      wrap.id = id;
-
-      const initialChar = sender.charAt(0).toUpperCase();
-      const isMe = (userClass === "me");
-
-      wrap.innerHTML = `
-        <div class="avatar ${userClass}">${initialChar}</div>
-        <div class="message-content-area">
-          <div class="meta-row">
-            <span class="author-name ${userClass}">${sender}</span>
-            <span class="timestamp">Today at ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-          </div>
-          <div class="text-body" id="body-${id}">${escapeHtml(text)}</div>
-        </div>
-        ${isMe ? `
-          <div class="action-overlay">
-            <button class="action-btn" onclick="openInlineEditor('${id}')">Edit</button>
-            <button class="action-btn delete-btn" onclick="requestUnsendMessage('${id}')">Delete</button>
-          </div>
-        ` : ''}
-      `;
-      feed.appendChild(wrap);
-      feed.scrollTop = feed.scrollHeight;
-    }
-
-    // Execute editing adjustments
-    function openInlineEditor(id) {
-      const textNode = document.getElementById(`body-${id}`);
