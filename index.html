@@ -3,35 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <title>Los Purebreds Chat</title>
-  <!-- FIX: Points directly to the accurate open-source peer engine network library -->
   <script src="https://unpkg.com"></script>
   <style>
-    body { font-family: 'Whitney', 'Helvetica Neue', Helvetica, Arial, sans-serif; background: #313338; color: #dbdee1; margin: 0; padding: 0; display: flex; height: 100vh; overflow: hidden; }
-    
-    /* Discord Sidebar Elements */
+    body { font-family: sans-serif; background: #313338; color: #dbdee1; margin: 0; padding: 0; display: flex; height: 100vh; overflow: hidden; }
     #sidebar { width: 240px; background: #2b2d31; display: flex; flex-direction: column; border-right: 1px solid #1f2023; }
-    .server-header { padding: 12px; font-weight: bold; color: #fff; font-size: 15px; border-bottom: 1px solid #1f2023; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+    .server-header { padding: 12px; font-weight: bold; color: #fff; font-size: 15px; border-bottom: 1px solid #1f2023; }
     .channel-list { padding: 10px; flex-grow: 1; }
-    .channel { color: #949ba4; padding: 6px 8px; border-radius: 4px; display: flex; align-items: center; gap: 6px; font-size: 15px; margin-bottom: 2px; }
+    .channel { color: #949ba4; padding: 6px 8px; border-radius: 4px; display: flex; align-items: center; gap: 6px; font-size: 15px; }
     .channel-active { background: #404249; color: #f2f3f5; font-weight: 500; }
-    
-    /* Main Chat Container */
     #main-chat { flex-grow: 1; display: flex; flex-direction: column; background: #313338; position: relative; }
-    .chat-header { height: 48px; padding: 0 16px; display: flex; align-items: center; border-bottom: 1px solid #1f2023; font-weight: bold; color: #fff; font-size: 16px; gap: 8px; }
+    .chat-header { height: 48px; padding: 0 16px; display: flex; align-items: center; border-bottom: 1px solid #1f2023; font-weight: bold; color: #fff; font-size: 16px; }
     .status-container { padding: 12px 16px; background: #1e1f22; border-bottom: 1px solid #2b2d31; }
-    .token-text { font-size: 12px; color: #b5bac1; font-family: monospace; background: #2b2d31; padding: 6px; border-radius: 4px; word-break: break-all; margin-bottom: 8px; }
-    
-    /* Connection Config Area */
+    .token-text { font-size: 13px; color: #b5bac1; background: #2b2d31; padding: 8px; border-radius: 4px; margin-bottom: 8px; border-left: 4px solid #5865f2; }
     .connect-row { display: flex; gap: 8px; }
     .connect-row input { flex-grow: 1; background: #1e1f22; border: none; padding: 8px; color: #dbdee1; border-radius: 4px; font-size: 13px; }
-    .connect-row button { background: #5865f2; color: #fff; border: none; padding: 8px 14px; border-radius: 4px; font-weight: 500; cursor: pointer; font-size: 13px; }
+    .connect-row button { background: #5865f2; color: #fff; border: none; padding: 8px 14px; border-radius: 4px; font-weight: 500; cursor: pointer; }
     .connect-row button:hover { background: #4752c4; }
-
-    /* Message Stream Area */
     #messages-container { flex-grow: 1; overflow-y: auto; padding: 16px 0; display: flex; flex-direction: column; }
     .message-wrapper { display: flex; padding: 6px 16px; position: relative; gap: 16px; }
     .message-wrapper:hover { background: #2e3035; }
-    .avatar { width: 40px; height: 40px; border-radius: 50%; background: #5865f2; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; flex-shrink: 0; font-size: 16px; }
+    .avatar { width: 40px; height: 40px; border-radius: 50%; background: #5865f2; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; flex-shrink: 0; }
     .avatar.peer { background: #23a55a; }
     .message-content-area { flex-grow: 1; }
     .meta-row { display: flex; align-items: baseline; gap: 8px; }
@@ -39,114 +30,87 @@
     .author-name.peer { color: #23a55a; }
     .timestamp { font-size: 12px; color: #949ba4; }
     .text-body { color: #dbdee1; font-size: 15px; margin-top: 4px; word-break: break-word; white-space: pre-wrap; }
-    .chat-image { max-width: 300px; max-height: 300px; border-radius: 8px; margin-top: 8px; display: block; border: 1px solid #232428; }
-    .edited-tag { font-size: 10px; color: #949ba4; margin-left: 4px; }
-    
-    /* Action Controls Hover Overlay */
-    .action-overlay { display: none; position: absolute; right: 16px; top: -10px; background: #313338; border: 1px solid #232428; border-radius: 4px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 10; }
+    .chat-image { max-width: 300px; max-height: 300px; border-radius: 8px; margin-top: 8px; display: block; }
+    .action-overlay { display: none; position: absolute; right: 16px; top: -10px; background: #313338; border: 1px solid #232428; border-radius: 4px; }
     .message-wrapper:hover .action-overlay { display: flex; }
     .action-btn { padding: 6px 10px; background: none; border: none; color: #b5bac1; cursor: pointer; font-size: 12px; }
-    .action-btn:hover { background: #35373c; color: #fff; }
     .action-btn.delete-btn:hover { color: #f23f43; }
-
-    /* Text Input Tray */
     #input-tray { padding: 0 16px 24px 16px; background: #313338; }
     .input-box-wrapper { background: #383a40; border-radius: 8px; padding: 10px 16px; display: flex; align-items: center; gap: 12px; }
     #message-input-field { background: none; border: none; color: #dbdee1; flex-grow: 1; font-size: 15px; outline: none; }
-    #message-input-field::placeholder { color: #6d737d; }
-    
-    /* Plus Button Style for Image Upload */
-    .upload-btn-label { width: 24px; height: 24px; background: #4e5058; color: #b5bac1; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; cursor: pointer; transition: background 0.2s, color 0.2s; user-select: none; }
-    .upload-btn-label:hover { background: #dbdee1; color: #313338; }
+    .upload-btn-label { width: 24px; height: 24px; background: #4e5058; color: #b5bac1; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; cursor: pointer; }
     #image-file-input { display: none; }
-
-    /* Inline Editor Window */
-    .edit-mode-container { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; width: 100%; }
-    .edit-input { background: #383a40; border: none; padding: 8px; color: #dbdee1; border-radius: 4px; font-size: 15px; width: 95%; outline: none; }
-    .edit-hints { font-size: 11px; color: #b5bac1; }
-    .edit-hints span { color: #00a8fc; cursor: pointer; }
   </style>
 </head>
 <body>
-
-  <!-- Discord Layout Left Side Navigation Sidebar -->
   <div id="sidebar">
     <div class="server-header">Los Purebreds</div>
-    <div class="channel-list">
-      <div class="channel channel-active">
-        <span style="font-size:18px; color:#80848e;">#</span> general-chat
-      </div>
-    </div>
+    <div class="channel-list"><div class="channel channel-active"># general-chat</div></div>
   </div>
-
-  <!-- Primary Messaging Control Center -->
   <div id="main-chat">
-    <div class="chat-header"><span style="color:#80848e; font-size:22px;">#</span> general-chat</div>
-    
-    <!-- Infrastructure Networking Token Drawer -->
+    <div class="chat-header"># general-chat</div>
     <div class="status-container">
-      <div class="token-text" id="my-token-readout">System status: Provisioning client networking profiles...</div>
+      <!-- Permanent room label instructions -->
+      <div class="token-text" id="my-token-readout"><strong>Custom Room System Active.</strong> Type your custom group code below to join or host.</div>
       <div class="connect-row">
-        <input type="text" id="peer-id-target" placeholder="Enter room code / target friend token string...">
-        <button onclick="initiateHandshake()">Connect</button>
+        <input type="text" id="peer-id-target" placeholder="Enter custom room name (e.g. purebreds-chat)">
+        <button onclick="joinCustomRoom()">Host / Connect</button>
       </div>
     </div>
-
-    <!-- Core Message Display Pipeline -->
     <div id="messages-container">
       <div class="message-wrapper">
         <div class="avatar">SYS</div>
         <div class="message-content-area">
-          <div class="meta-row">
-            <span class="author-name">System Log</span>
-          </div>
-          <div class="text-body" style="color: #bcbec4; font-style: italic;">Provide your secure link token to open your communication channel array.</div>
+          <div class="meta-row"><span class="author-name">System</span></div>
+          <div class="text-body" style="font-style: italic;">Enter a custom room name above with your friend to connect. Both users must type the exact same name!</div>
         </div>
       </div>
     </div>
-
-    <!-- Interface Input Tray -->
     <div id="input-tray">
       <div class="input-box-wrapper">
         <label for="image-file-input" class="upload-btn-label" id="upload-label-element" style="pointer-events: none; opacity: 0.5;">+</label>
         <input type="file" id="image-file-input" accept="image/*" onchange="handleImageUpload(event)" disabled>
-        <input type="text" id="message-input-field" placeholder="Connect to open chat channel..." onkeypress="if(event.key==='Enter') dispatchMessage()" disabled>
+        <input type="text" id="message-input-field" placeholder="Awaiting room name entry..." onkeypress="if(event.key==='Enter') dispatchMessage()" disabled>
       </div>
     </div>
   </div>
 
   <script>
-    let peerNode = new Peer();
+    let peerNode = null;
     let currentSessionLink = null;
     let localMessageCounter = 0;
 
-    peerNode.on('open', (assignedId) => {
-      const currentUrl = window.location.href.split('?');
-      const inviteLink = `${currentUrl[0]}?room=${assignedId}`;
-      document.getElementById('my-token-readout').innerHTML = `<strong>Your Instant Invite Link:</strong><br><a href="${inviteLink}" target="_blank" style="color:#5865f2; word-break:break-all;">${inviteLink}</a>`;
-      const urlParams = new URLSearchParams(window.location.search);
-      const roomParam = urlParams.get('room');
-      if (roomParam) {
-        document.getElementById('peer-id-target').value = roomParam;
-        injectSystemBroadcast("Auto-invite detected. Attempting shortcut handshake...");
-        setTimeout(() => { initiateHandshakeByToken(roomParam); }, 1500);
-      }
-    });
+    function joinCustomRoom() {
+      const roomName = document.getElementById('peer-id-target').value.trim().toLowerCase();
+      if (!roomName) return;
 
-    peerNode.on('connection', (inboundLink) => {
-      currentSessionLink = inboundLink;
-      bindNetworkEvents();
-    });
+      injectSystemBroadcast(`Setting up custom node room: "${roomName}"...`);
+      
+      // Instead of generating a random string, this forces your exact text entry to be the room address
+      peerNode = new Peer(roomName);
 
-    function initiateHandshake() {
-      const pinValue = document.getElementById('peer-id-target').value.trim();
-      if (!pinValue) return;
-      initiateHandshakeByToken(pinValue);
-    }
+      peerNode.on('open', (id) => {
+        injectSystemBroadcast(`Room hosted successfully as "${id}". Awaiting friend entry...`);
+        // If your friend is already hosting it, this link loop connects you automatically
+        currentSessionLink = peerNode.connect(roomName);
+        bindNetworkEvents();
+      });
 
-    function initiateHandshakeByToken(token) {
-      currentSessionLink = peerNode.connect(token);
-      bindNetworkEvents();
+      peerNode.on('connection', (inboundLink) => {
+        currentSessionLink = inboundLink;
+        bindNetworkEvents();
+      });
+
+      peerNode.on('error', (err) => {
+        if (err.type === 'unavailable-id') {
+          // If the room name is already open, connect to it directly
+          peerNode = new Peer();
+          peerNode.on('open', () => {
+            currentSessionLink = peerNode.connect(roomName);
+            bindNetworkEvents();
+          });
+        }
+      });
     }
 
     function bindNetworkEvents() {
@@ -156,23 +120,49 @@
         document.getElementById('upload-label-element').style.pointerEvents = "auto";
         document.getElementById('upload-label-element').style.opacity = "1";
         document.getElementById('message-input-field').placeholder = "Message #general-chat";
-        injectSystemBroadcast("Connection validated. P2P communication stream online.");
+        injectSystemBroadcast("Link active! Connected to your friend.");
       });
-      currentSessionLink.on('data', (payload) => {
-        if (payload.action === 'CHAT') { renderMessageBlock("Friend", payload.content, "peer", payload.msgId, payload.isImage); }
-        else if (payload.action === 'EDIT') { applyRemoteEdit(payload.msgId, payload.content); }
-        else if (payload.action === 'DELETE') { applyRemoteDeletion(payload.msgId); }
-      });
-      currentSessionLink.on('close', () => {
-        injectSystemBroadcast("Connection terminated by remote entity.");
-        document.getElementById('message-input-field').disabled = true;
+      currentSessionLink.on('data', (p) => {
+        if (p.action === 'CHAT') renderMessageBlock("Friend", p.content, "peer", p.msgId, p.isImage);
+        else if (p.action === 'DELETE') { const el = document.getElementById(p.msgId); if(el) el.remove(); }
       });
     }
 
     function dispatchMessage() {
-      const inputEl = document.getElementById('message-input-field');
-      const text = inputEl.value.trim();
-      if (!text || !currentSessionLink) return;
-      localMessageCounter++;
-      const uniqueMsgId = `msg-${peerNode.id}-${localMessageCounter}`;
-      currentSessionLink.send({ action: 'CHAT', content: text, msgId: uniqueMsgId, isImage: false });
+      const el = document.getElementById('message-input-field'); if (!el.value.trim() || !currentSessionLink) return;
+      localMessageCounter++; const id = `msg-${localMessageCounter}`;
+      currentSessionLink.send({ action: 'CHAT', content: el.value.trim(), msgId: id, isImage: false });
+      renderMessageBlock("You", el.value.trim(), "me", id, false); el.value = "";
+    }
+
+    function handleImageUpload(e) {
+      const file = e.target.files[0]; if (!file || !currentSessionLink) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        localMessageCounter++; const id = `msg-${localMessageCounter}`;
+        currentSessionLink.send({ action: 'CHAT', content: evt.target.result, msgId: id, isImage: true });
+        renderMessageBlock("You", evt.target.result, "me", id, true);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function renderMessageBlock(sender, text, cls, id, isImg) {
+      const feed = document.getElementById('messages-container');
+      const wrap = document.createElement('div'); wrap.className = 'message-wrapper'; wrap.id = id;
+      let bodyHtml = isImg ? `<img src="${text}" class="chat-image" id="body-${id}">` : `<div class="text-body" id="body-${id}">${escapeHtml(text)}</div>`;
+      wrap.innerHTML = `
+        <div class="avatar ${cls}">${sender.charAt(0)}</div>
+        <div class="message-content-area">
+          <div class="meta-row"><span class="author-name ${cls}">${sender}</span></div>
+          ${bodyHtml}
+        </div>
+        ${cls === 'me' ? `<div class="action-overlay"><button class="action-btn delete-btn" onclick="currentSessionLink.send({action:'DELETE',msgId:'${id}'}); document.getElementById('${id}').remove()">Delete</button></div>` : ''}
+      `;
+      feed.appendChild(wrap); feed.scrollTop = feed.scrollHeight;
+    }
+
+    function injectSystemBroadcast(info) {
+      const feed = document.getElementById('messages-container');
+      feed.innerHTML += `<div class="message-wrapper"><div class="avatar" style="background:#4e5058;">SYS</div><div class="message-content-area"><div class="meta-row"><span class="author-name" style="color:#b5bac1;">System</span></div><div class="text-body" style="color:#23a55a;">${info}</div></div></div>`;
+      feed.scrollTop = feed.scrollHeight;
+    }
