@@ -1,187 +1,134 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Los Purebreds iMessage</title>
-  <!-- Loads the peer communication library engine -->
-  <script src="https://unpkg.com"></script>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #000; color: #fff; margin: 0; display: flex; height: 100vh; overflow: hidden; }
-    
-    /* iMessage Sidebar Layout */
-    #sidebar { width: 260px; background: #1c1c1e; display: flex; flex-direction: column; border-right: 1px solid #2c2c2e; justify-content: space-between; }
-    .sb-header { padding: 20px 16px 10px 16px; font-weight: bold; font-size: 20px; color: #fff; border-bottom: 1px solid #2c2c2e; }
-    .chat-row { padding: 12px 16px; background: #2c2c2e; display: flex; align-items: center; gap: 10px; cursor: pointer; border-left: 4px solid #0a84ff; }
-    .sb-avatar { width: 44px; height: 44px; border-radius: 50%; background: #8e8e93; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; color: white; }
-    
-    /* Bottom Settings Menu Area */
-    .sb-settings { padding: 14px 16px; border-top: 1px solid #2c2c2e; background: #1c1c1e; display: flex; flex-direction: column; gap: 8px; }
-    .settings-toggle-btn { background: none; border: none; color: #0a84ff; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 0; font-weight: 500; }
-    .settings-toggle-btn:hover { text-decoration: underline; }
-    .settings-pane { display: none; background: #2c2c2e; padding: 10px; border-radius: 8px; margin-top: 4px; }
-    .settings-pane input { width: 85%; padding: 6px; background: #1c1c1e; border: 1px solid #3a3a3c; color: #fff; border-radius: 6px; outline: none; font-size: 13px; text-align: center; }
-    .settings-pane button { width: 92%; margin-top: 6px; background: #0a84ff; border: none; color: #fff; padding: 6px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px; }
-
-    /* Primary iMessage Chat Stage */
-    #main-chat { flex-grow: 1; display: flex; flex-direction: column; background: #000; position: relative; }
-    #hdr { height: 55px; padding: 0 20px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #2c2c2e; font-size: 13px; color: #8e8e93; text-align: center; }
-    #cbtn { background: #32d74b; color: white; border: none; padding: 6px 12px; border-radius: 14px; font-weight: 600; cursor: pointer; font-size: 12px; margin-top: 4px; }
-    
-    /* iMessage Message Alignment Tunnels */
-    #msg-box { flex-grow: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
-    .msg { display: flex; flex-direction: column; max-width: 65%; position: relative; margin-bottom: 4px; }
-    
-    /* Left / Right Alignment Rules */
-    .msg.me { align-self: flex-end; align-items: flex-end; }
-    .msg.peer { align-self: flex-start; align-items: flex-start; }
-    .msg.sys { align-self: center; max-width: 90%; text-align: center; color: #8e8e93; font-size: 12px; margin: 10px 0; }
-    
-    .sender-label { font-size: 11px; color: #8e8e93; margin: 0 4px 2px 4px; font-weight: 500; }
-    
-    /* Apple Bubble Visual Profiles */
-    .bubble { padding: 10px 16px; border-radius: 20px; font-size: 15px; line-height: 1.4; position: relative; word-break: break-word; }
-    .me .bubble { background: #0a84ff; color: #fff; } /* iMessage Blue */
-    .peer .bubble { background: #2c2c2e; color: #fff; } /* iMessage Gray */
-    .chat-image { max-width: 240px; border-radius: 16px; margin-top: 4px; display: block; border: 1px solid #2c2c2e; }
-
-    /* Chaotic Vandalism Interactive Bars */
-    .chaos-bar { display: none; margin-top: 4px; gap: 8px; }
-    .msg:hover .chaos-bar { display: flex; }
-    .chaos-btn { background: none; border: none; color: #ff9f0a; font-size: 11px; cursor: pointer; padding: 0; font-weight: 500; }
-    .chaos-btn.del-btn { color: #ff453a; }
-    .chaos-btn:hover { text-decoration: underline; }
-    
-    .vandal-edit-box { display: flex; gap: 6px; margin-top: 6px; width: 200px; }
-    .vandal-edit-box input { background: #1c1c1e; border: 1px solid #3a3a3c; color: white; padding: 4px 8px; border-radius: 12px; font-size: 13px; flex-grow: 1; outline: none; }
-    .vandal-edit-box button { background: #ff9f0a; border: none; color: black; font-weight: bold; border-radius: 12px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
-
-    /* Text Tray Controls */
-    #tray { padding: 12px 20px; display: flex; align-items: center; gap: 12px; background: #000; border-top: 1px solid #2c2c2e; }
-    .pill-wrapper { display: flex; flex-grow: 1; background: #1c1c1e; border: 1px solid #2c2c2e; border-radius: 20px; padding: 6px 14px; align-items: center; gap: 10px; }
-    #inp { flex-grow: 1; background: none; border: none; color: #fff; outline: none; font-size: 15px; }
-    #inp::placeholder { color: #8e8e93; }
-    .upload-glyph { font-size: 22px; color: #0a84ff; cursor: pointer; user-select: none; }
-  </style>
-</head>
-<body>
-
-  <!-- iMessage Left Navigation Sidebar Section -->
-  <div id="sidebar">
-    <div>
-      <div class="sb-header">Messages</div>
-      <div class="chat-row">
-        <div class="sb-avatar">LP</div>
-        <div>
-          <div style="font-weight:600; font-size:15px;">Los Purebreds</div>
-          <div style="font-size:12px; color:#8e8e93; margin-top:2px;">iMessage Channel</div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Permanent Settings Interface Panel Drawer (Bottom Corner) -->
-    <div class="sb-settings">
-      <button class="settings-toggle-btn" onclick="toggleSettingsPane()">⚙️ Handle Settings</button>
-      <div class="settings-pane" id="settings-drawer">
-        <input type="text" id="handle-input" placeholder="Change name..." maxlength="12" value="User">
-        <button onclick="commitNameChange()">Update Name</button>
+<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Los Purebreds iMessage</title>
+<script src="https://unpkg.com"></script>
+<style>
+  body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#000;color:#fff;margin:0;display:flex;height:100vh;overflow:hidden;}
+  #sb{width:220px;background:#1c1c1e;display:flex;flex-direction:column;border-right:1px solid #2c2c2e;justify-content:space-between;}
+  .hdr-sb{padding:20px 16px;font-weight:bold;font-size:20px;border-bottom:1px solid #2c2c2e;}
+  .row-ch{padding:12px 16px;background:#2c2c2e;display:flex;align-items:center;gap:10px;border-left:4px solid #0a84ff;}
+  .av-sb{width:40px;height:40px;border-radius:50%;background:#8e8e93;display:flex;align-items:center;justify-content:center;font-weight:bold;}
+  .stg-sb{padding:14px;border-top:1px solid #2c2c2e;background:#1c1c1e;}
+  .stg-btn{background:none;border:none;color:#0a84ff;font-size:14px;cursor:pointer;font-weight:500;}
+  .stg-box{display:none;background:#2c2c2e;padding:8px;border-radius:8px;margin-top:6px;}
+  .stg-box input{width:80%;padding:4px;background:#1c1c1e;border:1px solid #3a3a3c;color:#fff;border-radius:6px;text-align:center;}
+  .stg-box button{width:88%;margin-top:6px;background:#0a84ff;border:none;color:#fff;padding:4px;border-radius:6px;font-weight:bold;cursor:pointer;}
+  #main{flex-grow:1;display:flex;flex-direction:column;background:#000;}
+  #hdr{height:55px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid #2c2c2e;font-size:13px;color:#8e8e93;text-align:center;}
+  #cbtn{background:#32d74b;color:#fff;border:none;padding:4px 12px;border-radius:12px;font-weight:600;cursor:pointer;margin-top:2px;}
+  #box{flex-grow:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:10px;}
+  .msg{display:flex;flex-direction:column;max-width:65%;position:relative;}
+  .msg.me{align-self:flex-end;align-items:flex-end;}
+  .msg.peer{align-self:flex-start;align-items:flex-start;}
+  .msg.sys{align-self:center;max-width:90%;text-align:center;color:#8e8e93;font-size:12px;}
+  .lbl{font-size:11px;color:#8e8e93;margin:0 4px 2px 4px;}
+  .bubble{padding:10px 16px;border-radius:20px;font-size:15px;line-height:1.4;word-break:break-all;}
+  .me .bubble{background:#0a84ff;color:#fff;}
+  .peer .bubble{background:#2c2c2e;color:#fff;}
+  .img{max-width:240px;border-radius:16px;margin-top:4px;display:block;}
+  .act{display:none;margin-top:4px;gap:8px;}
+  .msg:hover .act{display:flex;}
+  .act-b{background:none;border:none;color:#ff9f0a;font-size:11px;cursor:pointer;padding:0;}
+  .act-b.del{color:#ff453a;}
+  .v-box{display:flex;gap:4px;margin-top:4px;width:180px;}
+  .v-box input{background:#1c1c1e;border:1px solid #3a3a3c;color:#fff;padding:4px;border-radius:10px;font-size:12px;flex-grow:1;}
+  .v-box button{background:#ff9f0a;border:none;color:#000;font-weight:bold;border-radius:10px;padding:4px;font-size:11px;cursor:pointer;}
+  #tray{padding:12px 20px;display:flex;align-items:center;gap:12px;border-top:1px solid #2c2c2e;}
+  .pill{display:flex;flex-grow:1;background:#1c1c1e;border:1px solid #2c2c2e;border-radius:20px;padding:6px 14px;}
+  #inp{flex-grow:1;background:none;border:none;color:#fff;outline:none;font-size:15px;}
+  .plus{font-size:22px;color:#0a84ff;cursor:pointer;user-select:none;}
+  .clr-btn{background:none;border:none;color:#ff453a;font-size:11px;cursor:pointer;margin-top:6px;text-align:left;padding:0;}
+</style></head><body>
+  <div id="sb">
+    <div><div class="hdr-sb">Messages</div><div class="row-ch"><div class="av-sb">LP</div><div><b style="font-size:15px;">Los Purebreds</b><br><span style="font-size:12px;color:#8e8e93;">iMessage Channel</span></div></div></div>
+    <div class="stg-sb">
+      <button class="stg-btn" onclick="let d=document.getElementById('sd');d.style.display=d.style.display==='block'?'none':'block';">⚙️ Settings</button>
+      <div class="stg-box" id="sd">
+        <input type="text" id="hi" placeholder="Change name..." maxlength="12" value="User">
+        <button onclick="usr=document.getElementById('hi').value.trim()||usr;localStorage.setItem('chat_usr',usr);log('Name changed to '+usr);document.getElementById('sd').style.display='none';">Save</button>
+        <button class="clr-btn" onclick="if(confirm('Clear history?')){localStorage.removeItem('chat_history');document.getElementById('box').innerHTML='';log('Chat logs wiped.');}">Wipe History</button>
       </div>
     </div>
   </div>
-
-  <!-- Primary Main View Frame Stage -->
-  <div id="main-chat">
-    <div id="hdr">
-      <div>
-        <div style="font-weight: 600; color: #fff; font-size: 14px;">Los Purebreds Group</div>
-        <button id="cbtn" onclick="openNetworkTunnel()">Click to Connect</button>
-      </div>
-    </div>
-    
-    <!-- Message Center Box Wireframe -->
-    <div id="msg-box">
-      <div class="msg sys">System: Hit the green button to initiate the encrypted P2P channel.</div>
-    </div>
-    
-    <!-- Apple Pill-Style Input Box Tray -->
+  <div id="main">
+    <div id="hdr"><div><b style="color:#fff;font-size:14px;">Los Purebreds Group</b><br><button id="cbtn" onclick="init()">Connect Tunnel</button></div></div>
+    <div id="box"></div>
     <div id="tray">
-      <label for="img-file-select" class="upload-glyph">+</label>
-      <input type="file" id="img-file-select" accept="image/*" onchange="processMediaAttachment(event)" style="display:none;" disabled>
-      <div class="pill-wrapper">
-        <input type="text" id="inp" placeholder="iMessage" onkeypress="if(event.key==='Enter') sendTextMessage()" disabled>
-      </div>
+      <label for="fi" class="plus">+</label><input type="file" id="fi" accept="image/*" onchange="up(event)" style="display:none;" disabled>
+      <div class="pill"><input type="text" id="inp" placeholder="iMessage" onkeypress="if(event.key==='Enter') txt()" disabled></div>
     </div>
   </div>
-
-  <script>
-    let peerInstance = null, sessionLink = null, localCounter = 0;
-    let handleName = "User";
-    const TARGET_ROOM_KEY = "purebred-apple-imessage-tunnel";
-
-    function toggleSettingsPane() {
-      let drawer = document.getElementById('settings-drawer');
-      drawer.style.display = (drawer.style.display === "block") ? "none" : "block";
+<script>
+  let p=null,c=null,cnt=0,usr="User",rm="purebred-apple-imessage-tunnel",logs=[];
+  
+  window.onload=function(){
+    if(localStorage.getItem('chat_usr')){usr=localStorage.getItem('chat_usr');document.getElementById('hi').value=usr;}
+    if(localStorage.getItem('chat_history')){
+      logs=JSON.parse(localStorage.getItem('chat_history'));
+      logs.forEach(d=>renderRow(d.u,d.b,d.cls,d.i,d.img));
+    } else {
+      log("Click Connect Tunnel to open the communication stream.");
     }
+  };
 
-    function commitNameChange() {
-      let inputVal = document.getElementById('handle-input').value.trim();
-      if (!inputVal) return;
-      handleName = inputVal;
-      injectSystemLog(`Profile identity shifted to "${handleName}".`);
-      toggleSettingsPane();
-    }
+  function init(){
+    document.getElementById('cbtn').innerText="Connecting...";document.getElementById('cbtn').disabled=true;
+    p=new Peer(rm);
+    p.on('open',()=>{log("Hosting array. Waiting for partner...");c=p.connect(rm);events();});
+    p.on('connection',(l)=>{c=l;events();});
+    p.on('error',(err)=>{if(err.type==='unavailable-id'){p=new Peer();p.on('open',()=>{c=p.connect(rm);events();});}});
+  }
 
-    function openNetworkTunnel() {
-      document.getElementById('cbtn').innerText = "Connecting...";
-      document.getElementById('cbtn').disabled = true;
-      peerInstance = new Peer(TARGET_ROOM_KEY);
+  function events(){
+    c.on('open',()=>{
+      document.getElementById('inp').disabled=false;document.getElementById('fi').disabled=false;
+      document.getElementById('cbtn').style.display="none";log("Secure iMessage channel established.");
+    });
+    c.on('data',(d)=>{
+      if(d.t==='T')saveAndAdd(d.u,d.b,"peer",d.i,0);if(d.t==='M')saveAndAdd(d.u,d.b,"peer",d.i,1);
+      if(d.t==='D'){let e=document.getElementById(d.i);if(e)e.remove();logs=logs.filter(l=>l.i!==d.i);store();}
+      if(d.t==='V'){
+        let e=document.getElementById(`b-${d.i}`);if(e)e.innerHTML=`${esc(d.b)} <span style="font-size:10px;color:#8e8e93;font-style:italic;">(Edited by friend)</span>`;
+        logs=logs.map(l=>l.i===d.i?{...l,b:d.b}:l);store();
+      }
+    });
+  }
 
-      peerInstance.on('open', (id) => {
-        injectSystemLog("Awaiting friend connection...");
-        sessionLink = peerInstance.connect(TARGET_ROOM_KEY);
-        bindPipelineControls();
-      });
+  function txt(){
+    let el=document.getElementById('inp'),v=el.value.trim();if(!v||!c)return;
+    cnt++;let id=`msg-${p.id}-${cnt}-${Date.now()}`;c.send({t:'T',b:v,u:usr,i:id});
+    saveAndAdd(usr,v,"me",id,0);el.value="";
+  }
 
-      peerInstance.on('connection', (inbound) => { sessionLink = inbound; bindPipelineControls(); });
-      
-      peerInstance.on('error', (err) => {
-        if (err.type === 'unavailable-id') {
-          peerInstance = new Peer();
-          peerInstance.on('open', () => { sessionLink = peerInstance.connect(TARGET_ROOM_KEY); bindPipelineControls(); });
-        }
-      });
-    }
+  function up(e){
+    let f=e.target.files[0];if(!f||!c)return;let r=new FileReader();
+    r.onload=(evt)=>{cnt++;let id=`msg-${p.id}-${cnt}-${Date.now()}`;c.send({t:'M',b:evt.target.result,u:usr,i:id});saveAndAdd(usr,evt.target.result,"me",id,1);};
+    r.readAsDataURL(f);
+  }
 
-    function bindPipelineControls() {
-      sessionLink.on('open', () => {
-        document.getElementById('inp').disabled = false;
-        document.getElementById('img-file-select').disabled = false;
-        document.getElementById('cbtn').style.display = "none";
-        document.getElementById('inp').placeholder = "iMessage";
-        injectSystemLog("Connected over secure Apple routing servers.");
-      });
+  function saveAndAdd(u,b,cls,id,img){
+    if(!logs.some(l=>l.i===id)){logs.push({u:u,b:b,cls:cls,i:id,img:img});store();}
+    renderRow(u,b,cls,id,img);
+  }
 
-      sessionLink.on('data', (d) => {
-        if (d.type === 'TEXT') appendChatRow(d.username, d.body, "peer", d.msgId, false);
-        if (d.type === 'MEDIA') appendChatRow(d.username, d.body, "peer", d.msgId, true);
-        if (d.type === 'DELETE') { let target = document.getElementById(d.msgId); if (target) target.remove(); }
-        if (d.type === 'VANDAL') {
-          let textFrame = document.getElementById(`body-${d.msgId}`);
-          if (textFrame) { textFrame.innerHTML = `${escapeHtml(d.body)} <span style="font-size:10px; color:#8e8e93; font-style:italic;">(Edited by friend)</span>`; }
-        }
-      });
-    }
+  function store(){localStorage.setItem('chat_history',JSON.stringify(logs));}
 
-    function sendTextMessage() {
-      let box = document.getElementById('inp'), val = box.value.trim();
-      if (!val || !sessionLink) return;
-      localCounter++; let generatedId = `msg-${peerInstance.id}-${localCounter}`;
-      
-      sessionLink.send({ type: 'TEXT', body: val, username: handleName, msgId: generatedId });
-      appendChatRow(handleName, val, "me", generatedId, false);
-      box.value = "";
-    }
+  function renderRow(u,b,cls,id,img){
+    let bx=document.getElementById('box'),w=document.createElement('div');w.className=`msg ${cls}`;w.id=id;
+    let html=img?`<img src="${b}" class="img">`:`<div class="bubble" id="b-${id}">${esc(b)}</div>`;
+    w.innerHTML=`<span class="lbl">${esc(u)}</span>${html}<div id="vt-${id}"></div><div class="act">`+(cls==='peer'&&!img?`<button class="act-b" onclick="ch('${id}')">Edit Message</button>`:'')+(cls==='me'?`<button class="act-b del" onclick="c.send({t:'D',i:'${id}'});document.getElementById('${id}').remove();logs=logs.filter(l=>l.i==='${id}');store();">Delete</button>`:'')+'</div>';
+    bx.appendChild(w);bx.scrollTop=bx.scrollHeight;
+  }
 
-    function processMediaAttachment(e) {
-      let files = e.target.files; if (!files || !sessionLink) return;
-      let reader = new FileReader();
-      reader.onload = (evt) => {
+  function ch(id){
+    let raw=document.getElementById(`b-${id}`).innerText.replace(" (Edited by friend)","");
+    document.getElementById(`vt-${id}`).innerHTML=`<div class="v-box"><input type="text" id="vi-${id}" value="${esc(raw)}"><button onclick="sv('${id}')">Save</button></div>`;
+  }
+
+  function sv(id){
+    let v=document.getElementById(`vi-${id}`).value.trim();if(!v)return;
+    c.send({t:'V',i:id,b:v});document.getElementById(`b-${id}`).innerHTML=`${esc(v)} <span style="font-size:10px;color:#8e8e93;font-style:italic;">(Edited by friend)</span>`;
+    document.getElementById(`vt-${id}`).innerHTML="";logs=logs.map(l=>l.i===id?{...l,b:v}:l);store();
+  }
+
+  function log(t){let bx=document.getElementById('box');bx.innerHTML+=`<div class="msg sys">System: ${t}</div>`;bx.scrollTop=bx.scrollHeight;}
+  function esc(s){return s?s.toString().replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"):"";}
+</script></body></html>
