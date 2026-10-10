@@ -1,134 +1,342 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Los Purebreds iMessage</title>
-<script src="https://unpkg.com"></script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Los-Purebreds-Chat</title>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <style>
-  body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#000;color:#fff;margin:0;display:flex;height:100vh;overflow:hidden;}
-  #sb{width:220px;background:#1c1c1e;display:flex;flex-direction:column;border-right:1px solid #2c2c2e;justify-content:space-between;}
-  .hdr-sb{padding:20px 16px;font-weight:bold;font-size:20px;border-bottom:1px solid #2c2c2e;}
-  .row-ch{padding:12px 16px;background:#2c2c2e;display:flex;align-items:center;gap:10px;border-left:4px solid #0a84ff;}
-  .av-sb{width:40px;height:40px;border-radius:50%;background:#8e8e93;display:flex;align-items:center;justify-content:center;font-weight:bold;}
-  .stg-sb{padding:14px;border-top:1px solid #2c2c2e;background:#1c1c1e;}
-  .stg-btn{background:none;border:none;color:#0a84ff;font-size:14px;cursor:pointer;font-weight:500;}
-  .stg-box{display:none;background:#2c2c2e;padding:8px;border-radius:8px;margin-top:6px;}
-  .stg-box input{width:80%;padding:4px;background:#1c1c1e;border:1px solid #3a3a3c;color:#fff;border-radius:6px;text-align:center;}
-  .stg-box button{width:88%;margin-top:6px;background:#0a84ff;border:none;color:#fff;padding:4px;border-radius:6px;font-weight:bold;cursor:pointer;}
-  #main{flex-grow:1;display:flex;flex-direction:column;background:#000;}
-  #hdr{height:55px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid #2c2c2e;font-size:13px;color:#8e8e93;text-align:center;}
-  #cbtn{background:#32d74b;color:#fff;border:none;padding:4px 12px;border-radius:12px;font-weight:600;cursor:pointer;margin-top:2px;}
-  #box{flex-grow:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:10px;}
-  .msg{display:flex;flex-direction:column;max-width:65%;position:relative;}
-  .msg.me{align-self:flex-end;align-items:flex-end;}
-  .msg.peer{align-self:flex-start;align-items:flex-start;}
-  .msg.sys{align-self:center;max-width:90%;text-align:center;color:#8e8e93;font-size:12px;}
-  .lbl{font-size:11px;color:#8e8e93;margin:0 4px 2px 4px;}
-  .bubble{padding:10px 16px;border-radius:20px;font-size:15px;line-height:1.4;word-break:break-all;}
-  .me .bubble{background:#0a84ff;color:#fff;}
-  .peer .bubble{background:#2c2c2e;color:#fff;}
-  .img{max-width:240px;border-radius:16px;margin-top:4px;display:block;}
-  .act{display:none;margin-top:4px;gap:8px;}
-  .msg:hover .act{display:flex;}
-  .act-b{background:none;border:none;color:#ff9f0a;font-size:11px;cursor:pointer;padding:0;}
-  .act-b.del{color:#ff453a;}
-  .v-box{display:flex;gap:4px;margin-top:4px;width:180px;}
-  .v-box input{background:#1c1c1e;border:1px solid #3a3a3c;color:#fff;padding:4px;border-radius:10px;font-size:12px;flex-grow:1;}
-  .v-box button{background:#ff9f0a;border:none;color:#000;font-weight:bold;border-radius:10px;padding:4px;font-size:11px;cursor:pointer;}
-  #tray{padding:12px 20px;display:flex;align-items:center;gap:12px;border-top:1px solid #2c2c2e;}
-  .pill{display:flex;flex-grow:1;background:#1c1c1e;border:1px solid #2c2c2e;border-radius:20px;padding:6px 14px;}
-  #inp{flex-grow:1;background:none;border:none;color:#fff;outline:none;font-size:15px;}
-  .plus{font-size:22px;color:#0a84ff;cursor:pointer;user-select:none;}
-  .clr-btn{background:none;border:none;color:#ff453a;font-size:11px;cursor:pointer;margin-top:6px;text-align:left;padding:0;}
-</style></head><body>
-  <div id="sb">
-    <div><div class="hdr-sb">Messages</div><div class="row-ch"><div class="av-sb">LP</div><div><b style="font-size:15px;">Los Purebreds</b><br><span style="font-size:12px;color:#8e8e93;">iMessage Channel</span></div></div></div>
-    <div class="stg-sb">
-      <button class="stg-btn" onclick="let d=document.getElementById('sd');d.style.display=d.style.display==='block'?'none':'block';">⚙️ Settings</button>
-      <div class="stg-box" id="sd">
-        <input type="text" id="hi" placeholder="Change name..." maxlength="12" value="User">
-        <button onclick="usr=document.getElementById('hi').value.trim()||usr;localStorage.setItem('chat_usr',usr);log('Name changed to '+usr);document.getElementById('sd').style.display='none';">Save</button>
-        <button class="clr-btn" onclick="if(confirm('Clear history?')){localStorage.removeItem('chat_history');document.getElementById('box').innerHTML='';log('Chat logs wiped.');}">Wipe History</button>
-      </div>
+  :root{
+    --bg:#000; --side:#1c1c1e; --line:#2c2c2e; --row:#2c2c2e; --accent:#0a84ff;
+    --text:#fff; --muted:#8e8e93; --input:#1c1c1e; --me:#0a84ff; --peer:#2c2c2e;
+  }
+  body[data-theme="discord"]{
+    --bg:#313338; --side:#2b2d31; --line:#1f2023; --row:#404249; --accent:#5865f2;
+    --text:#dbdee1; --muted:#949ba4; --input:#383a40; --me:transparent; --peer:transparent;
+  }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);margin:0;display:flex;height:100vh;overflow:hidden}
+  #sb{width:220px;background:var(--side);display:flex;flex-direction:column;border-right:1px solid var(--line);justify-content:space-between;flex-shrink:0}
+  .hdr-sb{padding:20px 16px;font-weight:bold;font-size:20px;border-bottom:1px solid var(--line)}
+  .row-ch{padding:12px 16px;background:var(--row);display:flex;align-items:center;gap:10px;border-left:4px solid var(--accent)}
+  .av-sb{width:40px;height:40px;border-radius:50%;background:#8e8e93;display:flex;align-items:center;justify-content:center;font-weight:bold;color:#fff}
+  .stg-sb{padding:14px;border-top:1px solid var(--line)}
+  .stg-btn{background:none;border:none;color:var(--accent);font-size:14px;cursor:pointer;font-weight:500}
+  .stg-box{display:none;background:var(--row);padding:10px;border-radius:8px;margin-top:6px}
+  .stg-box label{font-size:11px;color:var(--muted);display:block;margin:6px 0 2px}
+  .stg-box input,.stg-box select{width:100%;padding:6px;background:var(--input);border:1px solid var(--line);color:var(--text);border-radius:6px}
+  .stg-box button{width:100%;margin-top:8px;background:var(--accent);border:none;color:#fff;padding:6px;border-radius:6px;font-weight:bold;cursor:pointer}
+  .stg-box .clr-btn{background:none;color:#ff453a;font-size:11px;text-align:left;padding:0;font-weight:normal}
+  #main{flex-grow:1;display:flex;flex-direction:column;background:var(--bg);min-width:0}
+  #hdr{min-height:55px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--line);font-size:13px;color:var(--muted);text-align:center;padding:6px}
+  #box{flex-grow:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:10px}
+  .msg{display:flex;gap:10px;max-width:65%}
+  .msg.me{align-self:flex-end;flex-direction:row-reverse}
+  .msg.peer{align-self:flex-start}
+  .msg.sys{align-self:center;max-width:90%;text-align:center;color:var(--muted);font-size:12px}
+  .av{width:36px;height:36px;border-radius:50%;flex-shrink:0;display:none;align-items:center;justify-content:center;font-weight:bold;color:#fff}
+  .col{display:flex;flex-direction:column;min-width:0}
+  .me .col{align-items:flex-end}
+  .lbl{font-size:11px;color:var(--muted);margin:0 4px 2px}
+  .bubble{padding:10px 16px;border-radius:20px;font-size:15px;line-height:1.4;overflow-wrap:anywhere;white-space:pre-wrap}
+  .me .bubble{background:var(--me);color:#fff}
+  .peer .bubble{background:var(--peer)}
+  .img{max-width:240px;border-radius:16px;margin-top:4px;display:block}
+  .act{display:none;margin-top:4px;gap:8px}
+  .msg:hover .act{display:flex}
+  .act button{background:none;border:none;color:#ff9f0a;font-size:11px;cursor:pointer;padding:0}
+  .act .del{color:#ff453a}
+  .edited{font-size:10px;color:var(--muted);font-style:italic}
+  #tray{padding:12px 20px;display:flex;align-items:center;gap:12px;border-top:1px solid var(--line)}
+  .pill{display:flex;flex-grow:1;background:var(--input);border:1px solid var(--line);border-radius:20px;padding:8px 14px}
+  #inp{flex-grow:1;background:none;border:none;color:var(--text);outline:none;font-size:15px}
+  .plus{font-size:22px;color:var(--accent);cursor:pointer;user-select:none}
+
+  /* Discord theme layout */
+  body[data-theme="discord"] .msg,
+  body[data-theme="discord"] .msg.me{align-self:stretch;max-width:100%;flex-direction:row}
+  body[data-theme="discord"] .me .col{align-items:flex-start}
+  body[data-theme="discord"] .av{display:flex}
+  body[data-theme="discord"] .lbl{font-size:15px;font-weight:600;color:var(--text);margin:0 0 2px}
+  body[data-theme="discord"] .bubble{padding:0;border-radius:0;font-size:15px}
+  body[data-theme="discord"] .me .bubble{color:var(--text)}
+  body[data-theme="discord"] .pill{border-radius:8px;border:none}
+  body[data-theme="discord"] .img{border-radius:6px}
+  body[data-theme="discord"] #box{gap:14px}
+  body[data-theme="discord"] .av-sb{border-radius:12px;background:var(--accent)}
+
+  /* Room code gate */
+  #gate{position:fixed;inset:0;background:var(--bg);z-index:10;display:flex;align-items:center;justify-content:center}
+  #gate .card{background:var(--side);padding:28px;border-radius:16px;width:min(340px,90vw);display:flex;flex-direction:column;gap:10px;text-align:center}
+  #gate h1{margin:0 0 6px;font-size:22px}
+  #gate input,#gate select{padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--text);font-size:15px}
+  #gate button{padding:10px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:bold;font-size:15px;cursor:pointer}
+  #gerr{color:#ff453a;font-size:13px;min-height:16px}
+  #hdr-set{display:none;background:none;border:none;font-size:20px;cursor:pointer;margin-right:10px}
+  @media(max-width:600px){#sb{display:none;position:fixed;top:0;bottom:0;left:0;width:240px;z-index:5}#sb.open{display:flex}#hdr-set{display:inline-block}.msg{max-width:85%}}
+</style>
+</head>
+<body data-theme="imessage">
+
+<div id="gate">
+  <div class="card">
+    <h1>Los-Purebreds-Chat</h1>
+    <input id="g-code" type="text" placeholder="Room code" autocomplete="off">
+    <input id="g-name" type="text" placeholder="Your name" maxlength="12" autocomplete="off">
+    <select id="g-theme"><option value="imessage">iMessage theme</option><option value="discord">Discord theme</option></select>
+    <div id="gerr"></div>
+    <button id="g-go">Join</button>
+  </div>
+</div>
+
+<div id="sb">
+  <div>
+    <div class="hdr-sb">Messages</div>
+    <div class="row-ch"><div class="av-sb">LP</div><div><b style="font-size:15px">Los Purebreds</b><br><span id="chname" style="font-size:12px;color:var(--muted)">iMessage Channel</span></div></div>
+  </div>
+  <div class="stg-sb">
+    <div id="youare" style="font-size:12px;color:var(--muted);margin-bottom:6px"></div>
+    <button class="stg-btn" id="stg-toggle">⚙️ Settings</button>
+    <div class="stg-box" id="sd">
+      <label>Name</label><input type="text" id="hi" maxlength="12">
+      <label>Theme</label>
+      <select id="theme"><option value="imessage">iMessage</option><option value="discord">Discord</option></select>
+      <button id="save">Save</button>
+      <button class="clr-btn" id="wipe">Wipe History</button>
     </div>
   </div>
-  <div id="main">
-    <div id="hdr"><div><b style="color:#fff;font-size:14px;">Los Purebreds Group</b><br><button id="cbtn" onclick="init()">Connect Tunnel</button></div></div>
-    <div id="box"></div>
-    <div id="tray">
-      <label for="fi" class="plus">+</label><input type="file" id="fi" accept="image/*" onchange="up(event)" style="display:none;" disabled>
-      <div class="pill"><input type="text" id="inp" placeholder="iMessage" onkeypress="if(event.key==='Enter') txt()" disabled></div>
-    </div>
+</div>
+
+<div id="main">
+  <div id="hdr"><button id="hdr-set" title="Settings">⚙️</button><span id="status">Not connected</span></div>
+  <div id="box"></div>
+  <div id="tray">
+    <label for="fi" class="plus">+</label>
+    <input type="file" id="fi" accept="image/*" style="display:none" disabled>
+    <div class="pill"><input type="text" id="inp" placeholder="Message" disabled></div>
   </div>
+</div>
+
 <script>
-  let p=null,c=null,cnt=0,usr="User",rm="purebred-apple-imessage-tunnel",logs=[];
-  
-  window.onload=function(){
-    if(localStorage.getItem('chat_usr')){usr=localStorage.getItem('chat_usr');document.getElementById('hi').value=usr;}
-    if(localStorage.getItem('chat_history')){
-      logs=JSON.parse(localStorage.getItem('chat_history'));
-      logs.forEach(d=>renderRow(d.u,d.b,d.cls,d.i,d.img));
-    } else {
-      log("Click Connect Tunnel to open the communication stream.");
-    }
+const ROOM_CODE = "purebred";
+const ROOM_ID = "los-purebreds-chat-" + ROOM_CODE;
+const $ = id => document.getElementById(id);
+let usr = "User", peer = null, conns = [], isHost = false, logs = [];
+
+function load(k, fallback){ try { const v = localStorage.getItem(k); return v === null ? fallback : v; } catch(e){ return fallback; } }
+function save(k, v){ try { localStorage.setItem(k, v); } catch(e){ console.warn("Storage failed", e); } }
+
+/* ---------- theme ---------- */
+function setTheme(t){
+  if(t !== "imessage" && t !== "discord") t = "imessage";
+  document.body.dataset.theme = t;
+  $("theme").value = t; $("g-theme").value = t;
+  $("chname").textContent = t === "discord" ? "# purebred-chat" : "iMessage Channel";
+  $("inp").placeholder = t === "discord" ? "Message #purebred-chat" : "iMessage";
+  save("chat_theme", t);
+}
+
+/* ---------- startup ---------- */
+window.addEventListener("load", () => {
+  usr = load("chat_usr", "User");
+  $("hi").value = usr; $("g-name").value = usr === "User" ? "" : usr; updateYou();
+  setTheme(load("chat_theme", "imessage"));
+  try { logs = JSON.parse(load("chat_history", "[]")); } catch(e){ logs = []; }
+  logs.forEach(renderRow);
+  if(!logs.length) sys("Welcome to Los-Purebreds-Chat.");
+});
+
+$("g-go").onclick = () => {
+  const code = $("g-code").value.trim().toLowerCase();
+  if(code !== ROOM_CODE){ $("gerr").textContent = "Wrong room code."; return; }
+  const n = $("g-name").value.trim();
+  if(n){ usr = n; $("hi").value = n; save("chat_usr", n); updateYou(); }
+  setTheme($("g-theme").value);
+  $("gate").style.display = "none";
+  connect();
+};
+$("g-code").addEventListener("keydown", e => { if(e.key === "Enter") $("g-go").click(); });
+
+function updateYou(){ $("youare").textContent = "Signed in as " + usr; }
+$("hdr-set").onclick = () => { $("sb").classList.toggle("open"); $("sd").style.display = "block"; };
+$("stg-toggle").onclick = () => { const d = $("sd"); d.style.display = d.style.display === "block" ? "none" : "block"; };
+$("save").onclick = () => {
+  const old = usr;
+  usr = ($("hi").value.trim() || usr).slice(0, 12); $("hi").value = usr; save("chat_usr", usr);
+  setTheme($("theme").value); updateYou();
+  if(usr !== old){ send({ t: "N", u: old, b: usr, i: newId() }); sys("You changed your name to " + usr + "."); }
+  else sys("Settings saved.");
+  $("sd").style.display = "none"; $("sb").classList.remove("open");
+};
+$("wipe").onclick = () => {
+  if(confirm("Clear history?")){ try{ localStorage.removeItem("chat_history"); }catch(e){} logs = []; $("box").innerHTML = ""; sys("Chat logs wiped."); }
+};
+
+/* ---------- networking (host relays to everyone) ---------- */
+function setStatus(t){ $("status").textContent = t; }
+function ready(){ $("inp").disabled = false; $("fi").disabled = false; }
+
+function connect(){
+  setStatus("Connecting...");
+  peer = new Peer(ROOM_ID);
+  peer.on("open", () => {
+    isHost = true; ready();
+    setStatus("Online (hosting) — waiting for friends");
+    sys("You opened the room. Friends can join with the code.");
+  });
+  peer.on("connection", c => addConn(c));
+  peer.on("error", err => {
+    if(err.type === "unavailable-id" && !isHost){
+      peer = new Peer();
+      peer.on("open", () => addConn(peer.connect(ROOM_ID, { reliable: true })));
+      peer.on("error", e => setStatus("Connection error: " + e.type));
+    } else { setStatus("Connection error: " + err.type); }
+  });
+}
+
+function addConn(c){
+  c.on("open", () => {
+    conns.push(c); ready();
+    setStatus("Online — " + conns.length + " connected");
+    sys(isHost ? "A friend joined." : "Connected to the room.");
+  });
+  c.on("data", d => handle(d, c));
+  c.on("close", () => {
+    conns = conns.filter(x => x !== c);
+    setStatus(isHost ? "Online (hosting)" : "Disconnected — refresh to rejoin");
+    sys("A friend left.");
+  });
+}
+
+function send(d, except){ conns.forEach(c => { if(c !== except && c.open) c.send(d); }); }
+
+function validId(i){ return typeof i === "string" && i.length > 0 && i.length < 80; }
+
+function handle(d, from){
+  if(!d || typeof d !== "object" || !validId(d.i)) return;
+  if(d.t === "T" && typeof d.b === "string" && d.b.length < 2000){
+    addMsg(String(d.u).slice(0,12), d.b, "peer", d.i, 0);
+  } else if(d.t === "M" && typeof d.b === "string" && d.b.startsWith("data:image/")){
+    addMsg(String(d.u).slice(0,12), d.b, "peer", d.i, 1);
+  } else if(d.t === "N" && typeof d.u === "string" && typeof d.b === "string"){
+    sys(d.u.slice(0,12) + " is now " + d.b.slice(0,12));
+  } else if(d.t === "D"){
+    removeMsg(d.i);
+  } else if(d.t === "V" && typeof d.b === "string" && d.b.length < 2000){
+    editMsg(d.i, d.b);
+  } else return;
+  if(isHost) send(d, from); // relay to the other friends
+}
+
+/* ---------- sending ---------- */
+function newId(){ return "msg-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8); }
+
+function sendText(){
+  const el = $("inp"), v = el.value.trim();
+  if(!v) return;
+  const id = newId();
+  send({ t: "T", b: v, u: usr, i: id });
+  addMsg(usr, v, "me", id, 0);
+  el.value = "";
+}
+$("inp").addEventListener("keydown", e => { if(e.key === "Enter") sendText(); });
+
+$("fi").addEventListener("change", e => {
+  const f = e.target.files[0];
+  if(!f) return;
+  if(f.size > 3 * 1024 * 1024){ sys("Image too big (3MB max)."); e.target.value = ""; return; }
+  const r = new FileReader();
+  r.onload = evt => {
+    const id = newId();
+    send({ t: "M", b: evt.target.result, u: usr, i: id });
+    addMsg(usr, evt.target.result, "me", id, 1);
+    e.target.value = "";
   };
+  r.readAsDataURL(f);
+});
 
-  function init(){
-    document.getElementById('cbtn').innerText="Connecting...";document.getElementById('cbtn').disabled=true;
-    p=new Peer(rm);
-    p.on('open',()=>{log("Hosting array. Waiting for partner...");c=p.connect(rm);events();});
-    p.on('connection',(l)=>{c=l;events();});
-    p.on('error',(err)=>{if(err.type==='unavailable-id'){p=new Peer();p.on('open',()=>{c=p.connect(rm);events();});}});
+/* ---------- messages ---------- */
+function addMsg(u, b, cls, id, img){
+  if(logs.some(l => l.i === id)) return;
+  logs.push({ u, b, cls, i: id, img });
+  persist();
+  renderRow({ u, b, cls, i: id, img });
+}
+
+function persist(){
+  // keep storage under the browser limit by dropping the oldest messages if needed
+  while(true){
+    try { localStorage.setItem("chat_history", JSON.stringify(logs)); return; }
+    catch(e){ if(logs.length <= 1) return; logs.shift(); }
+  }
+}
+
+function colorFor(name){
+  let h = 0; for(const ch of name) h = (h * 31 + ch.charCodeAt(0)) % 360;
+  return "hsl(" + h + ",55%,50%)";
+}
+
+function renderRow(m){
+  const box = $("box");
+  const w = document.createElement("div");
+  w.className = "msg " + m.cls; w.id = m.i;
+
+  const av = document.createElement("div");
+  av.className = "av"; av.textContent = (m.u[0] || "?").toUpperCase();
+  av.style.background = colorFor(m.u);
+
+  const col = document.createElement("div"); col.className = "col";
+  const lbl = document.createElement("span"); lbl.className = "lbl"; lbl.textContent = m.u;
+  col.appendChild(lbl);
+
+  if(m.img){
+    const im = document.createElement("img"); im.className = "img"; im.src = m.b; col.appendChild(im);
+  } else {
+    const bub = document.createElement("div"); bub.className = "bubble"; bub.textContent = m.b;
+    bub.dataset.bubble = "1";
+    if(m.edited){ const s = document.createElement("span"); s.className = "edited"; s.textContent = " (Edited)"; bub.appendChild(s); }
+    col.appendChild(bub);
   }
 
-  function events(){
-    c.on('open',()=>{
-      document.getElementById('inp').disabled=false;document.getElementById('fi').disabled=false;
-      document.getElementById('cbtn').style.display="none";log("Secure iMessage channel established.");
-    });
-    c.on('data',(d)=>{
-      if(d.t==='T')saveAndAdd(d.u,d.b,"peer",d.i,0);if(d.t==='M')saveAndAdd(d.u,d.b,"peer",d.i,1);
-      if(d.t==='D'){let e=document.getElementById(d.i);if(e)e.remove();logs=logs.filter(l=>l.i!==d.i);store();}
-      if(d.t==='V'){
-        let e=document.getElementById(`b-${d.i}`);if(e)e.innerHTML=`${esc(d.b)} <span style="font-size:10px;color:#8e8e93;font-style:italic;">(Edited by friend)</span>`;
-        logs=logs.map(l=>l.i===d.i?{...l,b:d.b}:l);store();
-      }
-    });
+  const act = document.createElement("div"); act.className = "act";
+  if(m.cls === "peer" && !m.img){
+    const b = document.createElement("button"); b.textContent = "Edit Message";
+    b.onclick = () => {
+      const nv = prompt("Edit message:", m.b);
+      if(nv && nv.trim()){ send({ t: "V", i: m.i, b: nv.trim() }); editMsg(m.i, nv.trim()); }
+    };
+    act.appendChild(b);
   }
-
-  function txt(){
-    let el=document.getElementById('inp'),v=el.value.trim();if(!v||!c)return;
-    cnt++;let id=`msg-${p.id}-${cnt}-${Date.now()}`;c.send({t:'T',b:v,u:usr,i:id});
-    saveAndAdd(usr,v,"me",id,0);el.value="";
+  if(m.cls === "me"){
+    const b = document.createElement("button"); b.className = "del"; b.textContent = "Delete";
+    b.onclick = () => { send({ t: "D", i: m.i }); removeMsg(m.i); };
+    act.appendChild(b);
   }
+  col.appendChild(act);
 
-  function up(e){
-    let f=e.target.files[0];if(!f||!c)return;let r=new FileReader();
-    r.onload=(evt)=>{cnt++;let id=`msg-${p.id}-${cnt}-${Date.now()}`;c.send({t:'M',b:evt.target.result,u:usr,i:id});saveAndAdd(usr,evt.target.result,"me",id,1);};
-    r.readAsDataURL(f);
-  }
+  w.append(av, col);
+  box.appendChild(w);
+  box.scrollTop = box.scrollHeight;
+}
 
-  function saveAndAdd(u,b,cls,id,img){
-    if(!logs.some(l=>l.i===id)){logs.push({u:u,b:b,cls:cls,i:id,img:img});store();}
-    renderRow(u,b,cls,id,img);
-  }
+function removeMsg(id){
+  const e = $(id); if(e) e.remove();
+  logs = logs.filter(l => l.i !== id); persist();
+}
 
-  function store(){localStorage.setItem('chat_history',JSON.stringify(logs));}
+function editMsg(id, text){
+  logs = logs.map(l => l.i === id ? { ...l, b: text, edited: true } : l); persist();
+  const e = $(id); if(!e) return;
+  const bub = e.querySelector("[data-bubble]"); if(!bub) return;
+  bub.textContent = text;
+  const s = document.createElement("span"); s.className = "edited"; s.textContent = " (Edited)";
+  bub.appendChild(s);
+}
 
-  function renderRow(u,b,cls,id,img){
-    let bx=document.getElementById('box'),w=document.createElement('div');w.className=`msg ${cls}`;w.id=id;
-    let html=img?`<img src="${b}" class="img">`:`<div class="bubble" id="b-${id}">${esc(b)}</div>`;
-    w.innerHTML=`<span class="lbl">${esc(u)}</span>${html}<div id="vt-${id}"></div><div class="act">`+(cls==='peer'&&!img?`<button class="act-b" onclick="ch('${id}')">Edit Message</button>`:'')+(cls==='me'?`<button class="act-b del" onclick="c.send({t:'D',i:'${id}'});document.getElementById('${id}').remove();logs=logs.filter(l=>l.i==='${id}');store();">Delete</button>`:'')+'</div>';
-    bx.appendChild(w);bx.scrollTop=bx.scrollHeight;
-  }
-
-  function ch(id){
-    let raw=document.getElementById(`b-${id}`).innerText.replace(" (Edited by friend)","");
-    document.getElementById(`vt-${id}`).innerHTML=`<div class="v-box"><input type="text" id="vi-${id}" value="${esc(raw)}"><button onclick="sv('${id}')">Save</button></div>`;
-  }
-
-  function sv(id){
-    let v=document.getElementById(`vi-${id}`).value.trim();if(!v)return;
-    c.send({t:'V',i:id,b:v});document.getElementById(`b-${id}`).innerHTML=`${esc(v)} <span style="font-size:10px;color:#8e8e93;font-style:italic;">(Edited by friend)</span>`;
-    document.getElementById(`vt-${id}`).innerHTML="";logs=logs.map(l=>l.i===id?{...l,b:v}:l);store();
-  }
-
-  function log(t){let bx=document.getElementById('box');bx.innerHTML+=`<div class="msg sys">System: ${t}</div>`;bx.scrollTop=bx.scrollHeight;}
-  function esc(s){return s?s.toString().replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"):"";}
-</script></body></html>
+function sys(t){
+  const d = document.createElement("div"); d.className = "msg sys"; d.textContent = "System: " + t;
+  $("box").appendChild(d); $("box").scrollTop = $("box").scrollHeight;
+}
+</script>
+</body>
+</html>
