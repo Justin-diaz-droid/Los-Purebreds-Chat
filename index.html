@@ -2797,6 +2797,10 @@ label.plus.open{transform:rotate(45deg)}
     const l=low(nm); if(conn.allow===l) return "";
     if(reg.bans.includes(l)) return "banned";
     const v=own(reg.acc,l); if(v&&hVer(String(hh||""))!==v) return "password";
+    if(!v){                                     // no password on this name yet: they must create one now
+      if(!HEX.test(String(hh||""))) return "setpw";
+      reg.acc[l]=hVer(String(hh)); commit();
+    }
     return "";
   }
   function kickConn(conn,why){ deny(conn,why); }
@@ -2815,7 +2819,7 @@ label.plus.open{transform:rotate(45deg)}
     const cur=own(reg.acc,l);
     if(cur && !f.admin && hVer(String(m.a||""))!==cur) return reply(false,"Wrong current password.");
     if(!f.admin && reg.bans.includes(l)) return reply(false,"That name is banned.");
-    if(m.v===""){ delete reg.acc[l]; }
+    if(m.v===""){ return reply(false,"Every name needs a password — set a new one instead of removing it."); }
     else if(HEX.test(String(m.v||""))){ reg.acc[l]=m.v; }
     else return reply(false,"Invalid password.");
     commit(); reply(true,m.v===""?"Password removed.":"Password saved.");
@@ -2900,7 +2904,12 @@ label.plus.open{transform:rotate(45deg)}
   window.addEventListener("offline",()=>{ if(peer) leaveRoom("You went offline. Rejoin when you're back."); });
   const _reveal=window.revealChat;
   window.revealChat=function(){
-    if(isHost&&!adminMode){ const v=own(reg.acc,low(usr)); if(v&&hVer(myPwH)!==v){ leaveRoom("That name is protected — enter its password."); return; } }
+    if(isHost&&!adminMode){
+      const l=low(usr), v=own(reg.acc,l);
+      if(v){ if(hVer(myPwH)!==v){ leaveRoom("That name is protected — enter its password."); return; } }
+      else if(!myPwH){ leaveRoom("Every name needs a password. Type one in the password box (at least 4 characters) to create it."); return; }
+      else { reg.acc[l]=hVer(myPwH); commit(); }
+    }
     _reveal();
   };
   const _handle=handle;
@@ -2916,11 +2925,16 @@ label.plus.open{transform:rotate(45deg)}
         if(first){ from.ok2=true; from.pwh=String(d.h||""); from.send(areg()); }
       }
       else if(!from.ok2) return;
+      else if(!from.admin&&from.userName&&!own(reg.acc,low(from.userName))) return deny(from,"setpw");
       else if(d.t==="Y"&&!from.admin&&reg.mutes.includes(low(from.userName))){
         try{ from.send({t:"E",i:newId(),msg:"You're muted by an admin."}); }catch(e){} return;
       }
       else if(d.t==="N"){
         if(!from.admin&&reg.mutes.includes(low(from.userName))){ const nl=low(String(d.b||"")); if(nl&&!reg.mutes.includes(nl)){ reg.mutes.push(nl); commit(); } }
+        if(!from.admin){                        // renaming: the password moves to the new name
+          const ol=low(from.userName), nl=low(String(d.b||"").slice(0,12)), c0=own(reg.acc,ol);
+          if(c0&&ol!==nl&&!own(reg.acc,nl)&&!reg.bans.includes(nl)&&hVer(String(from.pwh||""))===c0){ delete reg.acc[ol]; reg.acc[nl]=c0; commit(); }
+        }
         const why=nameBlocked(String(d.b||"").slice(0,12),from,from.pwh); if(why) return deny(from,why);
       }
       else if(d.t==="W"){ procW(d,{admin:from.admin||d.k===ADMIN_KEY,name:from.userName,reply:r=>{try{from.send(r);}catch(e){}}}); return; }
@@ -2936,7 +2950,7 @@ label.plus.open{transform:rotate(45deg)}
       }
       if(d.t==="X"){
         const why=d.why; if(why==="password"){ myPwH=""; save("chat_pwh",""); }
-        leaveRoom(why==="banned"?"That name is banned.":why==="kicked"?"You were removed by an admin.":"That name is protected — enter its password."); return;
+        leaveRoom(why==="banned"?"That name is banned.":why==="kicked"?"You were removed by an admin.":why==="setpw"?"Every name needs a password. Type one in the password box (at least 4 characters) to create it.":"That name is protected — enter its password."); return;
       }
       if(d.t==="Z"){ if(typeof d.n==="string") applyRename(d.n); return; }
       if(d.t==="E"){ note(String(d.msg||"").slice(0,200)); sys(String(d.msg||"").slice(0,200)); return; }
@@ -2949,7 +2963,7 @@ label.plus.open{transform:rotate(45deg)}
 
   /* =============== gate: password field, secret admin button =============== */
   const lab=document.createElement("label"); lab.className="fld";
-  lab.innerHTML='<span>Password <i style="text-transform:none;font-weight:400;opacity:.7">(only if your name has one)</i></span><input id="g-pw" type="password" autocomplete="current-password" placeholder="Leave empty if none">';
+  lab.innerHTML='<span>Password <i style="text-transform:none;font-weight:400;opacity:.7">(required — a new name uses it to create its password)</i></span><input id="g-pw" type="password" autocomplete="current-password" placeholder="At least 4 characters">';
   $("gerr").before(lab);
   $("g-pw").addEventListener("keydown",e=>{ if(e.key==="Enter") $("g-go").click(); });
 
@@ -2977,6 +2991,7 @@ label.plus.open{transform:rotate(45deg)}
     const typed=$("g-pw").value;
     // The host is the only one who knows the current passwords/bans, so it decides.
     // (Checking against this browser's cached copy rejected correct passwords after a reset.)
+    if(typed&&typed.length<4&&!adminMode){ $("gerr").textContent="Password must be at least 4 characters."; return; }
     myPwH=typed?hCred(typed):"";   // only what you type counts; nothing is remembered between visits
     save("chat_pwh","");
     $("g-pw").value=""; leaving=false;
@@ -2988,6 +3003,7 @@ label.plus.open{transform:rotate(45deg)}
   const card=document.createElement("div"); card.className="stg-card";
   card.innerHTML='<h3>🔑 Password</h3><div class="stg-note" id="pwst"></div><label>New password (at least 4 characters)</label><input type="password" id="pwnew" autocomplete="new-password"><div class="stg-row"><button id="pwset" type="button" class="btn">Set password</button><button id="pwrm" type="button" class="btn alt">Remove password</button></div><div class="stg-note">Protects your name so nobody else can use it. If you forget it, an admin can reset it.</div>';
   document.querySelector(".stg-scroll").appendChild(card);
+  $("pwrm").style.display="none";
   function refreshUI(){
     const st=$("pwst"); if(st&&!pendW) st.textContent=own(reg.acc,low(usr))?"🔒 Your name “"+usr+"” is password-protected.":"No password yet — anyone could use the name “"+usr+"”.";
     renderAdminLists();
@@ -3027,7 +3043,7 @@ label.plus.open{transform:rotate(45deg)}
   const ab=document.createElement("button"); ab.id="admbtn"; ab.className="stg-btn"; ab.type="button"; ab.textContent="🛡 Admin panel"; ab.style.display="none";
   document.querySelector(".stg-sb").insertBefore(ab,$("stg-toggle"));
   const am=document.createElement("div"); am.id="amod";
-  am.innerHTML='<div class="acard"><div class="ah"><b>🛡 Admin panel</b><button type="button" id="amx" title="Close">✕</button></div><div id="amsg"></div><div id="amb"><div><h4>Online now</h4><div id="amon"></div></div><div><h4>Muted names</h4><div id="ammu"></div></div><div><h4>Banned names</h4><div id="ambn"></div><div class="aform" style="margin-top:6px"><input id="amban" type="text" maxlength="12" placeholder="Name to ban"><button class="abtn red" type="button" id="ambanb">Ban name</button></div></div><div><h4>Set or reset a password for any name</h4><div class="aform"><input id="ampn" type="text" maxlength="12" placeholder="Name"><input id="ampp" type="text" placeholder="New password (empty = remove)" autocomplete="off"><button class="abtn" type="button" id="ampb">Apply</button></div></div><div><h4>Danger zone</h4><button class="abtn red" type="button" id="amclr">🗑 Clear the main chat for everyone</button></div></div></div>';
+  am.innerHTML='<div class="acard"><div class="ah"><b>🛡 Admin panel</b><button type="button" id="amx" title="Close">✕</button></div><div id="amsg"></div><div id="amb"><div><h4>Online now</h4><div id="amon"></div></div><div><h4>Muted names</h4><div id="ammu"></div></div><div><h4>Banned names</h4><div id="ambn"></div><div class="aform" style="margin-top:6px"><input id="amban" type="text" maxlength="12" placeholder="Name to ban"><button class="abtn red" type="button" id="ambanb">Ban name</button></div></div><div><h4>Set or reset a password for any name</h4><div class="aform"><input id="ampn" type="text" maxlength="12" placeholder="Name"><input id="ampp" type="text" placeholder="New password (min 4 characters)" autocomplete="off"><button class="abtn" type="button" id="ampb">Apply</button></div></div><div><h4>Danger zone</h4><button class="abtn red" type="button" id="amclr">🗑 Clear the main chat for everyone</button></div></div></div>';
   document.body.appendChild(am);
   function note(t){ const e=$("amsg"); if(e) e.textContent=t; }
   function adminDo(m){
@@ -3044,7 +3060,7 @@ label.plus.open{transform:rotate(45deg)}
       r.append(av,mk("span","an",e.n+(e.c===uid?" (you)":"")+(own(reg.acc,low(e.n))?" 🔒":"")+(reg.mutes.includes(low(e.n))?" 🔇":"")));
       if(e.c&&e.c!==uid){
         const b1=mk("button","","Rename"); b1.onclick=()=>{ const n=prompt("New name for "+e.n+" (max 12 characters):",e.n); if(n&&n.trim()) adminDo({a:"rename",u:e.c,n:n.trim().slice(0,12)}); };
-        const b2=mk("button","","Password"); b2.onclick=()=>{ const p=prompt("New password for "+e.n+" (at least 4 characters).\nLeave empty to remove their password:"); if(p===null) return; if(p&&p.length<4){ note("Use at least 4 characters."); return; } adminDo({a:"setpw",name:e.n,v:p?hVer(hCred(p)):""}); };
+        const b2=mk("button","","Password"); b2.onclick=()=>{ const p=prompt("New password for "+e.n+" (at least 4 characters).\nLeave empty to remove their password:"); if(p===null) return; if(!p||p.length<4){ note("Use at least 4 characters."); return; } adminDo({a:"setpw",name:e.n,v:hVer(hCred(p))}); };
         const bm=mk("button","",reg.mutes.includes(low(e.n))?"Unmute":"Mute"); bm.onclick=()=>adminDo({a:reg.mutes.includes(low(e.n))?"unmute":"mute",name:e.n});
         const b3=mk("button","red","Kick"); b3.onclick=()=>adminDo({a:"kick",u:e.c});
         const b4=mk("button","red","Ban"); b4.onclick=()=>{ if(confirm('Ban the name "'+e.n+'" and remove them?')) adminDo({a:"ban",name:e.n}); };
@@ -3066,8 +3082,8 @@ label.plus.open{transform:rotate(45deg)}
   $("ampb").onclick=()=>{
     const n=$("ampn").value.trim(), p=$("ampp").value;
     if(!n){ note("Type a name first."); return; }
-    if(p&&p.length<4){ note("Use at least 4 characters."); return; }
-    adminDo({a:"setpw",name:n,v:p?hVer(hCred(p)):""}); $("ampp").value="";
+    if(!p||p.length<4){ note("Use at least 4 characters."); return; }
+    adminDo({a:"setpw",name:n,v:hVer(hCred(p))}); $("ampp").value="";
   };
   $("amclr").onclick=()=>{ if(confirm("Delete all messages in the main chat for everyone? Private chats aren't touched.")) adminDo({a:"clear"}); };
   setInterval(renderAdminLists,1500);
