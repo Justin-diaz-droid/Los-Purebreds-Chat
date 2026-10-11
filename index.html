@@ -2768,6 +2768,7 @@ label.plus.open{transform:rotate(45deg)}
   const areg=()=>({t:"A",i:newId(),acc:reg.acc,bans:reg.bans,mutes:reg.mutes,clr:reg.clr,v:reg.v});
   let myPwH="", adminMode=false, pendW=null;
   const low=n=>String(n||"").trim().slice(0,12).toLowerCase();
+  window.__pbMuted=n=>reg.mutes.includes(low(n));   // lets the drawing board respect admin mutes
 
   function commit(){ reg.v=Math.max(Date.now(),reg.v+1); saveReg(); if(isHost) send(areg()); refreshUI(); }
   function applyClear(){
@@ -3228,6 +3229,361 @@ body[data-theme="discord"] .bubble.voice{background:var(--row)}
   vb.onclick=()=>{ if(rec) stop(); else start(); };
   vc.onclick=()=>{ cancelled=true; stop(); };
   document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&rec){ cancelled=true; stop(); } });
+})();
+</script>
+<!-- =====================  POLISH PASS  (paste right before </body>, after the voice-js block)  ===================== -->
+<style id="polish-css">
+/* ---------- tokens: every theme gets its own roundness ---------- */
+body{--r:16px;--r-sm:12px}
+body[data-theme="discord"],body[data-theme="roblox"]{--r:10px;--r-sm:8px}
+body[data-theme="whatsapp"]{--r:14px;--r-sm:10px}
+*{scrollbar-width:thin;scrollbar-color:rgba(142,142,147,.45) transparent}
+
+/* ---------- FIX: black strip above the message bar ----------
+   the "typing" line reserved 22px of empty space (showing the page's black) and the
+   collapsed reply / photo / DM bars each left a 1px border behind */
+#typing:empty{min-height:0 !important;height:0 !important;padding:0 !important}
+#typing:not(:empty){min-height:28px;padding:6px 18px !important;background:var(--bar,var(--side));color:var(--bar-text,var(--muted))}
+body[data-theme="imessage"] #typing:not(:empty){background:var(--bar,rgba(28,28,30,.78));-webkit-backdrop-filter:blur(22px) saturate(170%);backdrop-filter:blur(22px) saturate(170%)}
+#replybar:not(.on),#attach:not(.on){border-top-width:0 !important}
+body:not(.in-dm) #dmbar{border-bottom-width:0 !important}
+
+/* ---------- FIX: photo panel scrolls (it now has a real height, so the grid can scroll inside it) ---------- */
+#attach{max-height:none !important;height:0;border-radius:var(--r) var(--r) 0 0;transition:height .26s cubic-bezier(.2,.9,.3,1),opacity .2s,visibility 0s linear .26s !important}
+#attach.on{height:min(330px,50vh) !important;transition:height .26s cubic-bezier(.2,.9,.3,1),opacity .2s,visibility 0s !important}
+#atgrid{flex:1 1 0 !important;min-height:0;overflow-y:auto !important;overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch;gap:8px;padding:6px 14px 14px}
+#atgrid .th{border-radius:var(--r);border-width:3px}
+#attach .at-head button,#attach .at-foot button{border-radius:999px}
+
+/* ---------- message bar: same round buttons in every theme ---------- */
+.plus,#emo-btn,#vbtn{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.plus{background:var(--row);color:var(--text);font-size:22px;line-height:1}
+#emo-btn:hover,#vbtn:hover{background:var(--row)}
+.pill{border-radius:999px}
+#sendbtn{width:28px;height:28px}
+#emo-panel{border-radius:var(--r)}
+#emo-sug{border-radius:var(--r-sm)}
+
+/* ---------- DM bar buttons follow the theme (the call button was hard-coded green) ---------- */
+#dmbar button{background:var(--row);color:var(--text);border:1px solid var(--line);border-radius:999px;padding:6px 14px}
+#dmbar #callbtn{background:var(--accent) !important;color:var(--on-accent,#fff) !important;border-color:transparent}
+#dmbar button.danger{border-color:transparent}
+#dmchip{border-radius:999px}
+
+/* ---------- sidebar / lists ---------- */
+.row-ch{margin:2px 8px;border-radius:var(--r);border-left-width:0 !important}
+.row-ch.active{background:var(--row)}
+#sbdm .prow,#sbroster .prow,#onpop .prow{border-radius:var(--r-sm)}
+#onpop{border-radius:var(--r)}
+.goback{border-radius:var(--r-sm)}
+.arrow{background:var(--bar,var(--row));color:var(--bar-text,var(--text));border:1px solid var(--line)}
+
+/* ---------- settings, join screen, dialogs ---------- */
+.stg-card{border-radius:calc(var(--r) + 4px)}
+#stg input[type=text],#stg input[type=password],#stg select,#stg input[type=color]{border-radius:var(--r-sm)}
+#stg .btn{border-radius:999px}
+.stg-x{background:var(--row);color:var(--text)}
+.seg button{color:var(--text)}
+.seg button.on{background:var(--accent);color:var(--on-accent,#fff)}
+#gate .card{border-radius:calc(var(--r) + 8px)}
+#gate input,#gate select,#gate button,#gate .fld input[type=password]{border-radius:var(--r-sm)}
+#gmod .gcard,#amod .acard{border-radius:calc(var(--r) + 6px)}
+#gmod input[type=text],#amod .aform input,#gadmbox input{border-radius:var(--r-sm)}
+#gadmbox{border-radius:var(--r)}
+#amod .arow{border-radius:var(--r-sm)}
+.stg-btn{color:var(--bar-text,var(--accent))}
+.bubble.voice audio{border-radius:999px}
+
+/* ---------- call window: theme colours instead of hard-coded black / green ---------- */
+#callov{background:var(--bg);color:var(--text)}
+#callov.mini{border-color:var(--line);border-radius:calc(var(--r) + 4px)}
+.ct{background:var(--side);border-radius:var(--r)}
+.ct .cl{color:#fff}
+#callov .call-head button,#cmicsel{background:var(--row);color:var(--text)}
+#callov .call-bar button{background:var(--row);color:var(--text)}
+#callov .call-bar button.off{background:var(--text);color:var(--bg);opacity:1}
+#callov .call-bar button.end{background:#ff453a;color:#fff}
+#cscr.sharing{background:var(--accent) !important;color:var(--on-accent,#fff) !important}
+.ct.talk{box-shadow:inset 0 0 0 3px var(--accent)}
+.ct .cm i{background:var(--accent)}
+#callring .rc{background:var(--side);color:var(--text);border-color:var(--line);border-radius:calc(var(--r) + 4px)}
+#calltoast{background:var(--side);color:var(--text);border:1px solid var(--line)}
+
+/* ---------- live preview: pane layout ---------- */
+#pvwrap{position:relative;overflow:hidden}
+#pvframe{border-radius:var(--r)}
+.seg button svg{display:block}
+</style>
+
+<script id="polish-js">
+(function(){
+  const $$ = id => document.getElementById(id);
+
+  /* ---- live preview: render at a real desktop / phone width and scale it to the pane ----
+     (before, the "Desktop" preview in a narrow pane switched to the mobile layout, so Desktop / Phone looked swapped) */
+  const wrap = $$("pvwrap"), fr = $$("pvframe");
+  const st = (k, v) => fr.style.setProperty(k, v, "important");
+  function fit(){
+    const W = wrap.clientWidth, H = wrap.clientHeight; if(!W || !H) return;
+    const phone = wrap.classList.contains("phone"), dw = phone ? 390 : 1100;
+    const s = Math.min(1, W / dw), left = Math.max(0, (W - dw * s) / 2);
+    st("position", "absolute"); st("left", "0"); st("top", "0"); st("max-width", "none"); st("transition", "none");
+    st("width", dw + "px"); st("height", (H / s) + "px");
+    st("transform", "translateX(" + left + "px) scale(" + s + ")"); st("transform-origin", "0 0");
+  }
+  new ResizeObserver(fit).observe(wrap);
+  ["pvdesk", "pvphone"].forEach(id => $$(id).addEventListener("click", () => setTimeout(fit, 0)));
+  fit();
+
+  /* ---- dock buttons: little icons that show where the preview goes ---- */
+  const inner = { left: "x=2.6 y=3.6 width=4 height=8.8", right: "x=9.4 y=3.6 width=4 height=8.8", top: "x=2.6 y=3.6 width=10.8 height=3.8", bottom: "x=2.6 y=8.6 width=10.8 height=3.8" };
+  document.querySelectorAll("#pvdock button").forEach(b => {
+    const d = b.dataset.d; if(!inner[d]) return;
+    const a = inner[d].split(" ").map(p => p.split("=")), r = a.map(([k, v]) => k + '="' + v + '"').join(" ");
+    b.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="2" width="14" height="12" rx="3" stroke="currentColor" stroke-width="1.4"/><rect ' + r + ' rx="1.2" fill="currentColor"/></svg>';
+    b.title = "Preview on the " + d;
+    b.style.padding = "5px 9px";
+  });
+  const hide = $$("pvhide"); if(hide) hide.title = "Hide the preview";
+})();
+</script>
+<style id="draw-css">
+#draw{display:none;flex:1;min-height:0;flex-direction:column;background:var(--bg)}
+body.in-draw #draw{display:flex}
+body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray,body.in-draw #attach{display:none !important}
+#dtools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 14px;background:var(--bar,var(--side));color:var(--bar-text,var(--text));border-bottom:1px solid var(--line)}
+#dtools .dsep{width:1px;height:22px;background:var(--line);margin:0 2px}
+.dbtn{border:none;background:var(--row);color:var(--text);border-radius:999px;padding:7px 13px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:transform .2s cubic-bezier(.34,1.56,.64,1),background .15s}
+.dbtn:hover{transform:scale(1.06)}
+.dbtn.on{background:var(--accent);color:var(--on-accent,#fff)}
+.dbtn.red{background:rgba(255,69,58,.2);color:#ff6b61}
+#dpal{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.dsw{width:24px;height:24px;border-radius:50%;border:2px solid transparent;box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0;transition:transform .15s}
+.dsw:hover{transform:scale(1.15)}
+.dsw.on{box-shadow:0 0 0 2px var(--accent)}
+#dcolor{width:30px;height:26px;padding:0;border:none;border-radius:50%;background:none;cursor:pointer}
+#dsize{width:110px;accent-color:var(--accent)}
+#dsz{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--bar-text,var(--muted))}
+#dwho{margin-left:auto;font-size:12px;color:var(--bar-text,var(--muted));min-height:16px}
+#dwrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:12px;overflow:hidden}
+#dcv{background:#fff;border-radius:var(--r,16px);box-shadow:0 8px 30px rgba(0,0,0,.35);touch-action:none;cursor:crosshair;display:block}
+</style>
+<script id="draw-js">
+(function(){
+  const $$ = id => document.getElementById(id);
+  const W = 1600, H = 900;
+
+  /* ---------- UI: sidebar row, header tab, board ---------- */
+  const row = document.createElement("div"); row.className = "row-ch"; row.id = "ch-draw";
+  row.innerHTML = '<div class="av-sb" style="font-size:18px">🎨</div><div><b style="font-size:15px">Drawing Board</b><br><span class="csub">Draw together</span></div>';
+  $$("ch-gal").after(row); row.onclick = () => setChannel("draw");
+  const tab = document.createElement("button"); tab.type = "button"; tab.dataset.ch = "draw"; tab.textContent = "🎨 Draw"; tab.onclick = () => setChannel("draw");
+  $$("chtabs").appendChild(tab);
+
+  const COLORS = ["#111111","#ffffff","#ef4444","#f97316","#facc15","#22c55e","#14b8a6","#3b82f6","#8b5cf6","#ec4899","#92400e","#9ca3af"];
+  const board = document.createElement("div"); board.id = "draw";
+  board.innerHTML = '<div id="dtools"><button class="dbtn on" id="dpen" type="button">✏️ Pen</button><button class="dbtn" id="der" type="button">🧽 Eraser</button><span class="dsep"></span><div id="dpal"></div><input type="color" id="dcolor" value="#3b82f6" title="Custom color"><span class="dsep"></span><span id="dsz"><input type="range" id="dsize" min="1" max="40" value="6"><b id="dszv">6</b></span><span class="dsep"></span><button class="dbtn" id="dundo" type="button">↩ Undo</button><button class="dbtn" id="dsave" type="button">💾 Save</button><button class="dbtn red" id="dclr" type="button">🗑 Clear</button><span id="dwho"></span></div><div id="dwrap"><canvas id="dcv" width="' + W + '" height="' + H + '"></canvas></div>';
+  $$("box").after(board);
+  const cv = $$("dcv"), cx = cv.getContext("2d");
+  cx.lineCap = "round"; cx.lineJoin = "round";
+
+  /* ---------- state ---------- */
+  let strokes = [], byId = new Map(), gone = new Set(), clr = 0, mine = [];
+  let tool = "pen", color = COLORS[0], size = 6, cur = null, pend = [], flushT = 0, persistT = 0, whoT = 0;
+  const okId = s => typeof s === "string" && /^[A-Za-z0-9_-]{4,60}$/.test(s);
+  const okCol = c => typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c);
+  const cl = (v, a, b) => Math.min(b, Math.max(a, Math.round(+v || 0)));
+
+  function cleanStroke(s){
+    if(!s || typeof s !== "object" || !okId(s.id) || !okCol(s.c) || !Array.isArray(s.p)) return null;
+    const p = []; for(let i = 0; i + 1 < s.p.length && p.length < 8000; i += 2) p.push(cl(s.p[i], 0, W), cl(s.p[i + 1], 0, H));
+    if(!p.length) return null;
+    return { id: s.id, o: okUid(s.o) ? s.o : "", n: String(s.n || "").slice(0, 12), c: s.c, w: cl(s.w, 1, 80), ts: +s.ts || 0, p };
+  }
+  function reindex(){ byId = new Map(strokes.map(s => [s.id, s])); }
+  function cap(){
+    let pts = 0; for(let i = strokes.length - 1; i >= 0; i--) pts += strokes[i].p.length;
+    while(strokes.length > 1500 || (pts > 150000 && strokes.length > 1)){ pts -= strokes[0].p.length; strokes.shift(); }
+    reindex();
+  }
+
+  /* ---------- drawing ---------- */
+  function paint(s, i0){
+    const p = s.p; cx.strokeStyle = s.c; cx.fillStyle = s.c; cx.lineWidth = s.w;
+    if(p.length === 2){ cx.beginPath(); cx.arc(p[0], p[1], s.w / 2, 0, 6.2832); cx.fill(); return; }
+    const st = Math.max(0, i0 - 2);
+    cx.beginPath(); cx.moveTo(p[st], p[st + 1]);
+    for(let k = st + 2; k < p.length; k += 2) cx.lineTo(p[k], p[k + 1]);
+    cx.stroke();
+  }
+  function redraw(){
+    cx.fillStyle = "#fff"; cx.fillRect(0, 0, W, H);
+    strokes.forEach(s => paint(s, 0));
+  }
+  redraw();
+
+  /* ---------- persistence (this browser) ---------- */
+  function persistSoon(){
+    clearTimeout(persistT);
+    persistT = setTimeout(() => {
+      let list = strokes.slice();
+      while(true){
+        try { localStorage.setItem("pb_board", JSON.stringify({ clr, strokes: list, gone: [...gone].slice(-1500) })); return; }
+        catch(e){ if(list.length <= 1) return; list = list.slice(Math.ceil(list.length / 4)); }
+      }
+    }, 1200);
+  }
+  try {
+    const b = JSON.parse(load("pb_board", "{}")) || {};
+    clr = +b.clr || 0;
+    (Array.isArray(b.strokes) ? b.strokes : []).forEach(s => { const c = cleanStroke(s); if(c && c.ts > clr) strokes.push(c); });
+    (Array.isArray(b.gone) ? b.gone : []).forEach(g => { if(okId(g)) gone.add(g); });
+    strokes = strokes.filter(s => !gone.has(s.id)); reindex(); redraw();
+  } catch(e){}
+
+  /* ---------- network ---------- */
+  function sendD(o){ o.t = "D"; o.i = newId(); o.f = uid; o.n = usr; send(o); }
+  function snapObj(){ cap(); return { t: "D", i: newId(), k: "snap", clr, strokes: strokes.slice(), gone: [...gone].slice(-1500) }; }
+  function sendSnap(conn){ try { conn.send(snapObj()); } catch(e){} }
+  function merge(sn){
+    let changed = false;
+    const nc = +sn.clr || 0;
+    if(nc > clr){ clr = nc; strokes = strokes.filter(s => s.ts > clr); gone.clear(); changed = true; }
+    (Array.isArray(sn.gone) ? sn.gone : []).slice(0, 3000).forEach(g => { if(okId(g) && !gone.has(g)){ gone.add(g); if(byId.has(g)) changed = true; } });
+    if(changed) { strokes = strokes.filter(s => !gone.has(s.id)); reindex(); }
+    (Array.isArray(sn.strokes) ? sn.strokes : []).slice(0, 2000).forEach(raw => {
+      const s = cleanStroke(raw); if(!s || s.ts <= clr || gone.has(s.id) || byId.has(s.id)) return;
+      strokes.push(s); byId.set(s.id, s); changed = true;
+    });
+    if(changed){ strokes.sort((a, b) => a.ts - b.ts); cap(); redraw(); persistSoon(); }
+    return changed;
+  }
+  function who(n){ const e = $$("dwho"); e.textContent = "✏️ " + n + " is drawing…"; clearTimeout(whoT); whoT = setTimeout(() => { e.textContent = ""; }, 1800); }
+  function rm(id){ if(!byId.has(id)) return; strokes = strokes.filter(s => s.id !== id); gone.add(id); reindex(); redraw(); persistSoon(); }
+  function applyClr(t){ clr = Math.max(clr, t); strokes = strokes.filter(s => s.ts > clr); gone.clear(); mine = []; reindex(); redraw(); persistSoon(); }
+
+  function onDraw(d, fromConn){
+    const host = isHost;
+    if(d.k === "snap"){
+      if(host){ if(fromConn.snapIn) return; fromConn.snapIn = 1; if(merge(d)) send(snapObj(), fromConn); }
+      else {
+        const had = strokes.length > 0;
+        merge(d);
+        if(had && strokes.length) { const o = snapObj(); try { conns.forEach(c => c.open && c.send(o)); } catch(e){} }   // give the host anything it was missing
+      }
+      return;
+    }
+    if(!okUid(d.f)) return;
+    if(d.k === "p"){
+      if(!okId(d.s) || !okCol(d.c) || !Array.isArray(d.pts) || !d.pts.length || d.pts.length > 400) return;
+      const ts = +d.ts || 0; if(ts <= clr || gone.has(d.s)) return;
+      let s = byId.get(d.s);
+      const w = cl(d.w, 1, 80), old = s ? s.p.length : 0;
+      if(!s){ s = { id: d.s, o: d.f, n: String(d.n || "").slice(0, 12), c: d.c, w, ts, p: [] }; strokes.push(s); byId.set(s.id, s); }
+      else if(s.o !== d.f) return;
+      for(let i = 0; i + 1 < d.pts.length && s.p.length < 8000; i += 2) s.p.push(cl(d.pts[i], 0, W), cl(d.pts[i + 1], 0, H));
+      paint(s, old); who(s.n || "Someone"); persistSoon();
+    }
+    else if(d.k === "u"){
+      if(!okId(d.s)) return; const s = byId.get(d.s);
+      if(s && s.o !== d.f) return;
+      rm(d.s);
+    }
+    else if(d.k === "clr"){ const t = +d.ts || 0; if(t > Date.now() + 60000) return; applyClr(t || Date.now()); who(String(d.n || "Someone").slice(0, 12) + " cleared the board —"); }
+    else return;
+    if(host) send(d, fromConn);                       // relay to everyone else
+  }
+
+  const _h = handle;
+  handle = function(d, from){
+    if(d && typeof d === "object" && d.t === "D"){
+      if(!validId(d.i)) return;
+      if(isHost){
+        if(!from.ok2 || from.denied || !from.uid) return;
+        if(window.__pbMuted && window.__pbMuted(from.userName)) return;
+        if(d.k !== "snap"){ d.f = from.uid; d.n = String(from.userName || "").slice(0, 12); }
+        onDraw(d, from);
+      } else onDraw(d, null);
+      return;
+    }
+    _h(d, from);
+    if(isHost && d && d.t === "P" && from.ok2 && !from.denied && !from.bsent){ from.bsent = 1; sendSnap(from); }   // newcomer gets the current board
+  };
+
+  /* ---------- tools ---------- */
+  const pal = $$("dpal");
+  COLORS.forEach(c => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "dsw" + (c === color ? " on" : ""); b.style.background = c; b.dataset.c = c; b.title = c;
+    b.onclick = () => setColor(c); pal.appendChild(b);
+  });
+  function setColor(c){ color = c; if(tool === "erase") setTool("pen"); pal.querySelectorAll(".dsw").forEach(b => b.classList.toggle("on", b.dataset.c === c)); }
+  function setTool(t){ tool = t; $$("dpen").classList.toggle("on", t === "pen"); $$("der").classList.toggle("on", t === "erase"); }
+  $$("dpen").onclick = () => setTool("pen");
+  $$("der").onclick = () => setTool("erase");
+  $$("dcolor").oninput = e => { pal.querySelectorAll(".dsw").forEach(b => b.classList.remove("on")); color = e.target.value; setTool("pen"); };
+  $$("dsize").oninput = e => { size = +e.target.value; $$("dszv").textContent = size; };
+  function undo(){
+    while(mine.length){ const id = mine.pop(); if(byId.has(id)){ sendD({ k: "u", s: id }); rm(id); return; } }
+  }
+  $$("dundo").onclick = undo;
+  $$("dclr").onclick = () => { if(!confirm("Clear the whole drawing board for everyone?")) return; const t = Date.now(); applyClr(t); sendD({ k: "clr", ts: t }); };
+  $$("dsave").onclick = () => cv.toBlob(b => {
+    if(!b) return; const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = "purebred-drawing.png";
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  });
+  document.addEventListener("keydown", e => {
+    if(document.body.classList.contains("in-draw") && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z"){ e.preventDefault(); undo(); }
+  });
+
+  /* ---------- pointer drawing ---------- */
+  function pt(e){ const r = cv.getBoundingClientRect(); return [cl((e.clientX - r.left) * W / r.width, 0, W), cl((e.clientY - r.top) * H / r.height, 0, H)]; }
+  function flush(final){
+    clearTimeout(flushT); flushT = 0;
+    if(!cur || !pend.length) return;
+    sendD({ k: "p", s: cur.id, c: cur.c, w: cur.w, ts: cur.ts, pts: pend }); pend = [];
+  }
+  cv.addEventListener("pointerdown", e => {
+    if(e.button > 0 || cur) return;
+    if(window.__pbMuted && window.__pbMuted(usr)){ sys("You're muted by an admin."); return; }
+    e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch(x){}
+    const [x, y] = pt(e);
+    cur = { id: "s" + uid.slice(-5) + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), o: uid, n: usr,
+      c: tool === "erase" ? "#ffffff" : color, w: tool === "erase" ? Math.min(80, size * 2.5) : size, ts: Date.now(), p: [x, y] };
+    strokes.push(cur); byId.set(cur.id, cur); mine.push(cur.id);
+    paint(cur, 0); pend = [x, y]; flush();
+  });
+  cv.addEventListener("pointermove", e => {
+    if(!cur) return;
+    const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+    const old = cur.p.length;
+    (evs.length ? evs : [e]).forEach(ev => {
+      if(cur.p.length >= 8000) return;
+      const [x, y] = pt(ev), n = cur.p.length;
+      if(Math.abs(x - cur.p[n - 2]) + Math.abs(y - cur.p[n - 1]) < 2) return;
+      cur.p.push(x, y); pend.push(x, y);
+    });
+    if(cur.p.length > old){ paint(cur, old); if(!flushT) flushT = setTimeout(flush, 45); }
+  });
+  const end = () => { if(!cur) return; flush(true); cur = null; persistSoon(); };
+  cv.addEventListener("pointerup", end); cv.addEventListener("pointercancel", end);
+
+  /* ---------- fit the canvas to the pane (16:9) ---------- */
+  function fit(){
+    const wrap = $$("dwrap"), aw = wrap.clientWidth - 24, ah = wrap.clientHeight - 24;
+    if(aw <= 0 || ah <= 0) return;
+    const w = Math.max(120, Math.min(aw, ah * W / H));
+    cv.style.width = w + "px"; cv.style.height = (w * H / W) + "px";
+  }
+  new ResizeObserver(fit).observe($$("dwrap")); fit();
+
+  /* ---------- hook into the tab switcher ---------- */
+  const _sc = setChannel;
+  setChannel = function(c){
+    _sc(c);
+    document.body.classList.toggle("in-draw", c === "draw");
+    $$("ch-draw").classList.toggle("active", c === "draw");
+    if(c === "draw") setTimeout(fit, 0);
+  };
 })();
 </script>
 </body>
