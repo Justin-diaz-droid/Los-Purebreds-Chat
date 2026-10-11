@@ -2859,6 +2859,8 @@ label.plus.open{transform:rotate(45deg)}
     $("inp").disabled=true; $("fi").disabled=true; setStatus("Disconnected");
     setStg(false); $("admbtn").style.display="none";
     const g=$("gate"); g.classList.remove("leaving"); g.style.display="flex"; $("gerr").textContent=msg||"";
+    // the join screen's own hide-timer may still be pending; make sure the gate stays visible
+    setTimeout(()=>{ if(!peer){ g.classList.remove("leaving"); g.style.display="flex"; } },500);
   }
 
   /* =============== message routing (wraps the existing handler) =============== */
@@ -2884,7 +2886,8 @@ label.plus.open{transform:rotate(45deg)}
     }
     else {
       if(d.t==="A"){
-        const n=cleanReg(d); if(n.v<reg.v) return;
+        const n=cleanReg(d); if(myPwH!==load("chat_pwh","")) save("chat_pwh",myPwH);
+        if(n.v<reg.v) return;
         const grew=n.clr>reg.clr; reg=n; saveReg(); if(grew) applyClear(); refreshUI(); return;
       }
       if(d.t==="X"){
@@ -2923,19 +2926,16 @@ label.plus.open{transform:rotate(45deg)}
   $("gadmok").onclick=tryAdmin;
   $("gadmpw").addEventListener("keydown",e=>{ if(e.key==="Enter") tryAdmin(); });
 
+  // the host never gets an "A" message, so it remembers its own login hash here; clients do it when the host accepts them
+  setInterval(()=>{ if(isHost&&myPwH!==load("chat_pwh","")) save("chat_pwh",myPwH); },1000);
   const origGo=$("g-go").onclick;
   $("g-go").onclick=()=>{
     if($("g-code").value.trim().toLowerCase()!==ROOM_CODE){ origGo(); return; }
-    const nm=low($("g-name").value||load("chat_usr","User"));
     const typed=$("g-pw").value;
+    // The host is the only one who knows the current passwords/bans, so it decides.
+    // (Checking against this browser's cached copy rejected correct passwords after a reset.)
     myPwH=typed?hCred(typed):load("chat_pwh","");
-    if(!adminMode){
-      if(reg.bans.includes(nm)){ $("gerr").textContent="That name is banned."; return; }
-      const v=own(reg.acc,nm);
-      if(v&&hVer(myPwH)!==v){ $("gerr").textContent="That name is protected — enter its password."; return; }
-      if(!v&&!typed) myPwH=""; 
-    }
-    save("chat_pwh",myPwH); $("g-pw").value="";
+    $("g-pw").value="";
     origGo();
     $("admbtn").style.display=adminMode?"":"none";
   };
@@ -3023,6 +3023,22 @@ label.plus.open{transform:rotate(45deg)}
   };
   $("amclr").onclick=()=>{ if(confirm("Delete all messages in the main chat for everyone? Private chats aren't touched.")) adminDo({a:"clear"}); };
   setInterval(renderAdminLists,1500);
+
+  /* =============== admin: 🦵 kick / 🔨 ban buttons next to reply / edit / delete =============== */
+  function addAdminBtns(w){
+    if(!adminMode||!w.classList||!w.classList.contains("msg")||w.classList.contains("sys")||w.dataset.admx) return;
+    const u=w.dataset.uid, name=w.dataset.user;
+    if(!u||u===uid||!name) return;
+    const wrap=w.querySelector(".bwrap"); if(!wrap) return;
+    w.dataset.admx="1";
+    let act=wrap.querySelector(":scope > .act");
+    if(!act){ act=document.createElement("div"); act.className="act"; wrap.appendChild(act); }
+    const mkb=(txt,title,fn)=>{ const b=document.createElement("button"); b.type="button"; b.className="adm"; b.title=title; b.setAttribute("aria-label",title); b.textContent=txt; b.style.fontSize="13px"; b.onclick=ev=>{ ev.stopPropagation(); fn(); }; return b; };
+    act.appendChild(mkb("🦵","Kick "+name+" (they can rejoin)",()=>{ if(confirm("Kick "+name+"? They can rejoin.")) adminDo({a:"kick",u}); }));
+    act.appendChild(mkb("🔨","Ban the name “"+name+"”",()=>{ if(confirm('Ban the name "'+name+'" and remove them?')) adminDo({a:"ban",name}); }));
+  }
+  new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(addAdminBtns))).observe($("box"),{childList:true});
+  setInterval(()=>{ if(adminMode) document.querySelectorAll("#box .msg[data-uid]:not([data-admx])").forEach(addAdminBtns); },1500);
 
   /* =============== screen sharing in calls =============== */
   const callbar=document.querySelector("#callov .call-bar");
