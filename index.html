@@ -1963,5 +1963,96 @@ $("dmleave").onclick = () => {
   applyGroup(ng);
 };
 </script>
+<style id="pv-upgrade-css">
+.stg-wrap{display:flex !important;height:100%}
+.stg-wrap.dock-right{flex-direction:row}
+.stg-wrap.dock-left{flex-direction:row-reverse}
+.stg-wrap.dock-bottom{flex-direction:column}
+.stg-wrap.dock-top{flex-direction:column-reverse}
+.stg-wrap .stg-ctl{flex:1 1 0;border:none}
+.stg-wrap.dock-left .stg-ctl,.stg-wrap.dock-right .stg-ctl{min-width:300px}
+.stg-wrap.dock-top .stg-ctl,.stg-wrap.dock-bottom .stg-ctl{min-height:200px}
+.stg-wrap .stg-prev{position:relative;flex:0 0 auto;order:0}
+.stg-wrap.dock-left .stg-prev,.stg-wrap.dock-right .stg-prev{width:var(--pvw,58%);min-width:240px;max-width:80%}
+.stg-wrap.dock-top .stg-prev,.stg-wrap.dock-bottom .stg-prev{height:var(--pvh,50%);min-height:170px;max-height:80%}
+.stg-wrap.dock-right .stg-prev{border-left:1px solid var(--line)}
+.stg-wrap.dock-left .stg-prev{border-right:1px solid var(--line)}
+.stg-wrap.dock-top .stg-prev{border-bottom:1px solid var(--line)}
+.stg-wrap.dock-bottom .stg-prev{border-top:1px solid var(--line)}
+.stg-wrap.hide-prev .stg-prev{display:none}
+.stg-prevhead{flex-wrap:wrap}
+.pv-handle{position:absolute;z-index:5;transition:background .15s}
+.pv-handle:hover,.stg-wrap.dragging .pv-handle{background:var(--accent)}
+.dock-right .pv-handle{left:-4px;top:0;bottom:0;width:8px;cursor:col-resize}
+.dock-left .pv-handle{right:-4px;top:0;bottom:0;width:8px;cursor:col-resize}
+.dock-bottom .pv-handle{top:-4px;left:0;right:0;height:8px;cursor:row-resize}
+.dock-top .pv-handle{bottom:-4px;left:0;right:0;height:8px;cursor:row-resize}
+.stg-wrap.dragging{user-select:none}
+.stg-wrap.dragging #pvframe{pointer-events:none}
+#pvshow{margin-left:auto;margin-right:8px}
+.stg-top{gap:8px}
+</style>
+<script id="pv-upgrade-js">
+(function(){
+  const head = document.querySelector(".stg-prevhead"), prev = document.querySelector(".stg-prev"), stgWrap = document.querySelector(".stg-wrap");
+  const dock = document.createElement("div"); dock.className = "seg"; dock.id = "pvdock";
+  dock.innerHTML = '<button type="button" data-d="left" title="Dock left">◀</button><button type="button" data-d="top" title="Dock top">▲</button><button type="button" data-d="bottom" title="Dock bottom">▼</button><button type="button" data-d="right" title="Dock right">▶</button>';
+  const hide = document.createElement("button"); hide.type = "button"; hide.id = "pvhide"; hide.className = "stg-x"; hide.title = "Hide preview"; hide.textContent = "✕";
+  head.append(dock, hide);
+  const handle = document.createElement("div"); handle.id = "pvhandle"; handle.className = "pv-handle"; handle.title = "Drag to resize";
+  prev.prepend(handle);
+  const show = document.createElement("button"); show.type = "button"; show.id = "pvshow"; show.className = "btn alt"; show.textContent = "👁 Show preview"; show.style.display = "none";
+  document.querySelector(".stg-top").insertBefore(show, document.getElementById("stgx"));
+
+  let pvDock = load("pv_dock", window.innerWidth <= 800 ? "top" : "right"), pvHidden = load("pv_hide", "0") === "1";
+  function applyDock(){
+    if(!["left","right","top","bottom"].includes(pvDock)) pvDock = "right";
+    stgWrap.classList.remove("dock-left","dock-right","dock-top","dock-bottom","hide-prev");
+    stgWrap.classList.add("dock-" + pvDock);
+    if(pvHidden) stgWrap.classList.add("hide-prev");
+    dock.querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.d === pvDock));
+    show.style.display = pvHidden ? "" : "none";
+    if(!pvHidden && stgOpen) renderPreview();
+  }
+  dock.querySelectorAll("button").forEach(b => b.onclick = () => { pvDock = b.dataset.d; save("pv_dock", pvDock); applyDock(); });
+  hide.onclick = () => { pvHidden = true; save("pv_hide", "1"); applyDock(); };
+  show.onclick = () => { pvHidden = false; save("pv_hide", "0"); applyDock(); };
+
+  let drag = false;
+  handle.addEventListener("pointerdown", e => { e.preventDefault(); drag = true; handle.setPointerCapture(e.pointerId); stgWrap.classList.add("dragging"); });
+  handle.addEventListener("pointermove", e => {
+    if(!drag) return;
+    const r = stgWrap.getBoundingClientRect();
+    if(pvDock === "right") stgWrap.style.setProperty("--pvw", Math.round(r.right - e.clientX) + "px");
+    else if(pvDock === "left") stgWrap.style.setProperty("--pvw", Math.round(e.clientX - r.left) + "px");
+    else if(pvDock === "bottom") stgWrap.style.setProperty("--pvh", Math.round(r.bottom - e.clientY) + "px");
+    else stgWrap.style.setProperty("--pvh", Math.round(e.clientY - r.top) + "px");
+  });
+  const end = () => { drag = false; stgWrap.classList.remove("dragging"); };
+  handle.addEventListener("pointerup", end); handle.addEventListener("pointercancel", end);
+  applyDock();
+
+  // make the preview scrollable
+  const origPvHTML = pvHTML;
+  pvHTML = function(){
+    return origPvHTML().replace("body{pointer-events:none;user-select:none}",
+      "body{user-select:none} #sb,#hdr,#tray,.act,.quote{pointer-events:none} #box{pointer-events:auto;overflow-y:auto}");
+  };
+  const origDraw = drawPreview;
+  drawPreview = function(){
+    const doc = $("pvframe").contentDocument, b = doc && doc.getElementById("box");
+    const had = !!(b && b.dataset.init === "1"), keep = had ? b.scrollTop : 0;
+    origDraw();
+    const b2 = doc && doc.getElementById("box"); if(!b2) return;
+    const msgs = [...b2.querySelectorAll(".msg")];
+    for(let r = 0; r < 2; r++) msgs.forEach(m => {
+      const c = m.cloneNode(true);
+      c.classList.remove("tap","lastmine"); c.querySelectorAll(".act").forEach(a => a.remove());
+      b2.insertBefore(c, msgs[0]);
+    });
+    if(had) b2.scrollTop = keep; else { b2.scrollTop = b2.scrollHeight; b2.dataset.init = "1"; }
+  };
+})();
+</script>
 </body>
 </html>
