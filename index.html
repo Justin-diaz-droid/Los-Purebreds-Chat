@@ -141,7 +141,7 @@
   .col{display:flex;flex-direction:column;min-width:0}
   .me .col{align-items:flex-end}
   .lbl{font-size:11px;color:var(--muted);margin:0 4px 2px}
-  .bwrap{position:relative;max-width:100%}
+  .bwrap{position:relative;max-width:100%;display:flex;align-items:flex-end;gap:6px}
   .bubble{padding:10px 16px;border-radius:20px;font-size:15px;line-height:1.4;overflow-wrap:anywhere;white-space:pre-wrap}
   .me .bubble{background:var(--me);color:var(--on-accent,#fff)}
   .peer .bubble{background:var(--peer)}
@@ -229,6 +229,15 @@
   #gerr{color:#ff453a;font-size:13px;min-height:16px;text-align:center;margin:-6px 0}
   #hdr-set{display:none;background:none;border:none;font-size:20px;cursor:pointer;margin-right:10px}
   @media(max-width:600px){#sb{display:none;position:fixed;top:0;bottom:0;left:0;width:240px;z-index:5}#sb.open{display:flex}#hdr-set{display:inline-block}.msg{max-width:85%}}
+
+  /* sidebar scrolls as a whole, so Settings can always be scrolled to the very bottom */
+  #sb{overflow-y:auto;overflow-x:hidden}
+  .stg-box{max-height:none;overflow:visible}
+  .stg-sb{padding-bottom:28px}
+  /* "(edited)" sits beside the bubble, not inside it */
+  .me .bwrap{flex-direction:row-reverse}
+  body[data-theme="discord"] .me .bwrap,body[data-theme="roblox"] .me .bwrap{flex-direction:row}
+  .bwrap > .edited{white-space:nowrap;flex-shrink:0;margin-bottom:3px}
 
   /* online list in the sidebar + typing dots */
   #sbroster{padding:10px 8px 0;max-height:40vh;overflow-y:auto}
@@ -1043,6 +1052,12 @@ function deleteMsg(id){
   l.del = true; l.v = Date.now(); persist(); applyToDom(l); send({ t: "Y", i: newId(), e: [l] });
 }
 
+function setEditedTag(wrap, on){
+  let t = wrap.querySelector(":scope > .edited");
+  if(!on){ if(t) t.remove(); return; }
+  if(!t){ t = document.createElement("span"); t.className = "edited"; t.textContent = "(edited)"; wrap.insertBefore(t, wrap.querySelector(":scope > .act")); }
+}
+
 function renderRow(m){
   if(m.del) return;
   const box = $("box"), mine = isMine(m);
@@ -1064,9 +1079,9 @@ function renderRow(m){
     const bub = document.createElement("div"); bub.className = "bubble"; bub.textContent = m.b;
     if(m.f && FONT_MAP[m.f]) bub.style.fontFamily = FONT_MAP[m.f];
     bub.dataset.bubble = "1";
-    if(m.edited){ const s = document.createElement("span"); s.className = "edited"; s.textContent = editedText(m); bub.appendChild(s); }
     styleBubble(bub, m.c || "");
     wrap.appendChild(bub);
+    if(m.edited) setEditedTag(wrap, true);
   }
 
   const act = document.createElement("div"); act.className = "act";
@@ -1093,7 +1108,7 @@ function applyToDom(l){
   if(!e){ renderRow(l); return; }
   const bub = e.querySelector("[data-bubble]"); if(!bub || l.img) return;
   bub.textContent = l.b;
-  if(l.edited){ const s = document.createElement("span"); s.className = "edited"; s.textContent = editedText(l); bub.appendChild(s); }
+  if(l.edited) setEditedTag(bub.parentNode, true);
 }
 function rerender(){
   document.querySelectorAll("#box .msg[data-ts]").forEach(e => e.remove());
