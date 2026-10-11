@@ -395,6 +395,8 @@
   #sbdm .prow:hover .xbtn{opacity:.7}
   #sbdm .prow .xbtn:hover{opacity:1;background:rgba(255,69,58,.25)}
   @media(hover:none){#sbdm .prow .xbtn{opacity:.6}}
+  .dmbadge.muted{background:#8e8e93}
+  #sbdm .prow:has(.dmbadge.muted) .plast{opacity:.5}
   #dmbar button.danger{background:rgba(255,69,58,.2);color:#ff6b61}
   #gmod{display:none;position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:16px}
   #gmod.open{display:flex}
@@ -646,7 +648,7 @@
   <div id="hdrwrap"><div id="hdr"><button id="hdr-set" title="Settings">⚙️</button><span id="status">Not connected</span><div id="chtabs"><button type="button" data-ch="main" class="on">💬 Chat</button><button type="button" data-ch="gal">🖼️ Image Gallery</button></div><button id="dmchip" type="button" title="Unread private messages"></button><div id="online" title="See who's online"></div></div>
     <div id="onpop"></div>
     <button id="hdr-arrow" class="arrow" title="Hide / show top bar"></button></div>
-  <div id="dmbar"><span id="dmtitle"></span><button id="dmclose" type="button">← Chat</button><button id="dmhide" type="button" title="Remove this chat from your list (it comes back if someone messages you)">Close chat</button><button id="dmleave" type="button" class="danger" style="display:none">Leave group</button></div>
+  <div id="dmbar"><span id="dmtitle"></span><button id="dmclose" type="button">← Chat</button><button id="dmmute" type="button" title="Mute notifications for this chat">🔕 Mute</button><button id="dmhide" type="button" title="Remove this chat from your list (it comes back if someone messages you)">Close chat</button><button id="dmleave" type="button" class="danger" style="display:none">Leave group</button></div>
   <div id="box"></div>
   <div id="typing"></div>
   <div id="replybar"><span class="rb-t"></span><button id="replyx" type="button" title="Cancel reply" aria-label="Cancel reply">✕</button></div>
@@ -1777,6 +1779,9 @@ function sys(t){
 }
 
 /* ---------- private DMs + group chats ---------- */
+let muted = {}; try { muted = JSON.parse(load("dm_muted", "{}")) || {}; } catch(e){ muted = {}; }
+function saveMuted(){ save("dm_muted", JSON.stringify(muted)); }
+function toggleMute(k){ if(muted[k]) delete muted[k]; else muted[k] = 1; saveMuted(); updateDmBar(); renderDMList(); }
 let closed = {}; try { closed = JSON.parse(load("dm_closed", "{}")) || {}; } catch(e){ closed = {}; }
 function saveGroups(){ save("chat_groups", JSON.stringify(groups)); }
 function saveClosed(){ save("dm_closed", JSON.stringify(closed)); }
@@ -1791,6 +1796,7 @@ function dmChanged(list){
 }
 function updateDmBar(){
   if(curCh !== "dm") return;
+  $("dmmute").textContent = muted[dmWith] ? "🔔 Unmute" : "🔕 Mute";
   const isG = dmWith[0] === "g";
   $("dmleave").style.display = isG ? "" : "none";
   if(isG){
@@ -1825,8 +1831,8 @@ function renderDMList(){
   const list = Object.values(map).filter(x => x.k === dmWith || !(closed[x.k] >= x.ts));   // closed chats stay hidden until new activity
   list.forEach(x => { if(x.k[0] === "d"){ const o = lastRoster.find(e => e.c === x.k.slice(2)); if(o) x.n = o.n; } x.n = x.n || "Friend"; });
   list.sort((a, b) => b.ts - a.ts);
-  let tot = 0; list.forEach(x => tot += x.un);
-  chipT = list.find(x => x.un) || null;
+  let tot = 0; list.forEach(x => { if(!muted[x.k]) tot += x.un; });
+  chipT = list.find(x => x.un && !muted[x.k]) || null;
   document.title = (tot ? "(" + tot + ") " : "") + "Los-Purebreds-Chat";
   const chip = $("dmchip"); chip.style.display = tot ? "inline-block" : "none"; chip.textContent = "✉️ " + tot;
   const h = document.createElement("div"); h.className = "sbh";
@@ -1843,10 +1849,13 @@ function renderDMList(){
     const av = document.createElement("div"); av.className = "pav";
     if(x.k[0] === "g"){ av.textContent = "👥"; av.style.background = "#636366"; } else paintAv(av, x.n);
     const mid = document.createElement("div"); mid.className = "pnm";
-    const nm = document.createElement("div"); nm.textContent = x.n; nm.style.fontWeight = x.un ? "700" : "500";
+    const nm = document.createElement("div"); nm.textContent = x.n + (muted[x.k] ? " 🔕" : ""); nm.style.fontWeight = x.un && !muted[x.k] ? "700" : "500";
     const ls = document.createElement("span"); ls.className = "plast"; ls.textContent = x.last;
     mid.append(nm, ls); r.append(av, mid);
-    if(x.un){ const b = document.createElement("span"); b.className = "dmbadge"; b.textContent = x.un > 99 ? "99+" : x.un; r.appendChild(b); }
+    if(x.un){ const b = document.createElement("span"); b.className = "dmbadge" + (muted[x.k] ? " muted" : ""); b.textContent = x.un > 99 ? "99+" : x.un; r.appendChild(b); }
+    const mb = document.createElement("button"); mb.type = "button"; mb.className = "xbtn mbtn"; mb.title = muted[x.k] ? "Unmute chat" : "Mute chat"; mb.textContent = muted[x.k] ? "🔔" : "🔕";
+    mb.onclick = ev => { ev.stopPropagation(); toggleMute(x.k); };
+    r.appendChild(mb);
     const xb = document.createElement("button"); xb.type = "button"; xb.className = "xbtn"; xb.title = "Close chat"; xb.textContent = "✕";
     xb.onclick = ev => { ev.stopPropagation(); r.classList.add("leaving"); setTimeout(() => closeConv(x.k), 190); };
     r.appendChild(xb);
@@ -1873,6 +1882,7 @@ function closeConv(k){
 }
 $("dmclose").onclick = () => setChannel("main");
 $("dmhide").onclick = () => closeConv(dmWith);
+$("dmmute").onclick = () => { if(dmWith) toggleMute(dmWith); };
 $("dmchip").onclick = () => { if(chipT) openDM(chipT.k, chipT.n); };
 
 /* ---------- animation helpers ---------- */
@@ -2052,6 +2062,345 @@ $("dmleave").onclick = () => {
     });
     if(had) b2.scrollTop = keep; else { b2.scrollTop = b2.scrollHeight; b2.dataset.init = "1"; }
   };
+})();
+</script>
+<style id="call-css">
+#callbtn{background:#30d158 !important;color:#04210d !important}
+#callov{position:fixed;z-index:35;display:none;flex-direction:column;background:#0b0b0d;color:#fff;font-family:inherit}
+#callov.on{display:flex}
+#callov.full{inset:0}
+#callov.mini{top:70px;right:12px;width:min(340px,calc(100vw - 24px));height:280px;border-radius:16px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.15)}
+#callov .call-head{display:flex;align-items:center;gap:10px;padding:10px 14px;font-size:14px}
+#callov .call-head b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#callov .call-head span{font-size:12px;opacity:.7}
+#callov .call-head button{border:none;background:rgba(255,255,255,.12);color:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:15px}
+#calltiles{flex:1;min-height:0;overflow:auto;display:grid;gap:8px;padding:8px;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));grid-auto-rows:minmax(140px,1fr)}
+#callov.mini #calltiles{grid-template-columns:1fr 1fr;grid-auto-rows:minmax(80px,1fr);gap:4px;padding:4px}
+.ct{position:relative;background:#1c1c1e;border-radius:14px;overflow:hidden;min-height:0}
+.ct video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;visibility:hidden}
+.ct.cam video{visibility:visible}
+.ct.loc video{transform:scaleX(-1)}
+.ct .cav{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff}
+#callov.mini .ct .cav{width:44px;height:44px;font-size:18px}
+.ct.cam .cav{display:none}
+.ct .cl{position:absolute;left:8px;bottom:8px;background:rgba(0,0,0,.6);padding:2px 9px;border-radius:999px;font-size:12px}
+#callov .call-bar{display:flex;justify-content:center;gap:14px;padding:12px}
+#callov .call-bar button{width:50px;height:50px;border-radius:50%;border:none;background:rgba(255,255,255,.16);color:#fff;font-size:21px;cursor:pointer;transition:transform .15s,background .15s}
+#callov.mini .call-bar{padding:6px;gap:10px}
+#callov.mini .call-bar button{width:38px;height:38px;font-size:16px}
+#callov .call-bar button:hover{transform:scale(1.1)}
+#callov .call-bar button.off{background:#fff;color:#000;opacity:.9}
+#callov .call-bar button.end{background:#ff453a}
+#callov .call-bar button.end{transform:rotate(135deg)}
+#callov .call-bar button.end:hover{transform:rotate(135deg) scale(1.1)}
+#callring{position:fixed;z-index:36;top:14px;left:50%;transform:translateX(-50%);display:none;width:min(420px,calc(100vw - 20px))}
+#callring.on{display:block;animation:popIn .25s cubic-bezier(.2,.9,.3,1.2)}
+#callring .rc{display:flex;align-items:center;gap:12px;background:#1c1c1e;color:#fff;border:1px solid rgba(255,255,255,.15);border-radius:18px;padding:12px 14px;box-shadow:0 12px 40px rgba(0,0,0,.6)}
+#callring .rav{width:44px;height:44px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff}
+#callring .rc>div:nth-child(2){flex:1;min-width:0}
+#callring .rs{font-size:12px;opacity:.7}
+#callring .rb{display:flex;gap:8px}
+#callring .rb button{border:none;border-radius:999px;padding:8px 14px;font-weight:700;cursor:pointer;color:#fff}
+#callring .no{background:#ff453a}
+#callring .yes{background:#30d158;color:#04210d !important}
+#calltoast{position:fixed;z-index:50;left:50%;bottom:90px;transform:translateX(-50%);background:rgba(30,30,32,.95);color:#fff;padding:10px 16px;border-radius:999px;font-size:13px;display:none;max-width:90vw;text-align:center}
+#calltoast.on{display:block}
+</style>
+<script id="call-js">
+(function(){
+  const CALL = { cs: null, ring: null };
+  const $$ = id => document.getElementById(id);
+
+  /* ---------- UI shell ---------- */
+  const ov = document.createElement("div"); ov.id = "callov";
+  ov.innerHTML = '<div class="call-head"><b id="callt"></b><span id="calls"></span><button type="button" id="callsize" title="Shrink / expand">⤡</button></div><div id="calltiles"></div><div class="call-bar"><button type="button" id="cmic" title="Mute / unmute">🎤</button><button type="button" id="ccam" class="off" title="Camera on / off">📷</button><button type="button" id="cend" class="end" title="Hang up">📞</button></div>';
+  document.body.appendChild(ov);
+  const rg = document.createElement("div"); rg.id = "callring";
+  rg.innerHTML = '<div class="rc"><div class="rav" id="ringav"></div><div><b id="ringt"></b><div class="rs" id="rings">Incoming call…</div></div><div class="rb"><button type="button" id="ringno" class="no">Decline</button><button type="button" id="ringyes" class="yes">Accept</button></div></div>';
+  document.body.appendChild(rg);
+  const tt = document.createElement("div"); tt.id = "calltoast"; document.body.appendChild(tt);
+  const cb = document.createElement("button"); cb.id = "callbtn"; cb.type = "button"; cb.textContent = "📞 Call";
+  $$("dmbar").insertBefore(cb, $$("dmclose"));
+
+  let toastT = 0;
+  function toast(t){ tt.textContent = t; tt.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => tt.classList.remove("on"), 3500); }
+
+  /* ---------- ringtone ---------- */
+  let ac = null, ringTimer = null;
+  function beep(){
+    try {
+      ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if(ac.state === "suspended") ac.resume();
+      const t = ac.currentTime;
+      [0, .5].forEach((o, k) => { const os = ac.createOscillator(), g = ac.createGain(); os.frequency.value = k ? 520 : 440;
+        g.gain.setValueAtTime(.0001, t + o); g.gain.exponentialRampToValueAtTime(.15, t + o + .03); g.gain.exponentialRampToValueAtTime(.0001, t + o + .4);
+        os.connect(g); g.connect(ac.destination); os.start(t + o); os.stop(t + o + .45); });
+    } catch(e){}
+  }
+  function startRing(){ stopRing(); beep(); ringTimer = setInterval(beep, 2200); }
+  function stopRing(){ clearInterval(ringTimer); ringTimer = null; }
+
+  /* ---------- signalling (rides on the existing chat connection; the host relays) ---------- */
+  function sig(m){
+    m.t = "K"; m.i = newId(); m.f = uid; m.n = usr; m.pid = (peer && peer.id) || "";
+    if(isHost) routeSig(m, null); else send(m);
+  }
+  function targetsOf(m){
+    if(m.g){
+      const gr = groups[m.g]; if(!gr || !gr.m.includes(m.f)) return null;
+      const base = m.to ? [m.to] : gr.m;
+      return base.filter(u => u !== m.f && gr.m.includes(u));
+    }
+    if(!okUid(m.to) || m.to === m.f) return null;
+    return [m.to];
+  }
+  function routeSig(m, from){
+    const t = targetsOf(m); if(!t) return;
+    conns.forEach(x => { if(x !== from && x.open && x.uid && t.includes(x.uid)) x.send(m); });
+    if(t.includes(uid)) onSig(m);
+  }
+  const _handle = handle;
+  handle = function(d, from){
+    if(d && typeof d === "object" && d.t === "K"){
+      if(!validId(d.i) || !okUid(d.f)) return;
+      if(isHost){ if(!from.uid || from.uid !== d.f) return; routeSig(d, from); }
+      else {
+        if(d.g){ if(!isMember(d.g) || !groups[d.g].m.includes(d.f) || (d.to && d.to !== uid)) return; }
+        else if(d.to !== uid) return;
+        onSig(d);
+      }
+      return;
+    }
+    _handle(d, from);
+  };
+
+  /* ---------- tiles ---------- */
+  function makeTile(name, local){
+    const el = document.createElement("div"); el.className = "ct" + (local ? " loc" : "");
+    const v = document.createElement("video"); v.autoplay = true; v.playsInline = true; if(local) v.muted = true;
+    const av = document.createElement("div"); av.className = "cav"; paintAv(av, name);
+    const lb = document.createElement("div"); lb.className = "cl";
+    el.append(v, av, lb);
+    const t = { el, v, av, lb, name, local, cam: false, mic: true, stream: null, call: null };
+    refreshTile(t); return t;
+  }
+  function refreshTile(t){
+    t.el.classList.toggle("cam", !!t.cam);
+    t.lb.textContent = (t.local ? "You" : t.name) + (t.mic === false ? " 🔇" : "");
+  }
+  function ensureTile(u, name){
+    const cs = CALL.cs; let t = cs.tiles[u];
+    if(!t){
+      t = makeTile(String(name || "Friend").slice(0, 12), false);
+      const s = cs.st[u]; if(s){ t.cam = s.cam; t.mic = s.mic; refreshTile(t); }
+      cs.tiles[u] = t; $$("calltiles").appendChild(t.el);
+    }
+    return t;
+  }
+
+  /* ---------- local media ---------- */
+  async function openLocal(){
+    if(!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      toast("Calls need the site opened over https (or localhost)."); return null;
+    }
+    let at = null;
+    try { at = (await navigator.mediaDevices.getUserMedia({ audio: true })).getAudioTracks()[0]; }
+    catch(e){
+      toast("Mic blocked — you'll be listen-only.");
+      try { const c = new (window.AudioContext || window.webkitAudioContext)(); at = c.createMediaStreamDestination().stream.getAudioTracks()[0]; } catch(x){ return null; }
+    }
+    // a black placeholder video track, so the camera can be switched on/off later without renegotiating
+    const cv = document.createElement("canvas"); cv.width = 160; cv.height = 120; const cx = cv.getContext("2d");
+    const paint = () => { cx.fillStyle = "#000"; cx.fillRect(0, 0, 160, 120); }; paint();
+    const timer = setInterval(paint, 500);
+    const ph = cv.captureStream(2).getVideoTracks()[0];
+    return { at, ph, cam: null, camOn: false, micOn: true, timer };
+  }
+  function outStream(){ const L = CALL.cs.L; return new MediaStream([L.at, L.camOn && L.cam ? L.cam : L.ph]); }
+  function setVideoTrack(tr){
+    Object.values(CALL.cs.tiles).forEach(t => {
+      const pc = t.call && t.call.peerConnection; if(!pc) return;
+      const s = pc.getSenders().find(x => x.track && x.track.kind === "video");
+      if(s) s.replaceTrack(tr).catch(() => {});
+    });
+  }
+  const dest = cs => cs.gid ? { g: cs.gid } : { to: cs.other };
+  function sendState(){ const cs = CALL.cs; if(!cs) return; sig({ k: "st", cid: cs.cid, cam: cs.L.camOn, mic: cs.L.micOn, ...dest(cs) }); }
+  function sendStateTo(u){ const cs = CALL.cs; if(!cs) return; const m = { k: "st", cid: cs.cid, cam: cs.L.camOn, mic: cs.L.micOn, to: u }; if(cs.gid) m.g = cs.gid; sig(m); }
+
+  /* ---------- call state ---------- */
+  function startState(cid, conv, title, L){
+    const me = makeTile(usr, true); me.mic = true;
+    const cs = { cid, gid: conv.g || "", other: conv.to || "", title, tiles: {}, st: {}, L, me, t0: Date.now(), to: 0 };
+    CALL.cs = cs;
+    $$("calltiles").replaceChildren(me.el);
+    $$("callt").textContent = (cs.gid ? "👥 " : "📞 ") + title;
+    $$("cmic").textContent = "🎤"; $$("cmic").classList.remove("off"); $$("ccam").classList.add("off");
+    ov.classList.remove("mini"); ov.classList.add("on", "full"); stopRing(); hideRing();
+    return cs;
+  }
+  async function startCall(){
+    const cs0 = CALL.cs;
+    if(cs0){
+      const here = (cs0.gid && dmWith === "g:" + cs0.gid) || (cs0.other && dmWith === "d:" + cs0.other);
+      if(here){ ov.classList.remove("mini"); ov.classList.add("full"); } else toast("You're already in a call.");
+      return;
+    }
+    if(CALL.ring){ toast("Answer or decline the incoming call first."); return; }
+    if(curCh !== "dm" || !dmWith) return;
+    if(!(peer && peer.id)){ toast("Not connected yet."); return; }
+    let conv, title, cid;
+    if(dmWith[0] === "g"){
+      const g = groups[dmWith.slice(2)]; if(!g) return;
+      if(!lastRoster.some(e => e.c && e.c !== uid && g.m.includes(e.c)) && !confirm("Nobody else from this group is online right now. Start the call anyway?")) return;
+      conv = { g: g.id }; title = g.n; cid = "G" + g.id;
+    } else {
+      const o = dmWith.slice(2);
+      if(!lastRoster.some(e => e.c === o)){ toast(dmNm + " is offline."); return; }
+      conv = { to: o }; title = dmNm; cid = "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    }
+    const L = await openLocal(); if(!L) return;
+    if(CALL.cs) { L.at.stop(); clearInterval(L.timer); return; }
+    const cs = startState(cid, conv, title, L);
+    sig({ k: "ring", cid, ...conv });
+    if(!cs.gid) cs.to = setTimeout(() => { if(CALL.cs === cs && !Object.keys(cs.tiles).length){ toast("No answer."); endCall(true); } }, 40000);
+  }
+  function endCall(notify){
+    const cs = CALL.cs; if(!cs) return;
+    CALL.cs = null; clearTimeout(cs.to);
+    if(notify) sig({ k: "leave", cid: cs.cid, ...dest(cs) });
+    Object.values(cs.tiles).forEach(t => { const c = t.call; t.call = null; try { c && c.close(); } catch(e){} });
+    const L = cs.L; clearInterval(L.timer);
+    [L.at, L.ph, L.cam].forEach(tr => { try { tr && tr.stop(); } catch(e){} });
+    $$("calltiles").replaceChildren(); ov.classList.remove("on", "full", "mini");
+    updateCallBtn();
+  }
+
+  /* ---------- media connections (smaller user id always dials) ---------- */
+  function meet(m){
+    const cs = CALL.cs;
+    if(cs.gid ? (!isMember(cs.gid) || !groups[cs.gid].m.includes(m.f)) : m.f !== cs.other) return;
+    if(uid < m.f) callPeer(m);
+    else if(!m.re){ const r = { k: "join", re: 1, cid: cs.cid, to: m.f }; if(cs.gid) r.g = cs.gid; sig(r); }
+  }
+  function callPeer(m){
+    const cs = CALL.cs; if(!m.pid || !peer) return;
+    let t = cs.tiles[m.f]; if(t && t.call) return;
+    t = ensureTile(m.f, m.n);
+    const mc = peer.call(m.pid, outStream(), { metadata: { cid: cs.cid, uid, name: usr } });
+    if(!mc) return;
+    bindCall(m.f, mc); sendStateTo(m.f);
+  }
+  function bindCall(u, mc){
+    const t = CALL.cs && CALL.cs.tiles[u]; if(!t) return;
+    t.call = mc;
+    mc.on("stream", rs => { t.stream = rs; if(t.v.srcObject !== rs) t.v.srcObject = rs; const p = t.v.play && t.v.play(); if(p && p.catch) p.catch(() => {}); });
+    mc.on("close", () => dropPeer(u, mc));
+    mc.on("error", () => dropPeer(u, mc));
+  }
+  function dropPeer(u, mc){
+    const cs = CALL.cs; if(!cs) return; const t = cs.tiles[u]; if(!t) return;
+    if(mc && t.call !== mc) return;
+    const c = t.call; t.call = null; try { c && c.close(); } catch(e){}
+    t.el.remove(); delete cs.tiles[u];
+    if(!cs.gid && !Object.keys(cs.tiles).length){ toast("Call ended."); endCall(false); }
+  }
+  let hooked = null;
+  setInterval(() => {                       // attach to whichever Peer object is currently live
+    if(!peer || peer === hooked) return; hooked = peer;
+    peer.on("call", mc => {
+      const cs = CALL.cs, md = mc.metadata || {};
+      const ok = cs && md.cid === cs.cid && okUid(md.uid) && (cs.gid ? (isMember(cs.gid) && groups[cs.gid].m.includes(md.uid)) : md.uid === cs.other);
+      if(!ok){ try { mc.close(); } catch(e){} return; }
+      const t = ensureTile(md.uid, md.name);
+      if(t.call){ const o = t.call; t.call = null; try { o.close(); } catch(e){} }
+      mc.answer(outStream()); bindCall(md.uid, mc); sendStateTo(md.uid);
+    });
+  }, 500);
+
+  /* ---------- incoming signals ---------- */
+  function onSig(m){
+    const cs = CALL.cs;
+    if(m.k === "ring"){
+      if(cs && cs.cid === m.cid){ meet(m); return; }                        // someone (re)joining a call I'm in
+      if(cs || (CALL.ring && CALL.ring.cid !== m.cid)){ if(!m.g) sig({ k: "decline", cid: m.cid, to: m.f, why: "busy" }); return; }
+      if(CALL.ring) return;
+      showRing(m);
+    }
+    else if(m.k === "join"){ if(cs && cs.cid === m.cid) meet(m); }
+    else if(m.k === "leave"){
+      if(CALL.ring && CALL.ring.cid === m.cid) hideRing();
+      if(cs && cs.cid === m.cid) dropPeer(m.f);
+    }
+    else if(m.k === "decline"){ if(cs && cs.cid === m.cid && !cs.gid){ toast((m.n || "They") + (m.why === "busy" ? " is busy." : " declined.")); endCall(false); } }
+    else if(m.k === "st"){
+      if(!cs || cs.cid !== m.cid) return;
+      cs.st[m.f] = { cam: !!m.cam, mic: m.mic !== false };
+      const t = cs.tiles[m.f]; if(t){ t.cam = !!m.cam; t.mic = m.mic !== false; refreshTile(t); }
+    }
+  }
+
+  /* ---------- ring prompt ---------- */
+  let ringT = 0;
+  function showRing(m){
+    const gname = m.g && groups[m.g] ? groups[m.g].n : "";
+    CALL.ring = { cid: m.cid, f: m.f, n: m.n, g: m.g || "", title: m.g ? gname : m.n };
+    paintAv($$("ringav"), m.n);
+    $$("ringt").textContent = m.g ? m.n + " started a call in " + gname : m.n;
+    $$("rings").textContent = m.g ? "Group call" : "Incoming call…";
+    rg.classList.add("on"); if(!muted[m.g ? "g:" + m.g : "d:" + m.f]) startRing(); else $$("rings").textContent += " · muted";
+    clearTimeout(ringT); ringT = setTimeout(hideRing, 45000);
+  }
+  function hideRing(){ CALL.ring = null; rg.classList.remove("on"); clearTimeout(ringT); stopRing(); }
+  $$("ringno").onclick = () => { const r = CALL.ring; if(!r) return; if(!r.g) sig({ k: "decline", cid: r.cid, to: r.f }); hideRing(); };
+  $$("ringyes").onclick = async () => {
+    const r = CALL.ring; if(!r || CALL.cs) return;
+    hideRing();
+    const L = await openLocal();
+    if(!L){ if(!r.g) sig({ k: "decline", cid: r.cid, to: r.f }); return; }
+    if(CALL.cs){ L.at.stop(); clearInterval(L.timer); return; }
+    const cs = startState(r.cid, r.g ? { g: r.g } : { to: r.f }, r.title, L);
+    sig({ k: "join", cid: r.cid, ...dest(cs) });
+  };
+
+  /* ---------- controls ---------- */
+  cb.onclick = startCall;
+  $$("cend").onclick = () => endCall(true);
+  $$("callsize").onclick = () => { ov.classList.toggle("full"); ov.classList.toggle("mini"); };
+  $$("cmic").onclick = () => {
+    const cs = CALL.cs; if(!cs) return; const L = cs.L;
+    L.micOn = !L.micOn; L.at.enabled = L.micOn;
+    $$("cmic").textContent = L.micOn ? "🎤" : "🔇"; $$("cmic").classList.toggle("off", !L.micOn);
+    cs.me.mic = L.micOn; refreshTile(cs.me); sendState();
+  };
+  $$("ccam").onclick = async () => {
+    const cs = CALL.cs; if(!cs) return; const L = cs.L;
+    if(!L.camOn){
+      try { L.cam = (await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: "user" } })).getVideoTracks()[0]; }
+      catch(e){ toast("Camera blocked or not available."); return; }
+      if(CALL.cs !== cs){ L.cam.stop(); return; }
+      setVideoTrack(L.cam); L.camOn = true;
+      cs.me.v.srcObject = new MediaStream([L.cam]);
+    } else {
+      setVideoTrack(L.ph); try { L.cam.stop(); } catch(e){} L.cam = null; L.camOn = false; cs.me.v.srcObject = null;
+    }
+    cs.me.cam = L.camOn; refreshTile(cs.me); $$("ccam").classList.toggle("off", !L.camOn); sendState();
+  };
+  function updateCallBtn(){
+    const cs = CALL.cs;
+    const here = cs && curCh === "dm" && ((cs.gid && dmWith === "g:" + cs.gid) || (cs.other && dmWith === "d:" + cs.other));
+    cb.textContent = here ? "📞 In call" : "📞 Call";
+  }
+  const fmt = ms => { const s = Math.floor(ms / 1000); return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); };
+  setInterval(() => {
+    const cs = CALL.cs;
+    if(cs){
+      const n = Object.keys(cs.tiles).length;
+      if(n && !cs.t1) cs.t1 = Date.now();
+      $$("calls").textContent = n ? fmt(Date.now() - cs.t1) : (cs.gid ? "Waiting for others…" : "Ringing…");
+    }
+    updateCallBtn();
+  }, 1000);
+  window.addEventListener("beforeunload", () => { if(CALL.cs) endCall(true); });
 })();
 </script>
 </body>
