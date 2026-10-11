@@ -372,7 +372,7 @@
 
   /* ===== Private DMs ===== */
   .msg.off{display:none !important}
-  body:not(.in-dm) .msg[data-ch="dm"]{display:none}
+  body:not(.in-dm) .msg[data-ch="dm"],body:not(.in-dm) .msg[data-ch="grp"]{display:none}
   #dmbar{display:none;align-items:center;gap:10px;padding:8px 20px;border-bottom:1px solid var(--line);background:var(--bar,var(--side));color:var(--bar-text,var(--text));font-size:13px;font-weight:600}
   body.in-dm #dmbar{display:flex}
   #dmbar span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -389,6 +389,118 @@
   #sbdm .pnm div,#sbdm .plast{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #sbdm .plast{display:block;font-size:11px;opacity:.7}
   .dmbadge{background:#ff453a;color:#fff;border-radius:999px;font-size:11px;font-weight:700;padding:1px 6px;min-width:18px;text-align:center}
+  #sbdm .sbh{display:flex;align-items:center;justify-content:space-between}
+  #sbdm .sbh button{border:none;background:var(--row);color:var(--bar-text,var(--text));border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700;cursor:pointer;text-transform:none;letter-spacing:0}
+  #sbdm .prow .xbtn{border:none;background:none;color:inherit;opacity:0;cursor:pointer;font-size:12px;padding:2px 5px;border-radius:50%}
+  #sbdm .prow:hover .xbtn{opacity:.7}
+  #sbdm .prow .xbtn:hover{opacity:1;background:rgba(255,69,58,.25)}
+  @media(hover:none){#sbdm .prow .xbtn{opacity:.6}}
+  #dmbar button.danger{background:rgba(255,69,58,.2);color:#ff6b61}
+  #gmod{display:none;position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:16px}
+  #gmod.open{display:flex}
+  #gmod .gcard{background:var(--side);color:var(--text);border:1px solid var(--line);border-radius:18px;padding:20px;width:min(360px,100%);max-height:85vh;display:flex;flex-direction:column;gap:10px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+  #gmod h3{margin:0;font-size:18px}
+  #gmod .gsub{font-size:12px;color:var(--muted);margin-top:-4px}
+  #gmod input[type=text]{padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--input);color:var(--text);font-size:15px;outline:none;width:100%}
+  #glist{overflow-y:auto;max-height:40vh;display:flex;flex-direction:column;gap:2px}
+  #glist label{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:8px;cursor:pointer;font-size:14px}
+  #glist label:hover{background:var(--row)}
+  #glist input{width:auto}
+  #glist .pav{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+  #gmod .grow{display:flex;gap:8px}
+  #gmod .grow button{flex:1;padding:10px;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;background:var(--accent);color:var(--on-accent,#fff)}
+  #gmod .grow button.alt{background:var(--row);color:var(--text)}
+  #gerr2{color:#ff453a;font-size:12px;min-height:14px}
+  /* ===== Motion: open/close animations + macOS-style hover magnification ===== */
+  @keyframes popIn{from{opacity:0;transform:scale(.92) translateY(-6px)}to{opacity:1;transform:none}}
+  @keyframes popOut{from{opacity:1;transform:none}to{opacity:0;transform:scale(.92) translateY(-6px)}}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes fadeOut{from{opacity:1}to{opacity:0}}
+  @keyframes cardIn{from{opacity:0;transform:scale(.9) translateY(14px)}to{opacity:1;transform:none}}
+  @keyframes cardOut{from{opacity:1;transform:none}to{opacity:0;transform:scale(.94) translateY(10px)}}
+  @keyframes msgIn{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:none}}
+  @keyframes msgOut{from{opacity:1;transform:none;max-height:200px}to{opacity:0;transform:scale(.9)}}
+  @keyframes boxIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes rowIn{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:none}}
+  @keyframes rowOut{from{opacity:1;transform:none}to{opacity:0;transform:translateX(-16px) scale(.96)}}
+  @keyframes actIn{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:none}}
+  @keyframes secIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+
+  .anim-pop{transform-origin:top center;animation:popIn .2s cubic-bezier(.2,.9,.3,1.1)}
+  .anim-pop.closing{animation:popOut .17s ease-in forwards}
+  #emo-panel.anim-pop{transform-origin:bottom left}
+  #emo-panel.anim-pop.closing{animation:popOut .17s ease-in forwards}
+  #emo-panel{--dy:6px}
+  #onpop.open{animation:popIn .2s cubic-bezier(.2,.9,.3,1.1);transform-origin:top right}
+  #onpop.open.closing{animation:popOut .15s ease-in forwards}
+  #emo-sug{transform-origin:bottom left}
+  #emo-sug[style*="block"]{animation:popIn .15s ease-out}
+  #gmod.open{animation:fadeIn .2s ease-out}
+  #gmod.open .gcard{animation:cardIn .26s cubic-bezier(.2,.9,.3,1.1)}
+  #gmod.open.closing{animation:fadeOut .18s ease-in forwards}
+  #gmod.open.closing .gcard{animation:cardOut .18s ease-in forwards}
+  #gate{transition:opacity .35s ease}
+  #gate.leaving{opacity:0;pointer-events:none}
+  #gate .card{animation:cardIn .5s cubic-bezier(.2,.9,.3,1.1)}
+  #gate.leaving .card{transform:scale(.96);transition:transform .35s ease}
+  .msg.pop{animation:msgIn .26s cubic-bezier(.2,.9,.3,1.15)}
+  .msg.gone{animation:msgOut .18s ease-in forwards;pointer-events:none}
+  #box.swap{animation:boxIn .24s cubic-bezier(.2,.9,.3,1)}
+  .prow.enter{animation:rowIn .26s cubic-bezier(.2,.9,.3,1)}
+  .prow.leaving{animation:rowOut .2s ease-in forwards;pointer-events:none}
+  .msg:hover .act,.msg.tap .act,.act:focus-within{animation:actIn .15s cubic-bezier(.2,.9,.3,1.2)}
+  details.sec[open] .sec-body{animation:secIn .22s ease-out}
+  #dmchip{animation:popIn .2s cubic-bezier(.2,.9,.3,1.3)}
+  .dmbadge{animation:popIn .25s cubic-bezier(.2,.9,.3,1.4)}
+
+  /* bars that slide instead of vanishing */
+  #dmbar{display:flex;padding-top:0;padding-bottom:0;max-height:0;opacity:0;overflow:hidden;visibility:hidden;border-bottom-color:transparent;transition:max-height .26s cubic-bezier(.2,.9,.3,1),opacity .2s,padding .26s,border-color .26s,visibility 0s linear .26s}
+  body.in-dm #dmbar{max-height:64px;opacity:1;visibility:visible;padding-top:8px;padding-bottom:8px;border-bottom-color:var(--line);transition:max-height .26s cubic-bezier(.2,.9,.3,1),opacity .2s,padding .26s,border-color .26s,visibility 0s}
+  #replybar{display:flex;max-height:0;opacity:0;overflow:hidden;visibility:hidden;border-top-color:transparent;transition:max-height .24s cubic-bezier(.2,.9,.3,1),opacity .18s,padding .24s,border-color .24s,visibility 0s linear .24s}
+  #replybar:not(.on){padding-top:0 !important;padding-bottom:0 !important}
+  #replybar.on{max-height:64px;opacity:1;visibility:visible;border-top-color:var(--line);transition:max-height .24s cubic-bezier(.2,.9,.3,1),opacity .18s,padding .24s,border-color .24s,visibility 0s}
+  body.in-gal #replybar{display:none !important}
+  #hdr{max-height:240px;transition:max-height .28s cubic-bezier(.2,.9,.3,1),min-height .28s,padding .28s,opacity .2s,border-width .28s,visibility 0s}
+  .hide-hdr #hdr{display:flex;max-height:0;min-height:0 !important;padding-top:0;padding-bottom:0;opacity:0;overflow:hidden;border-bottom-width:0;visibility:hidden;transition:max-height .28s cubic-bezier(.2,.9,.3,1),min-height .28s,padding .28s,opacity .2s,border-width .28s,visibility 0s linear .28s}
+  #sb > *{min-width:220px}
+  #sb-arrow{transition:left .28s cubic-bezier(.2,.9,.3,1),opacity .15s,transform .22s cubic-bezier(.34,1.56,.64,1)}
+  #hdr-arrow{transition:opacity .15s,transform .22s cubic-bezier(.34,1.56,.64,1)}
+  @media(min-width:601px){
+    #sb{transition:width .28s cubic-bezier(.2,.9,.3,1),opacity .22s,border-color .28s,visibility 0s}
+    .hide-sb #sb{display:flex !important;width:0;opacity:0;pointer-events:none;visibility:hidden;border-right-color:transparent;transition:width .28s cubic-bezier(.2,.9,.3,1),opacity .22s,border-color .28s,visibility 0s linear .28s}
+  }
+  @media(max-width:600px){
+    #sb{display:flex;transform:translateX(-105%);visibility:hidden;transition:transform .3s cubic-bezier(.2,.9,.3,1),visibility 0s linear .3s}
+    #sb.open{transform:none;visibility:visible;box-shadow:8px 0 30px rgba(0,0,0,.5);transition:transform .3s cubic-bezier(.2,.9,.3,1),visibility 0s}
+    .hide-sb #sb{display:none !important}
+    #sb-arrow{transition:left .3s cubic-bezier(.2,.9,.3,1),opacity .15s}
+  }
+
+  /* springy transitions used by the hover effect */
+  .plus,#emo-btn,#sendbtn,.act button,#replybar button,#dmbar button,#dmchip,#sbdm .sbh button,#sbdm .xbtn,#hdr-set,.stg-btn,.stg-box button,#gate button,#gmod .grow button,.goback,#chtabs button,.row-ch,.oav,#emo-grid span,#emo-tabs span,#emo-sug .item .e,.img,#sbdm .prow,#sbroster .prow,#onpop .prow{transition:transform .22s cubic-bezier(.34,1.56,.64,1),background .15s,color .15s,opacity .15s,filter .15s}
+  @media (hover:hover){
+    .plus:hover,#emo-btn:hover{transform:scale(1.25)}
+    #sendbtn:hover{transform:scale(1.2)}
+    .act button:hover{transform:scale(1.25)}
+    #replybar button:hover,#dmbar button:hover,#dmchip:hover,#sbdm .sbh button:hover,#sbdm .xbtn:hover{transform:scale(1.14)}
+    #hdr-set:hover{transform:scale(1.2)}
+    .stg-btn:hover{transform:scale(1.1)}
+    .stg-box button:hover,#gate button:hover,#gmod .grow button:hover,.goback:hover{transform:scale(1.04)}
+    #chtabs button:hover{transform:scale(1.12)}
+    .row-ch:hover,#sbdm .prow:hover,#sbroster .prow:hover,#onpop .prow:hover{transform:scale(1.03)}
+    .oav:hover{transform:scale(1.35);z-index:3}
+    #online .oav:hover + .oav,#online .oav:has(+ .oav:hover){transform:scale(1.15);z-index:2}
+    #emo-grid span:hover{transform:scale(1.45)}
+    #emo-tabs span:hover{transform:scale(1.2)}
+    #emo-sug .item:hover .e{transform:scale(1.35)}
+    .img:hover{transform:scale(1.04)}
+    #hdr-arrow:hover{transform:translateX(-50%) scale(1.18)}
+    #sb-arrow:hover{transform:translateY(-50%) scale(1.18)}
+  }
+  .plus:active,#emo-btn:active,#sendbtn:active,.act button:active,#chtabs button:active,.stg-box button:active,#gate button:active,#gmod .grow button:active,#dmbar button:active,#sbdm .sbh button:active{transform:scale(.93)}
+  #hdr-arrow:active{transform:translateX(-50%) scale(.93)}
+  #sb-arrow:active{transform:translateY(-50%) scale(.93)}
+  @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-delay:0s !important;transition-duration:.01ms !important;transition-delay:0s !important}}
 </style>
 </head>
 <body data-theme="imessage">
@@ -466,12 +578,20 @@
   </div>
 </div>
 
+<div id="gmod"><div class="gcard">
+  <h3>New group chat</h3>
+  <div class="gsub">Only the people you pick can see it.</div>
+  <input type="text" id="gname" placeholder="Group name" maxlength="30" autocomplete="off">
+  <div id="glist"></div>
+  <div id="gerr2"></div>
+  <div class="grow"><button id="gcancel" type="button" class="alt">Cancel</button><button id="gcreate" type="button">Create</button></div>
+</div></div>
 <button id="sb-arrow" class="arrow" title="Hide / show messages bar"></button>
 <div id="main">
   <div id="hdrwrap"><div id="hdr"><button id="hdr-set" title="Settings">⚙️</button><span id="status">Not connected</span><div id="chtabs"><button type="button" data-ch="main" class="on">💬 Chat</button><button type="button" data-ch="gal">🖼️ Image Gallery</button></div><button id="dmchip" type="button" title="Unread private messages"></button><div id="online" title="See who's online"></div></div>
     <div id="onpop"></div>
     <button id="hdr-arrow" class="arrow" title="Hide / show top bar"></button></div>
-  <div id="dmbar"><span id="dmtitle"></span><button id="dmclose" type="button">✕ Close</button></div>
+  <div id="dmbar"><span id="dmtitle"></span><button id="dmclose" type="button">← Chat</button><button id="dmhide" type="button" title="Remove this chat from your list (it comes back if someone messages you)">Close chat</button><button id="dmleave" type="button" class="danger" style="display:none">Leave group</button></div>
   <div id="box"></div>
   <div id="typing"></div>
   <div id="replybar"><span class="rb-t"></span><button id="replyx" type="button" title="Cancel reply" aria-label="Cancel reply">✕</button></div>
@@ -500,7 +620,22 @@ let usr = "User", peer = null, conns = [], isHost = false, logs = [];
 let dmWith = "", dmNm = "", chipT = null;
 let seen = {}; try { seen = JSON.parse(load("dm_seen", "{}")) || {}; } catch(e){ seen = {}; }
 const PH = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage"};
-const dmKey = l => (!l.to || l.del) ? "" : l.c === uid ? l.to : l.to === uid ? l.c : "";
+const shownKeys = new Set();
+let groups = {};
+function okGid(g){ return typeof g === "string" && /^g[a-z0-9]{3,30}$/.test(g); }
+function cleanGroup(g){
+  if(!g || typeof g !== "object" || !okGid(g.id) || !okUid(g.o)) return null;
+  const m = [...new Set((Array.isArray(g.m) ? g.m : []).filter(okUid))].slice(0, 50);
+  return { id: g.id, n: String(g.n || "").slice(0, 30) || "Group", o: g.o, m, v: +g.v || 0 };
+}
+const isMember = gid => !!(groups[gid] && groups[gid].m.includes(uid));
+// conversation key: "d:<uid>" for a private chat, "g:<id>" for a group (empty if it isn't ours)
+const dmKey = l => {
+  if(l.del) return "";
+  if(l.to) return l.c === uid ? "d:" + l.to : l.to === uid ? "d:" + l.c : "";
+  if(l.g) return isMember(l.g) ? "g:" + l.g : "";
+  return "";
+};
 
 if(LOGO){
   document.documentElement.style.setProperty("--lp-icon", 'url("' + LOGO + '")');
@@ -681,14 +816,14 @@ function fillRoster(p){
     const av = document.createElement("div"); av.className = "pav"; paintAv(av, e.n);
     const nm = document.createElement("span"); nm.className = "pnm"; nm.textContent = e.n + (e.n === usr ? " (you)" : "");
     r.append(av, nm);
-    if(e.c && e.c !== uid){ r.title = "Send a private message"; r.style.cursor = "pointer"; r.onclick = () => { $("onpop").classList.remove("open"); openDM(e.c, e.n); }; }
+    if(e.c && e.c !== uid){ r.title = "Send a private message"; r.style.cursor = "pointer"; r.onclick = () => { setPop(false); openDM("d:" + e.c, e.n); }; }
     if(tp.includes(e.n)){ const t = document.createElement("span"); t.className = "ptyp"; t.title = "typing…"; t.innerHTML = "<i></i><i></i><i></i>"; r.appendChild(t); }
     if(e.d && DEVS[e.d]){ const t = document.createElement("span"); t.className = "pdev"; t.textContent = DEVS[e.d][0] + " " + DEVS[e.d][1]; r.appendChild(t); }
     p.appendChild(r);
   });
 }
-$("online").onclick = () => { $("onpop").classList.toggle("open"); renderPop(); };
-document.addEventListener("click", ev => { if(!ev.target.closest("#online") && !ev.target.closest("#onpop")) $("onpop").classList.remove("open"); });
+$("online").onclick = () => { setPop(!$("onpop").classList.contains("open") || $("onpop").classList.contains("closing")); renderPop(); };
+document.addEventListener("click", ev => { if(!ev.target.closest("#online") && !ev.target.closest("#onpop")) setPop(false); });
 function renderOnline(list){
   list.forEach(e => { if(e.a) avatars[e.n] = e.a; }); cacheAvatars();
   const box = $("online"); box.innerHTML = "";
@@ -730,6 +865,7 @@ window.addEventListener("load", () => {
     delete l.cls;
   });
   logs.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+  try { const c = JSON.parse(load("chat_groups", "{}")); Object.keys(c).forEach(k => { const g = cleanGroup(c[k]); if(g) groups[g.id] = g; }); } catch(e){}
   rerender();
 });
 
@@ -740,7 +876,7 @@ $("g-go").onclick = () => {
   if(n){ usr = n; $("hi").value = n; save("chat_usr", n); updateYou(); }
   setTheme($("g-theme").value);
   rerender();
-  $("gate").style.display = "none";
+  $("gate").classList.add("leaving"); setTimeout(() => { $("gate").style.display = "none"; }, 380);
   sys("Welcome to purebred-chat, HM:  RIP: Ryosuke 🕊️🪦🪽");
   connect();
 };
@@ -748,8 +884,9 @@ $("g-go").onclick = () => {
 $("g-theme").addEventListener("change", e => setTheme(e.target.value));   // preview the theme on the join screen
 
 function updateYou(){ $("youare").textContent = "Signed in as " + usr; }
-$("hdr-set").onclick = () => { $("sb").classList.toggle("open"); $("sd").style.display = "block"; };
-$("stg-toggle").onclick = () => { const d = $("sd"); d.style.display = d.style.display === "block" ? "none" : "block"; };
+$("sd").classList.add("anim-pop");
+$("hdr-set").onclick = () => { $("sb").classList.toggle("open"); setShown($("sd"), true); };
+$("stg-toggle").onclick = () => { const d = $("sd"); setShown(d, getComputedStyle(d).display === "none" || d.classList.contains("closing")); };
 $("save").onclick = () => {
   const old = usr;
   myFont = $("font").value; save("chat_font", myFont); $("inp").style.fontFamily = FONT_MAP[myFont] || "";
@@ -759,7 +896,7 @@ $("save").onclick = () => {
   if(myAvatar) avatars[usr] = myAvatar; refreshAvatars();
   if(usr !== old){ send({ t: "N", u: old, b: usr, i: newId() }); sys("You changed your name to " + usr + "."); if(isHost) pushRoster(); }
   else sys("Settings saved.");
-  $("sd").style.display = "none"; $("sb").classList.remove("open");
+  setShown($("sd"), false); $("sb").classList.remove("open");
 };
 
 /* ---------- networking (host relays to everyone) ---------- */
@@ -788,7 +925,8 @@ function addConn(c){
   c.on("open", () => {
     conns.push(c); ready();
     c.send({ t: "P", u: usr, a: myAvatar, d: myDevice, c: uid, i: newId() });   // host sends its id too
-    c.send({ t: "S", i: newId(), s: logs.filter(l => !l.to).map(l => [l.i, l.v || 0]) });   // public history summary, sent immediately like before (DM ids are added once the joiner identifies itself)
+    if(!isHost) Object.values(groups).forEach(g => c.send({ t: "G", i: newId(), g }));   // tell the host about my groups (the host may be new)
+    c.send({ t: "S", i: newId(), s: logs.filter(l => !isHost || (!l.to && !l.g)).map(l => [l.i, l.v || 0]) });   // host: public history only; private/group ids are added once the joiner identifies itself
     c.send({ t: "B", i: newId(), c: uid, bc: myBc, bi: myBi, v: bstyle[uid] ? bstyle[uid].v : 0 });
     setStatus("Online — " + conns.length + " connected");
     sys(isHost ? "A friend joined." : "Connected to the room.");
@@ -807,6 +945,12 @@ function addConn(c){
 function send(d, except){ conns.forEach(c => { if(c !== except && c.open) c.send(d); }); }
 function sendEntry(o, from){
   const d = { t: "Y", i: newId(), e: [o] };
+  if(o.g){                                           // group message: only the members
+    if(!isHost){ send(d); return; }
+    const gr = groups[o.g]; if(!gr) return;
+    conns.forEach(x => { if(x !== from && x.open && x.uid && gr.m.includes(x.uid)) x.send(d); });
+    return;
+  }
   if(!o.to){ send(d, from); return; }
   if(!isHost){ send(d); return; }
   const other = from ? (from.uid === o.c ? o.to : o.c) : (o.c === uid ? o.to : o.c);
@@ -821,12 +965,18 @@ function handle(d, from){
     if(okUid(d.c)) from.uid = d.c;
     if(isHost && typeof d.u === "string"){
       from.userName = d.u.slice(0, 12); from.avatar = okAv(d.a); from.device = okDev(d.d);
-      if(!from.sentS && from.uid){ from.sentS = 1; const mine = logs.filter(l => l.to && (l.to === from.uid || l.c === from.uid)); if(mine.length) from.send({ t: "S", i: newId(), s: mine.map(l => [l.i, l.v || 0]) }); }   // DM sync, only for that person
+      if(!from.sentS && from.uid){
+        from.sentS = 1;
+        Object.values(groups).forEach(g => { if(g.m.includes(from.uid)) from.send({ t: "G", i: newId(), g }); });
+        const mine = logs.filter(l => (l.to && (l.to === from.uid || l.c === from.uid)) || (l.g && groups[l.g] && groups[l.g].m.includes(from.uid)));
+        if(mine.length) from.send({ t: "S", i: newId(), s: mine.map(l => [l.i, l.v || 0]) });   // private/group sync, only for that person
+      }
       pushRoster();
     }
     return;
   }
   if(d.t === "R"){ if(!isHost && Array.isArray(d.list)) renderOnline(d.list.slice(0, 50).filter(x => x && typeof x.n === "string").map(x => ({ n: x.n.slice(0, 12), a: okAv(x.a), d: okDev(x.d), c: okUid(x.c) ? x.c : "" }))); return; }
+  if(d.t === "G"){ handleGroup(d, from); return; }
   if(d.t === "S"){ answerSummary(d, from); return; }
   if(d.t === "Y"){
     const changed = [];
@@ -836,6 +986,10 @@ function handle(d, from){
         if(isHost){ if(!from.uid || (from.uid !== o.c && from.uid !== o.to)) return; }   // sender must be a participant
         else if(o.to !== uid && o.c !== uid) return;
       }
+      if(o.g){
+        if(isHost){ const gr = groups[o.g]; if(!gr || !from.uid || !gr.m.includes(from.uid)) return; }   // only members can post
+        else if(!isMember(o.g)) return;
+      }
       if(mergeEntry(o)) changed.push(o);
     });
     if(d.bs && typeof d.bs === "object") Object.keys(d.bs).forEach(k => { const s = d.bs[k]; if(s && typeof s === "object") setBstyle(k, s.bc, s.bi, s.v); });
@@ -844,9 +998,9 @@ function handle(d, from){
       changed.forEach(applyToDom);
       changed.forEach(o => { if(o.u) delete typers[o.u]; }); renderTyping();   // they sent their message, so stop "typing"
       if(isHost){
-        const pub = changed.filter(o => !o.to);
+        const pub = changed.filter(o => !o.to && !o.g);
         if(pub.length) send({ t: "Y", i: newId(), e: pub }, from);
-        changed.filter(o => o.to).forEach(o => sendEntry(o, from));   // DMs go to one person only
+        changed.filter(o => o.to || o.g).forEach(o => sendEntry(o, from));   // DMs / groups go only to the people in them
       }
       dmChanged(changed);
     }
@@ -871,6 +1025,7 @@ function cleanEntry(e){
   if(e.del){
     o.del = true;
     if(e.to){ if(!okUid(e.to) || !okUid(e.c)) return null; o.to = e.to; o.c = e.c; o.ch = "dm"; }
+    else if(e.g){ if(!okGid(e.g) || !okUid(e.c)) return null; o.g = e.g; o.c = e.c; o.ch = "grp"; }
     return o;
   }
   if(typeof e.u !== "string" || typeof e.b !== "string") return null;
@@ -881,6 +1036,9 @@ function cleanEntry(e){
   if(e.to){
     if(!okUid(e.to) || !o.c || e.to === o.c) return null;
     o.to = e.to; o.tn = String(e.tn || "").slice(0, 12); o.ch = "dm";
+  } else if(e.g){
+    if(!okGid(e.g) || !o.c) return null;
+    o.g = e.g; o.ch = "grp";
   } else if(e.ch === "gal" && o.img) o.ch = "gal";   // gallery only accepts images
   if(e.edited) o.edited = true;
   if(e.r && typeof e.r === "object" && validId(e.r.i)){      // reply: id + name + short preview of the original
@@ -900,7 +1058,7 @@ function answerSummary(d, from){
   if(from.open) from.send({ t: "Y", i: newId(), e: [], bs: bstyle });
   let batch = [], size = 0;
   const flush = () => { if(batch.length && from.open) from.send({ t: "Y", i: newId(), e: batch }); batch = []; size = 0; };
-  const canSee = l => !l.to || !isHost || (from.uid && (l.to === from.uid || l.c === from.uid));
+  const canSee = l => (!l.to && !l.g) || !isHost || (from.uid && ((l.to && (l.to === from.uid || l.c === from.uid)) || (l.g && groups[l.g] && groups[l.g].m.includes(from.uid))));
   logs.filter(l => canSee(l) && (!theirs.has(l.i) || (l.v || 0) > theirs.get(l.i))).forEach(l => {
     const s = (l.b || "").length + 200;
     if(batch.length && (size + s > 400000 || batch.length >= 50)) flush();
@@ -1018,7 +1176,8 @@ function insertAtCursor(t){
   window.refreshEmojiPicker = () => { if(q.value.trim()) search(); else show(cur); };
   show("0");
 })();
-$("emo-btn").onclick = () => { const p = $("emo-panel"); p.style.display = p.style.display === "flex" ? "none" : "flex"; if(p.style.display === "flex") $("emo-q").focus(); };
+$("emo-panel").classList.add("anim-pop");
+$("emo-btn").onclick = () => { const p = $("emo-panel"), open = p.style.display === "flex" && !p.classList.contains("closing"); setShown(p, !open, "flex"); if(!open) $("emo-q").focus(); };
 
 /* ---------- :shortcodes: popup (searches every emoji name) ---------- */
 function suggest(q){
@@ -1126,6 +1285,7 @@ function setChannel(c){
   updateDmBar(); renderDMList();
   regroup();
   const b = $("box"); b.scrollTop = b.scrollHeight;
+  b.classList.remove("swap"); void b.offsetWidth; b.classList.add("swap"); setTimeout(() => b.classList.remove("swap"), 300);
 }
 $("ch-main").onclick = () => setChannel("main");
 $("ch-gal").onclick = () => setChannel("gal");
@@ -1134,9 +1294,11 @@ document.querySelectorAll("#chtabs button").forEach(b => b.onclick = () => setCh
 function postMsg(b, img){
   const now = Date.now(), o = { i: newId(), u: usr, c: uid, b, ts: now, v: now, d: myDevice };
   if(img){ o.img = 1; if(curCh === "gal") o.ch = "gal"; } else o.f = myFont;
-  if(curCh === "dm" && dmWith){ o.to = dmWith; o.tn = dmNm; o.ch = "dm"; }
+  if(curCh === "dm" && dmWith){
+    if(dmWith[0] === "g"){ o.g = dmWith.slice(2); o.ch = "grp"; } else { o.to = dmWith.slice(2); o.tn = dmNm; o.ch = "dm"; }
+  }
   if(replyTo && curCh !== "gal"){ o.r = replyTo; clearReply(); }
-  logs.push(o); persist(); renderRow(o);
+  logs.push(o); persist(); renderRow(o, true);
   sendEntry(o); renderDMList();
 }
 function updateSendBtn(){ document.querySelector(".pill").classList.toggle("has-text", !!$("inp").value.trim()); }
@@ -1222,7 +1384,7 @@ function colorFor(name){
   return "hsl(" + h + ",55%,50%)";
 }
 
-const isMine = m => m.to ? m.c === uid : ((m.c && m.c === uid) || m.u === usr);
+const isMine = m => (m.to || m.g) ? m.c === uid : ((m.c && m.c === uid) || m.u === usr);
 
 const ICON_EDIT = '<svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
 const ICON_DEL = '<svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
@@ -1235,7 +1397,7 @@ function iconBtn(cls, title, svg, fn){
 /* inline editing: works on ANY text message in the room (DMs: your own only) */
 function startEdit(id){
   const l = logs.find(x => x.i === id), w = $(id);
-  if(!l || l.img || l.del || !w || (l.to && l.c !== uid)) return;
+  if(!l || l.img || l.del || !w || ((l.to || l.g) && l.c !== uid)) return;
   const bub = w.querySelector("[data-bubble]"); if(!bub || w.classList.contains("editing")) return;
   const inp = document.createElement("input");
   inp.type = "text"; inp.className = "editin"; inp.value = l.b; inp.maxLength = 1999;
@@ -1259,7 +1421,7 @@ function startEdit(id){
 function deleteMsg(id){
   const l = logs.find(x => x.i === id); if(!l) return;
   if(replyTo && replyTo.i === id) clearReply();
-  const dmKeep = l.to ? { to: l.to, c: l.c, ch: "dm" } : null;
+  const dmKeep = l.to ? { to: l.to, c: l.c, ch: "dm" } : l.g ? { g: l.g, c: l.c, ch: "grp" } : null;
   Object.keys(l).forEach(k => { if(k !== "i" && k !== "ts") delete l[k]; });
   if(dmKeep) Object.assign(l, dmKeep);   // keeps the delete routed to the right person
   l.del = true; l.v = Date.now(); persist(); applyToDom(l); sendEntry(l);
@@ -1271,14 +1433,16 @@ function setEditedTag(wrap, on){
   if(!t){ t = document.createElement("span"); t.className = "edited"; t.textContent = "(edited)"; wrap.insertBefore(t, wrap.querySelector(":scope > .act")); }
 }
 
-function renderRow(m){
+function renderRow(m, animate){
   if(m.del) return;
   if(m.to && m.to !== uid && m.c !== uid) return;   // not our DM
+  if(m.g && !isMember(m.g)) return;                  // not our group
   const box = $("box"), mine = isMine(m);
   const w = document.createElement("div");
   w.className = "msg " + (mine ? "me" : "peer"); w.id = m.i;
-  w.dataset.ts = m.ts || 0; w.dataset.uid = m.c || ""; w.dataset.user = m.u; w.dataset.ch = m.ch || ""; if(m.to) w.dataset.dm = m.c === uid ? m.to : m.c;
+  w.dataset.ts = m.ts || 0; w.dataset.uid = m.c || ""; w.dataset.user = m.u; w.dataset.ch = m.ch || ""; if(m.to || m.g) w.dataset.dm = dmKey(m);
 
+  if(animate && Date.now() - (m.ts || 0) < 15000) w.classList.add("pop");   // only brand-new messages animate
   const av = document.createElement("div"); av.className = "av"; paintAv(av, m.u);
   const col = document.createElement("div"); col.className = "col";
   const lbl = document.createElement("span"); lbl.className = "lbl"; lbl.textContent = m.u; lbl.style.setProperty("--uc", colorFor(m.u));
@@ -1301,7 +1465,7 @@ function renderRow(m){
 
   const act = document.createElement("div"); act.className = "act";
   if(m.ch !== "gal") act.appendChild(iconBtn("rep", "Reply", ICON_REPLY, () => startReply(m.i)));
-  if(!m.img && (!m.to || mine)) act.appendChild(iconBtn("edt", "Edit message", ICON_EDIT, () => startEdit(m.i)));
+  if(!m.img && (!(m.to || m.g) || mine)) act.appendChild(iconBtn("edt", "Edit message", ICON_EDIT, () => startEdit(m.i)));
   if(mine) act.appendChild(iconBtn("del", "Delete message", ICON_DEL, () => deleteMsg(m.i)));
   if(act.children.length) wrap.appendChild(act);
   col.appendChild(wrap);
@@ -1322,15 +1486,15 @@ function renderRow(m){
 function applyToDom(l){
   renderDMList();
   const e = $(l.i);
-  if(l.del){ if(e) e.remove(); queueRegroup(); return; }
-  if(!e){ renderRow(l); return; }
+  if(l.del){ if(e){ e.classList.add("gone"); setTimeout(() => { e.remove(); queueRegroup(); }, 180); } else queueRegroup(); return; }
+  if(!e){ renderRow(l, true); return; }
   const bub = e.querySelector("[data-bubble]"); if(!bub || l.img) return;
   bub.textContent = l.b;
   if(l.edited) setEditedTag(bub.parentNode, true);
 }
 function rerender(){
   document.querySelectorAll("#box .msg[data-ts]").forEach(e => e.remove());
-  logs.forEach(renderRow); renderDMList();
+  logs.forEach(m => renderRow(m)); renderDMList();
   queueRegroup();
 }
 
@@ -1352,7 +1516,7 @@ function regroup(){
     if(!e.classList.contains("msg")) return false;
     e.classList.remove("first", "last", "lastmine");
     if(e.classList.contains("sys")) return true;
-    const show = curCh === "dm" ? (e.dataset.ch === "dm" && e.dataset.dm === dmWith) : curCh === "gal" ? e.dataset.ch === "gal" : !e.dataset.ch;
+    const show = curCh === "dm" ? ((e.dataset.ch === "dm" || e.dataset.ch === "grp") && e.dataset.dm === dmWith) : curCh === "gal" ? e.dataset.ch === "gal" : !e.dataset.ch;
     e.classList.toggle("off", !show);
     return show;
   });
@@ -1437,7 +1601,10 @@ function sys(t){
   queueRegroup();
 }
 
-/* ---------- private DMs ---------- */
+/* ---------- private DMs + group chats ---------- */
+let closed = {}; try { closed = JSON.parse(load("dm_closed", "{}")) || {}; } catch(e){ closed = {}; }
+function saveGroups(){ save("chat_groups", JSON.stringify(groups)); }
+function saveClosed(){ save("dm_closed", JSON.stringify(closed)); }
 function markSeen(k){
   let t = Date.now();
   logs.forEach(l => { if(dmKey(l) === k && (l.ts || 0) > t) t = l.ts; });
@@ -1449,9 +1616,17 @@ function dmChanged(list){
 }
 function updateDmBar(){
   if(curCh !== "dm") return;
-  const o = lastRoster.find(e => e.c === dmWith); if(o) dmNm = o.n;
-  $("dmtitle").textContent = "🔒 Private chat with " + dmNm + (o ? " · online" : " · offline (they'll get your messages when they're back)");
-  $("inp").placeholder = "Private message to " + dmNm;
+  const isG = dmWith[0] === "g";
+  $("dmleave").style.display = isG ? "" : "none";
+  if(isG){
+    const g = groups[dmWith.slice(2)]; if(g) dmNm = g.n;
+    $("dmtitle").textContent = "👥 " + dmNm + " · " + (g ? g.m.length : 0) + " members";
+    $("inp").placeholder = "Message " + dmNm;
+  } else {
+    const o = lastRoster.find(e => e.c === dmWith.slice(2)); if(o) dmNm = o.n;
+    $("dmtitle").textContent = "🔒 Private chat with " + dmNm + (o ? " · online" : " · offline (they'll get your messages when they're back)");
+    $("inp").placeholder = "Private message to " + dmNm;
+  }
 }
 function renderDMList(){
   const box = $("sbdm"); if(!box) return;
@@ -1459,44 +1634,159 @@ function renderDMList(){
   logs.forEach(l => {
     const k = dmKey(l); if(!k) return;
     const x = map[k] || (map[k] = { k, n: "", ts: 0, last: "", un: 0 });
-    if((l.ts || 0) >= x.ts){ x.ts = l.ts || 0; x.last = l.img ? "📷 Photo" : String(l.b); x.n = (l.c === uid ? l.tn : l.u) || x.n; }
+    if((l.ts || 0) >= x.ts){
+      x.ts = l.ts || 0;
+      x.last = (l.g ? (l.c === uid ? "You" : l.u) + ": " : "") + (l.img ? "📷 Photo" : String(l.b));
+      if(!l.g) x.n = (l.c === uid ? l.tn : l.u) || x.n;
+    }
     if(l.c !== uid && (l.ts || 0) > (seen[k] || 0)) x.un++;
   });
+  Object.values(groups).forEach(g => {                       // groups I'm in show up even before anyone talks
+    if(!g.m.includes(uid)) return;
+    const k = "g:" + g.id, x = map[k] || (map[k] = { k, n: g.n, ts: g.v, last: "New group", un: 0 });
+    x.n = g.n;
+  });
   if(dmWith && !map[dmWith]) map[dmWith] = { k: dmWith, n: dmNm, ts: Infinity, last: "New conversation", un: 0 };
-  const list = Object.values(map);
-  list.forEach(x => { const o = lastRoster.find(e => e.c === x.k); if(o) x.n = o.n; x.n = x.n || "Friend"; });
+  const list = Object.values(map).filter(x => x.k === dmWith || !(closed[x.k] >= x.ts));   // closed chats stay hidden until new activity
+  list.forEach(x => { if(x.k[0] === "d"){ const o = lastRoster.find(e => e.c === x.k.slice(2)); if(o) x.n = o.n; } x.n = x.n || "Friend"; });
   list.sort((a, b) => b.ts - a.ts);
   let tot = 0; list.forEach(x => tot += x.un);
   chipT = list.find(x => x.un) || null;
   document.title = (tot ? "(" + tot + ") " : "") + "Los-Purebreds-Chat";
   const chip = $("dmchip"); chip.style.display = tot ? "inline-block" : "none"; chip.textContent = "✉️ " + tot;
-  const h = document.createElement("div"); h.className = "sbh"; h.textContent = "Direct messages";
+  const h = document.createElement("div"); h.className = "sbh";
+  const ht = document.createElement("span"); ht.textContent = "Chats";
+  const nb = document.createElement("button"); nb.type = "button"; nb.textContent = "＋ Group"; nb.title = "Create a group chat"; nb.onclick = openGroupModal;
+  h.append(ht, nb);
   if(!list.length){
-    const t = document.createElement("div"); t.className = "hint"; t.textContent = "Click someone who's online to start a private chat.";
+    const t = document.createElement("div"); t.className = "hint"; t.textContent = "Click someone who's online to message them privately, or start a group.";
     box.replaceChildren(h, t); return;
   }
   const rows = list.map(x => {
     const r = document.createElement("div"); r.className = "prow" + (curCh === "dm" && dmWith === x.k ? " active" : "");
-    const av = document.createElement("div"); av.className = "pav"; paintAv(av, x.n);
+    if(!shownKeys.has(x.k)){ shownKeys.add(x.k); r.classList.add("enter"); }
+    const av = document.createElement("div"); av.className = "pav";
+    if(x.k[0] === "g"){ av.textContent = "👥"; av.style.background = "#636366"; } else paintAv(av, x.n);
     const mid = document.createElement("div"); mid.className = "pnm";
     const nm = document.createElement("div"); nm.textContent = x.n; nm.style.fontWeight = x.un ? "700" : "500";
     const ls = document.createElement("span"); ls.className = "plast"; ls.textContent = x.last;
     mid.append(nm, ls); r.append(av, mid);
     if(x.un){ const b = document.createElement("span"); b.className = "dmbadge"; b.textContent = x.un > 99 ? "99+" : x.un; r.appendChild(b); }
+    const xb = document.createElement("button"); xb.type = "button"; xb.className = "xbtn"; xb.title = "Close chat"; xb.textContent = "✕";
+    xb.onclick = ev => { ev.stopPropagation(); r.classList.add("leaving"); setTimeout(() => closeConv(x.k), 190); };
+    r.appendChild(xb);
     r.onclick = () => openDM(x.k, x.n);
     return r;
   });
   box.replaceChildren(h, ...rows);
 }
 function openDM(k, name){
-  if(!okUid(k) || k === uid) return;
-  dmWith = k; dmNm = String(name || "Friend").slice(0, 12);
+  k = String(k);
+  if(!/^[dg]:/.test(k)) k = "d:" + k;
+  if(k[0] === "d"){ const u = k.slice(2); if(!okUid(u) || u === uid) return; }
+  else if(!isMember(k.slice(2))) return;
+  dmWith = k; dmNm = String(name || "Friend").slice(0, 30);
+  delete closed[k]; saveClosed();
   setChannel("dm");
   markSeen(k); renderDMList();
   $("inp").focus();
 }
+function closeConv(k){
+  shownKeys.delete(k);
+  closed[k] = Date.now(); saveClosed(); markSeen(k);
+  if(curCh === "dm" && dmWith === k) setChannel("main"); else renderDMList();
+}
 $("dmclose").onclick = () => setChannel("main");
+$("dmhide").onclick = () => closeConv(dmWith);
 $("dmchip").onclick = () => { if(chipT) openDM(chipT.k, chipT.n); };
+
+/* ---------- animation helpers ---------- */
+function setShown(el, show, disp){                 // show/hide with the pop animation
+  disp = disp || "block"; clearTimeout(el._t);
+  if(show){ el.classList.remove("closing"); el.style.display = disp; }
+  else if(getComputedStyle(el).display !== "none"){
+    el.classList.add("closing");
+    el._t = setTimeout(() => { el.style.display = "none"; el.classList.remove("closing"); }, 170);
+  }
+}
+function setPop(on){
+  const p = $("onpop"); clearTimeout(p._t);
+  if(on){ p.classList.remove("closing"); p.classList.add("open"); }
+  else if(p.classList.contains("open")){ p.classList.add("closing"); p._t = setTimeout(() => p.classList.remove("open", "closing"), 160); }
+}
+function setModal(on){
+  const m = $("gmod"); clearTimeout(m._t);
+  if(on){ m.classList.remove("closing"); m.classList.add("open"); }
+  else if(m.classList.contains("open")){ m.classList.add("closing"); m._t = setTimeout(() => m.classList.remove("open", "closing"), 190); }
+}
+
+/* ---------- groups ---------- */
+function shareGroup(g, from, prev){             // host: send group info to everyone who is / was a member
+  const targets = new Set([...g.m, ...prev]);
+  conns.forEach(x => { if(x !== from && x.open && x.uid && targets.has(x.uid)) x.send({ t: "G", i: newId(), g }); });
+}
+function applyGroup(g){
+  rerender();
+  if(curCh === "dm" && dmWith === "g:" + g.id && !g.m.includes(uid)) setChannel("main");
+  else { updateDmBar(); renderDMList(); }
+}
+function handleGroup(d, from){
+  const g = cleanGroup(d.g); if(!g) return;
+  const cur = groups[g.id];
+  if(isHost){
+    if(!from.uid) return;
+    if(!cur){ if(!g.m.includes(from.uid)) return; }
+    else {
+      if(g.v <= cur.v || g.o !== cur.o) return;
+      if(from.uid !== cur.o){                   // members can only leave; the owner can change anything
+        const removed = cur.m.filter(u => !g.m.includes(u)), added = g.m.filter(u => !cur.m.includes(u));
+        if(g.n !== cur.n || added.length || removed.some(u => u !== from.uid) || !cur.m.includes(from.uid)) return;
+      }
+    }
+    groups[g.id] = g; saveGroups();
+    shareGroup(g, from, cur ? cur.m : []);
+    applyGroup(g);
+  } else {
+    if(cur ? g.v <= cur.v : !g.m.includes(uid)) return;
+    groups[g.id] = g; saveGroups(); applyGroup(g);
+  }
+}
+function openGroupModal(){
+  const list = $("glist"); list.replaceChildren();
+  const people = lastRoster.filter(e => e.c && e.c !== uid);
+  if(!people.length){ const t = document.createElement("div"); t.style.cssText = "padding:8px;font-size:13px;color:var(--muted)"; t.textContent = "Nobody else is online right now."; list.appendChild(t); }
+  people.forEach(e => {
+    const lb = document.createElement("label"), cb = document.createElement("input"); cb.type = "checkbox"; cb.value = e.c;
+    const av = document.createElement("div"); av.className = "pav"; paintAv(av, e.n);
+    const nm = document.createElement("span"); nm.textContent = e.n;
+    lb.append(cb, av, nm); list.appendChild(lb);
+  });
+  $("gname").value = ""; $("gerr2").textContent = ""; setModal(true); $("gname").focus();
+  $("sb").classList.remove("open");
+}
+$("gcancel").onclick = () => setModal(false);
+$("gmod").addEventListener("mousedown", ev => { if(ev.target === $("gmod")) setModal(false); });
+$("gname").addEventListener("keydown", e => { if(e.key === "Enter") $("gcreate").click(); });
+$("gcreate").onclick = () => {
+  const name = $("gname").value.trim().slice(0, 30);
+  const picked = [...$("glist").querySelectorAll("input:checked")].map(i => i.value).filter(okUid);
+  if(!name){ $("gerr2").textContent = "Give the group a name."; return; }
+  if(!picked.length){ $("gerr2").textContent = "Pick at least one person."; return; }
+  const g = { id: "g" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8), n: name, o: uid, m: [uid, ...picked], v: Date.now() };
+  groups[g.id] = g; saveGroups();
+  if(isHost) shareGroup(g, null, []); else send({ t: "G", i: newId(), g });
+  setModal(false);
+  openDM("g:" + g.id, g.n);
+};
+$("dmleave").onclick = () => {
+  if(dmWith[0] !== "g") return;
+  const g = groups[dmWith.slice(2)]; if(!g) return;
+  if(!confirm('Leave "' + g.n + '"? You won\'t see it or get new messages.')) return;
+  const ng = { ...g, m: g.m.filter(u => u !== uid), v: Date.now() };
+  groups[g.id] = ng; saveGroups();
+  if(isHost) shareGroup(ng, null, g.m); else send({ t: "G", i: newId(), g: ng });
+  applyGroup(ng);
+};
 </script>
 </body>
 </html>
