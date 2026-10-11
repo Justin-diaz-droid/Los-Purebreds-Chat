@@ -369,6 +369,26 @@
   body[data-theme="imessage"] #replybar{padding:8px 16px}
   body[data-theme="imessage"] #typing{padding:2px 18px 4px}
   body[data-theme="imessage"] #gate .card{border-radius:26px}
+
+  /* ===== Private DMs ===== */
+  .msg.off{display:none !important}
+  body:not(.in-dm) .msg[data-ch="dm"]{display:none}
+  #dmbar{display:none;align-items:center;gap:10px;padding:8px 20px;border-bottom:1px solid var(--line);background:var(--bar,var(--side));color:var(--bar-text,var(--text));font-size:13px;font-weight:600}
+  body.in-dm #dmbar{display:flex}
+  #dmbar span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #dmbar button{border:none;background:var(--row);color:var(--text);border-radius:999px;padding:4px 12px;font-size:12px;font-weight:600;cursor:pointer}
+  #dmchip{display:none;border:none;background:#ff453a;color:#fff;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer}
+  #sbroster .prow{cursor:pointer}
+  #sbdm{padding:6px 8px 0}
+  #sbdm .sbh{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--bar-text,var(--muted));opacity:.8;padding:6px 10px}
+  #sbdm .hint{font-size:12px;color:var(--bar-text,var(--muted));opacity:.7;padding:0 10px 6px}
+  #sbdm .prow{display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:8px;font-size:13px;color:var(--bar-text,var(--text));cursor:pointer}
+  #sbdm .prow:hover,#sbdm .prow.active{background:var(--row)}
+  #sbdm .pav{width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff}
+  #sbdm .pnm{flex:1;min-width:0}
+  #sbdm .pnm div,#sbdm .plast{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #sbdm .plast{display:block;font-size:11px;opacity:.7}
+  .dmbadge{background:#ff453a;color:#fff;border-radius:999px;font-size:11px;font-weight:700;padding:1px 6px;min-width:18px;text-align:center}
 </style>
 </head>
 <body data-theme="imessage">
@@ -393,6 +413,7 @@
     <div class="row-ch active" id="ch-main"><div class="av-sb lp"></div><div><b style="font-size:15px">Los Purebreds</b><br><span id="chname" class="csub">iMessage Channel</span></div></div>
     <div class="row-ch" id="ch-gal"><div class="av-sb" style="font-size:18px">🖼️</div><div><b style="font-size:15px">Image Gallery</b><br><span class="csub">Photos only</span></div></div>
     <div id="sbroster"></div>
+    <div id="sbdm"></div>
   </div>
   <div class="stg-sb">
     <a class="goback" href="https://docs.google.com/document/d/1oa90mU-jYczqySulirTvHqqNWTSaNwPGnnArgBdVGrs/edit?tab=t.pqncc0vmsgzp" rel="noopener">← Go back</a>
@@ -447,9 +468,10 @@
 
 <button id="sb-arrow" class="arrow" title="Hide / show messages bar"></button>
 <div id="main">
-  <div id="hdrwrap"><div id="hdr"><button id="hdr-set" title="Settings">⚙️</button><span id="status">Not connected</span><div id="chtabs"><button type="button" data-ch="main" class="on">💬 Chat</button><button type="button" data-ch="gal">🖼️ Image Gallery</button></div><div id="online" title="See who's online"></div></div>
+  <div id="hdrwrap"><div id="hdr"><button id="hdr-set" title="Settings">⚙️</button><span id="status">Not connected</span><div id="chtabs"><button type="button" data-ch="main" class="on">💬 Chat</button><button type="button" data-ch="gal">🖼️ Image Gallery</button></div><button id="dmchip" type="button" title="Unread private messages"></button><div id="online" title="See who's online"></div></div>
     <div id="onpop"></div>
     <button id="hdr-arrow" class="arrow" title="Hide / show top bar"></button></div>
+  <div id="dmbar"><span id="dmtitle"></span><button id="dmclose" type="button">✕ Close</button></div>
   <div id="box"></div>
   <div id="typing"></div>
   <div id="replybar"><span class="rb-t"></span><button id="replyx" type="button" title="Cancel reply" aria-label="Cancel reply">✕</button></div>
@@ -473,6 +495,12 @@ const ROOM_CODE = "purebred";
 const ROOM_ID = "los-purebreds-chat-" + ROOM_CODE;
 const $ = id => document.getElementById(id);
 let usr = "User", peer = null, conns = [], isHost = false, logs = [];
+
+/* private DM state */
+let dmWith = "", dmNm = "", chipT = null;
+let seen = {}; try { seen = JSON.parse(load("dm_seen", "{}")) || {}; } catch(e){ seen = {}; }
+const PH = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage"};
+const dmKey = l => (!l.to || l.del) ? "" : l.c === uid ? l.to : l.to === uid ? l.c : "";
 
 if(LOGO){
   document.documentElement.style.setProperty("--lp-icon", 'url("' + LOGO + '")');
@@ -509,7 +537,7 @@ function setTheme(t){
   $("theme").value = t; $("g-theme").value = t;
   $("chname").textContent = {discord:"# purebred-chat",whatsapp:"WhatsApp Group",tiktok:"TikTok Inbox",roblox:"Roblox Chat",instagram:"Instagram Direct",twitter:"Twitter Messages",imessage:"iMessage Channel"}[t];
   $("inp").placeholder = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage"}[t];
-  save("chat_theme", t);
+  save("chat_theme", t); if(curCh === "dm") updateDmBar();
   applyWall();
   restyleAll();
   queueRegroup();
@@ -615,8 +643,8 @@ function refreshAvatars(){
   const pv = $("pfpprev"); paintAv(pv, usr); pv.classList.remove("has-pfp");
 }
 function cacheAvatars(){ save("chat_avatars", JSON.stringify(avatars)); }
-function me(){ return { n: usr, a: myAvatar, d: myDevice }; }
-function announce(){ if(isHost) pushRoster(); else send({ t: "P", u: usr, a: myAvatar, d: myDevice, i: newId() }); }
+function me(){ return { n: usr, a: myAvatar, d: myDevice, c: uid }; }
+function announce(){ if(isHost) pushRoster(); else send({ t: "P", u: usr, a: myAvatar, d: myDevice, c: uid, i: newId() }); }
 $("pfpbtn").onclick = () => $("pfpfile").click();
 $("pfpfile").onchange = e => {
   const f = e.target.files[0]; if(!f) return;
@@ -653,6 +681,7 @@ function fillRoster(p){
     const av = document.createElement("div"); av.className = "pav"; paintAv(av, e.n);
     const nm = document.createElement("span"); nm.className = "pnm"; nm.textContent = e.n + (e.n === usr ? " (you)" : "");
     r.append(av, nm);
+    if(e.c && e.c !== uid){ r.title = "Send a private message"; r.style.cursor = "pointer"; r.onclick = () => { $("onpop").classList.remove("open"); openDM(e.c, e.n); }; }
     if(tp.includes(e.n)){ const t = document.createElement("span"); t.className = "ptyp"; t.title = "typing…"; t.innerHTML = "<i></i><i></i><i></i>"; r.appendChild(t); }
     if(e.d && DEVS[e.d]){ const t = document.createElement("span"); t.className = "pdev"; t.textContent = DEVS[e.d][0] + " " + DEVS[e.d][1]; r.appendChild(t); }
     p.appendChild(r);
@@ -670,12 +699,12 @@ function renderOnline(list){
   const c = document.createElement("span"); c.className = "ocount";
   c.textContent = list.length + " online" + (list.length > 10 ? " (+" + (list.length - 10) + ")" : "");
   box.appendChild(c);
-  lastRoster = list; renderPop();
+  lastRoster = list; renderPop(); updateDmBar(); renderDMList();
   refreshAvatars();
 }
 function pushRoster(){
   if(!isHost) return;
-  const list = [me(), ...conns.filter(c => c.userName).map(c => ({ n: c.userName, a: c.avatar || "", d: c.device || "" }))];
+  const list = [me(), ...conns.filter(c => c.userName).map(c => ({ n: c.userName, a: c.avatar || "", d: c.device || "", c: c.uid || "" }))];
   renderOnline(list); send({ t: "R", i: newId(), list });
 }
 
@@ -758,8 +787,8 @@ function connect(){
 function addConn(c){
   c.on("open", () => {
     conns.push(c); ready();
-    if(!isHost) c.send({ t: "P", u: usr, a: myAvatar, d: myDevice, i: newId() });
-    c.send({ t: "S", i: newId(), s: logs.map(l => [l.i, l.v || 0]) });
+    c.send({ t: "P", u: usr, a: myAvatar, d: myDevice, c: uid, i: newId() });   // host sends its id too
+    if(!isHost) c.send({ t: "S", i: newId(), s: logs.map(l => [l.i, l.v || 0]) });   // host answers once it knows who you are
     c.send({ t: "B", i: newId(), c: uid, bc: myBc, bi: myBi, v: bstyle[uid] ? bstyle[uid].v : 0 });
     setStatus("Online — " + conns.length + " connected");
     sys(isHost ? "A friend joined." : "Connected to the room.");
@@ -776,23 +805,50 @@ function addConn(c){
 }
 
 function send(d, except){ conns.forEach(c => { if(c !== except && c.open) c.send(d); }); }
+function sendEntry(o, from){
+  const d = { t: "Y", i: newId(), e: [o] };
+  if(!o.to){ send(d, from); return; }
+  if(!isHost){ send(d); return; }
+  const other = from ? (from.uid === o.c ? o.to : o.c) : (o.c === uid ? o.to : o.c);
+  conns.forEach(x => { if(x !== from && x.open && x.uid === other) x.send(d); });   // only the other person
+}
 
 function validId(i){ return typeof i === "string" && i.length > 0 && i.length < 80; }
 
 function handle(d, from){
   if(!d || typeof d !== "object" || !validId(d.i)) return;
-  if(d.t === "P"){ if(isHost && typeof d.u === "string"){ from.userName = d.u.slice(0, 12); from.avatar = okAv(d.a); from.device = okDev(d.d); pushRoster(); } return; }
-  if(d.t === "R"){ if(!isHost && Array.isArray(d.list)) renderOnline(d.list.slice(0, 50).filter(x => x && typeof x.n === "string").map(x => ({ n: x.n.slice(0, 12), a: okAv(x.a), d: okDev(x.d) }))); return; }
+  if(d.t === "P"){
+    if(okUid(d.c)) from.uid = d.c;
+    if(isHost && typeof d.u === "string"){
+      from.userName = d.u.slice(0, 12); from.avatar = okAv(d.a); from.device = okDev(d.d);
+      if(!from.sentS){ from.sentS = 1; from.send({ t: "S", i: newId(), s: logs.filter(l => !l.to || l.to === from.uid || l.c === from.uid).map(l => [l.i, l.v || 0]) }); }
+      pushRoster();
+    }
+    return;
+  }
+  if(d.t === "R"){ if(!isHost && Array.isArray(d.list)) renderOnline(d.list.slice(0, 50).filter(x => x && typeof x.n === "string").map(x => ({ n: x.n.slice(0, 12), a: okAv(x.a), d: okDev(x.d), c: okUid(x.c) ? x.c : "" }))); return; }
   if(d.t === "S"){ answerSummary(d, from); return; }
   if(d.t === "Y"){
     const changed = [];
-    (Array.isArray(d.e) ? d.e : []).slice(0, 200).forEach(e => { const o = cleanEntry(e); if(o && mergeEntry(o)) changed.push(o); });
+    (Array.isArray(d.e) ? d.e : []).slice(0, 200).forEach(e => {
+      const o = cleanEntry(e); if(!o) return;
+      if(o.to){
+        if(isHost){ if(!from.uid || (from.uid !== o.c && from.uid !== o.to)) return; }   // sender must be a participant
+        else if(o.to !== uid && o.c !== uid) return;
+      }
+      if(mergeEntry(o)) changed.push(o);
+    });
     if(d.bs && typeof d.bs === "object") Object.keys(d.bs).forEach(k => { const s = d.bs[k]; if(s && typeof s === "object") setBstyle(k, s.bc, s.bi, s.v); });
     if(changed.length){
       logs.sort((a, b) => (a.ts || 0) - (b.ts || 0)); persist();
       changed.forEach(applyToDom);
       changed.forEach(o => { if(o.u) delete typers[o.u]; }); renderTyping();   // they sent their message, so stop "typing"
-      if(isHost) send({ t: "Y", i: newId(), e: changed }, from);
+      if(isHost){
+        const pub = changed.filter(o => !o.to);
+        if(pub.length) send({ t: "Y", i: newId(), e: pub }, from);
+        changed.filter(o => o.to).forEach(o => sendEntry(o, from));   // DMs go to one person only
+      }
+      dmChanged(changed);
     }
     return;
   }
@@ -812,13 +868,20 @@ function handle(d, from){
 function cleanEntry(e){
   if(!e || typeof e !== "object" || !validId(e.i)) return null;
   const o = { i: e.i, v: +e.v || 0, ts: +e.ts || 0 };
-  if(e.del){ o.del = true; return o; }
+  if(e.del){
+    o.del = true;
+    if(e.to){ if(!okUid(e.to) || !okUid(e.c)) return null; o.to = e.to; o.c = e.c; o.ch = "dm"; }
+    return o;
+  }
   if(typeof e.u !== "string" || typeof e.b !== "string") return null;
   o.u = e.u.slice(0, 12); o.c = okUid(e.c) ? e.c : ""; o.f = okFont(e.f); o.d = okDev(e.d);
   if(e.img){ if(!e.b.startsWith("data:image/") || e.b.length > 4500000) return null; o.img = 1; }
   else if(e.b.length >= 2000) return null;
   o.b = e.b;
-  if(e.ch === "gal" && o.img) o.ch = "gal";   // gallery only accepts images
+  if(e.to){
+    if(!okUid(e.to) || !o.c || e.to === o.c) return null;
+    o.to = e.to; o.tn = String(e.tn || "").slice(0, 12); o.ch = "dm";
+  } else if(e.ch === "gal" && o.img) o.ch = "gal";   // gallery only accepts images
   if(e.edited) o.edited = true;
   if(e.r && typeof e.r === "object" && validId(e.r.i)){      // reply: id + name + short preview of the original
     o.r = { i: e.r.i, u: String(e.r.u || "").slice(0, 12), t: String(e.r.t || "").slice(0, 80), m: e.r.m ? 1 : 0 };
@@ -837,7 +900,8 @@ function answerSummary(d, from){
   if(from.open) from.send({ t: "Y", i: newId(), e: [], bs: bstyle });
   let batch = [], size = 0;
   const flush = () => { if(batch.length && from.open) from.send({ t: "Y", i: newId(), e: batch }); batch = []; size = 0; };
-  logs.filter(l => !theirs.has(l.i) || (l.v || 0) > theirs.get(l.i)).forEach(l => {
+  const canSee = l => !l.to || !isHost || (from.uid && (l.to === from.uid || l.c === from.uid));
+  logs.filter(l => canSee(l) && (!theirs.has(l.i) || (l.v || 0) > theirs.get(l.i))).forEach(l => {
     const s = (l.b || "").length + 200;
     if(batch.length && (size + s > 400000 || batch.length >= 50)) flush();
     batch.push(l); size += s;
@@ -1037,7 +1101,7 @@ function renderTyping(){
 }
 setInterval(renderTyping, 1000);
 $("inp").addEventListener("input", () => {
-  if(curCh === "gal") return;
+  if(curCh !== "main") return;
   if($("inp").value.trim()){
     if(Date.now() - lastTyped > 2500){ lastTyped = Date.now(); send({ t: "T", u: usr, i: newId() }); }
   } else if(lastTyped){ lastTyped = 0; send({ t: "T", u: usr, s: 1, i: newId() }); }
@@ -1048,14 +1112,18 @@ function newId(){ return "msg-" + Date.now() + "-" + Math.random().toString(36).
 
 let curCh = "main";
 function setChannel(c){
+  if(c !== "dm"){ dmWith = ""; dmNm = ""; }
   curCh = c;
   document.body.classList.toggle("in-gal", c === "gal");
+  document.body.classList.toggle("in-dm", c === "dm");
   $("ch-main").classList.toggle("active", c === "main");
   $("ch-gal").classList.toggle("active", c === "gal");
   document.querySelectorAll("#chtabs button").forEach(b => b.classList.toggle("on", b.dataset.ch === c));
   $("emo-panel").style.display = "none"; hideSug();
-  if(c === "gal") clearReply();
+  clearReply();
+  if(c !== "dm") $("inp").placeholder = PH[document.body.dataset.theme] || "Message";
   $("sb").classList.remove("open");
+  updateDmBar(); renderDMList();
   regroup();
   const b = $("box"); b.scrollTop = b.scrollHeight;
 }
@@ -1066,9 +1134,10 @@ document.querySelectorAll("#chtabs button").forEach(b => b.onclick = () => setCh
 function postMsg(b, img){
   const now = Date.now(), o = { i: newId(), u: usr, c: uid, b, ts: now, v: now, d: myDevice };
   if(img){ o.img = 1; if(curCh === "gal") o.ch = "gal"; } else o.f = myFont;
+  if(curCh === "dm" && dmWith){ o.to = dmWith; o.tn = dmNm; o.ch = "dm"; }
   if(replyTo && curCh !== "gal"){ o.r = replyTo; clearReply(); }
   logs.push(o); persist(); renderRow(o);
-  send({ t: "Y", i: newId(), e: [o] });
+  sendEntry(o); renderDMList();
 }
 function updateSendBtn(){ document.querySelector(".pill").classList.toggle("has-text", !!$("inp").value.trim()); }
 function sendText(){
@@ -1153,7 +1222,7 @@ function colorFor(name){
   return "hsl(" + h + ",55%,50%)";
 }
 
-const isMine = m => (m.c && m.c === uid) || m.u === usr;
+const isMine = m => m.to ? m.c === uid : ((m.c && m.c === uid) || m.u === usr);
 
 const ICON_EDIT = '<svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
 const ICON_DEL = '<svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
@@ -1163,10 +1232,10 @@ function iconBtn(cls, title, svg, fn){
   b.innerHTML = svg; b.onclick = ev => { ev.stopPropagation(); fn(); }; return b;
 }
 
-/* inline editing: works on ANY text message, yours or a friend's */
+/* inline editing: works on ANY text message in the room (DMs: your own only) */
 function startEdit(id){
   const l = logs.find(x => x.i === id), w = $(id);
-  if(!l || l.img || l.del || !w) return;
+  if(!l || l.img || l.del || !w || (l.to && l.c !== uid)) return;
   const bub = w.querySelector("[data-bubble]"); if(!bub || w.classList.contains("editing")) return;
   const inp = document.createElement("input");
   inp.type = "text"; inp.className = "editin"; inp.value = l.b; inp.maxLength = 1999;
@@ -1180,7 +1249,7 @@ function startEdit(id){
     inp.remove(); bub.style.display = ""; w.classList.remove("editing");
     if(ok && nv && nv !== l.b){
       l.b = nv; l.edited = true; l.v = Date.now();
-      persist(); applyToDom(l); send({ t: "Y", i: newId(), e: [l] });
+      persist(); applyToDom(l); sendEntry(l);
     }
   };
   inp.addEventListener("keydown", e => { if(e.key === "Enter") finish(true); else if(e.key === "Escape") finish(false); });
@@ -1190,8 +1259,10 @@ function startEdit(id){
 function deleteMsg(id){
   const l = logs.find(x => x.i === id); if(!l) return;
   if(replyTo && replyTo.i === id) clearReply();
+  const dmKeep = l.to ? { to: l.to, c: l.c, ch: "dm" } : null;
   Object.keys(l).forEach(k => { if(k !== "i" && k !== "ts") delete l[k]; });
-  l.del = true; l.v = Date.now(); persist(); applyToDom(l); send({ t: "Y", i: newId(), e: [l] });
+  if(dmKeep) Object.assign(l, dmKeep);   // keeps the delete routed to the right person
+  l.del = true; l.v = Date.now(); persist(); applyToDom(l); sendEntry(l);
 }
 
 function setEditedTag(wrap, on){
@@ -1202,10 +1273,11 @@ function setEditedTag(wrap, on){
 
 function renderRow(m){
   if(m.del) return;
+  if(m.to && m.to !== uid && m.c !== uid) return;   // not our DM
   const box = $("box"), mine = isMine(m);
   const w = document.createElement("div");
   w.className = "msg " + (mine ? "me" : "peer"); w.id = m.i;
-  w.dataset.ts = m.ts || 0; w.dataset.uid = m.c || ""; w.dataset.user = m.u; w.dataset.ch = m.ch || "";
+  w.dataset.ts = m.ts || 0; w.dataset.uid = m.c || ""; w.dataset.user = m.u; w.dataset.ch = m.ch || ""; if(m.to) w.dataset.dm = m.c === uid ? m.to : m.c;
 
   const av = document.createElement("div"); av.className = "av"; paintAv(av, m.u);
   const col = document.createElement("div"); col.className = "col";
@@ -1229,7 +1301,7 @@ function renderRow(m){
 
   const act = document.createElement("div"); act.className = "act";
   if(m.ch !== "gal") act.appendChild(iconBtn("rep", "Reply", ICON_REPLY, () => startReply(m.i)));
-  if(!m.img) act.appendChild(iconBtn("edt", "Edit message", ICON_EDIT, () => startEdit(m.i)));
+  if(!m.img && (!m.to || mine)) act.appendChild(iconBtn("edt", "Edit message", ICON_EDIT, () => startEdit(m.i)));
   if(mine) act.appendChild(iconBtn("del", "Delete message", ICON_DEL, () => deleteMsg(m.i)));
   if(act.children.length) wrap.appendChild(act);
   col.appendChild(wrap);
@@ -1248,6 +1320,7 @@ function renderRow(m){
 }
 
 function applyToDom(l){
+  renderDMList();
   const e = $(l.i);
   if(l.del){ if(e) e.remove(); queueRegroup(); return; }
   if(!e){ renderRow(l); return; }
@@ -1257,7 +1330,7 @@ function applyToDom(l){
 }
 function rerender(){
   document.querySelectorAll("#box .msg[data-ts]").forEach(e => e.remove());
-  logs.forEach(renderRow);
+  logs.forEach(renderRow); renderDMList();
   queueRegroup();
 }
 
@@ -1279,7 +1352,9 @@ function regroup(){
     if(!e.classList.contains("msg")) return false;
     e.classList.remove("first", "last", "lastmine");
     if(e.classList.contains("sys")) return true;
-    return (e.dataset.ch === "gal") === gal;
+    const show = curCh === "dm" ? (e.dataset.ch === "dm" && e.dataset.dm === dmWith) : curCh === "gal" ? e.dataset.ch === "gal" : !e.dataset.ch;
+    e.classList.toggle("off", !show);
+    return show;
   });
   const same = (a, b) => a && b && !a.classList.contains("sys") && !b.classList.contains("sys") &&
     a.dataset.uid === b.dataset.uid && a.dataset.user === b.dataset.user && Math.abs(+b.dataset.ts - +a.dataset.ts) < 120000;
@@ -1361,6 +1436,67 @@ function sys(t){
   $("box").appendChild(d); $("box").scrollTop = $("box").scrollHeight;
   queueRegroup();
 }
+
+/* ---------- private DMs ---------- */
+function markSeen(k){
+  let t = Date.now();
+  logs.forEach(l => { if(dmKey(l) === k && (l.ts || 0) > t) t = l.ts; });
+  seen[k] = t; save("dm_seen", JSON.stringify(seen));
+}
+function dmChanged(list){
+  if(curCh === "dm" && list.some(o => dmKey(o) === dmWith && o.c !== uid)) markSeen(dmWith);
+  renderDMList();
+}
+function updateDmBar(){
+  if(curCh !== "dm") return;
+  const o = lastRoster.find(e => e.c === dmWith); if(o) dmNm = o.n;
+  $("dmtitle").textContent = "🔒 Private chat with " + dmNm + (o ? " · online" : " · offline (they'll get your messages when they're back)");
+  $("inp").placeholder = "Private message to " + dmNm;
+}
+function renderDMList(){
+  const box = $("sbdm"); if(!box) return;
+  const map = {};
+  logs.forEach(l => {
+    const k = dmKey(l); if(!k) return;
+    const x = map[k] || (map[k] = { k, n: "", ts: 0, last: "", un: 0 });
+    if((l.ts || 0) >= x.ts){ x.ts = l.ts || 0; x.last = l.img ? "📷 Photo" : String(l.b); x.n = (l.c === uid ? l.tn : l.u) || x.n; }
+    if(l.c !== uid && (l.ts || 0) > (seen[k] || 0)) x.un++;
+  });
+  if(dmWith && !map[dmWith]) map[dmWith] = { k: dmWith, n: dmNm, ts: Infinity, last: "New conversation", un: 0 };
+  const list = Object.values(map);
+  list.forEach(x => { const o = lastRoster.find(e => e.c === x.k); if(o) x.n = o.n; x.n = x.n || "Friend"; });
+  list.sort((a, b) => b.ts - a.ts);
+  let tot = 0; list.forEach(x => tot += x.un);
+  chipT = list.find(x => x.un) || null;
+  document.title = (tot ? "(" + tot + ") " : "") + "Los-Purebreds-Chat";
+  const chip = $("dmchip"); chip.style.display = tot ? "inline-block" : "none"; chip.textContent = "✉️ " + tot;
+  const h = document.createElement("div"); h.className = "sbh"; h.textContent = "Direct messages";
+  if(!list.length){
+    const t = document.createElement("div"); t.className = "hint"; t.textContent = "Click someone who's online to start a private chat.";
+    box.replaceChildren(h, t); return;
+  }
+  const rows = list.map(x => {
+    const r = document.createElement("div"); r.className = "prow" + (curCh === "dm" && dmWith === x.k ? " active" : "");
+    const av = document.createElement("div"); av.className = "pav"; paintAv(av, x.n);
+    const mid = document.createElement("div"); mid.className = "pnm";
+    const nm = document.createElement("div"); nm.textContent = x.n; nm.style.fontWeight = x.un ? "700" : "500";
+    const ls = document.createElement("span"); ls.className = "plast"; ls.textContent = x.last;
+    mid.append(nm, ls); r.append(av, mid);
+    if(x.un){ const b = document.createElement("span"); b.className = "dmbadge"; b.textContent = x.un > 99 ? "99+" : x.un; r.appendChild(b); }
+    r.onclick = () => openDM(x.k, x.n);
+    return r;
+  });
+  box.replaceChildren(h, ...rows);
+}
+function openDM(k, name){
+  if(!okUid(k) || k === uid) return;
+  dmWith = k; dmNm = String(name || "Friend").slice(0, 12);
+  setChannel("dm");
+  markSeen(k); renderDMList();
+  $("inp").focus();
+}
+$("dmclose").onclick = () => setChannel("main");
+$("dmchip").onclick = () => { if(chipT) openDM(chipT.k, chipT.n); };
 </script>
 </body>
 </html>
