@@ -2766,7 +2766,7 @@ label.plus.open{transform:rotate(45deg)}
   let reg=cleanReg((()=>{try{return JSON.parse(load("pb_reg","{}"));}catch(e){return {};}})());
   const saveReg=()=>save("pb_reg",JSON.stringify(reg));
   const areg=()=>({t:"A",i:newId(),acc:reg.acc,bans:reg.bans,mutes:reg.mutes,clr:reg.clr,v:reg.v});
-  let myPwH=load("chat_pwh",""), adminMode=false, pendW=null;
+  let myPwH="", adminMode=false, pendW=null;
   const low=n=>String(n||"").trim().slice(0,12).toLowerCase();
 
   function commit(){ reg.v=Math.max(Date.now(),reg.v+1); saveReg(); if(isHost) send(areg()); refreshUI(); }
@@ -2898,6 +2898,11 @@ label.plus.open{transform:rotate(45deg)}
   postMsg=function(){ if(!adminMode&&reg.mutes.includes(low(usr))){ sys("You're muted by an admin."); return; } return _postMsg.apply(this,arguments); };
   window.__leave=leaveRoom;
   window.addEventListener("offline",()=>{ if(peer) leaveRoom("You went offline. Rejoin when you're back."); });
+  const _reveal=window.revealChat;
+  window.revealChat=function(){
+    if(isHost&&!adminMode){ const v=own(reg.acc,low(usr)); if(v&&hVer(myPwH)!==v){ leaveRoom("That name is protected — enter its password."); return; } }
+    _reveal();
+  };
   const _handle=handle;
   handle=function(d,from){
     if(!d||typeof d!=="object"||!validId(d.i)) return;
@@ -2924,7 +2929,7 @@ label.plus.open{transform:rotate(45deg)}
     }
     else {
       if(d.t==="A"){
-        const n=cleanReg(d); if(myPwH!==load("chat_pwh","")) save("chat_pwh",myPwH);
+        const n=cleanReg(d);
         if(window.revealChat) window.revealChat();       // the host accepted us: now show the chat
         if(n.v<reg.v) return;
         const grew=n.clr>reg.clr; reg=n; saveReg(); if(grew) applyClear(); refreshUI(); return;
@@ -2966,14 +2971,14 @@ label.plus.open{transform:rotate(45deg)}
   $("gadmpw").addEventListener("keydown",e=>{ if(e.key==="Enter") tryAdmin(); });
 
   // the host never gets an "A" message, so it remembers its own login hash here; clients do it when the host accepts them
-  setInterval(()=>{ if(isHost&&myPwH!==load("chat_pwh","")) save("chat_pwh",myPwH); },1000);
   const origGo=$("g-go").onclick;
   $("g-go").onclick=()=>{
     if($("g-code").value.trim().toLowerCase()!==ROOM_CODE){ origGo(); return; }
     const typed=$("g-pw").value;
     // The host is the only one who knows the current passwords/bans, so it decides.
     // (Checking against this browser's cached copy rejected correct passwords after a reset.)
-    myPwH=typed?hCred(typed):load("chat_pwh","");
+    myPwH=typed?hCred(typed):"";   // only what you type counts; nothing is remembered between visits
+    save("chat_pwh","");
     $("g-pw").value=""; leaving=false;
     origGo();
     $("admbtn").style.display=adminMode?"":"none";
