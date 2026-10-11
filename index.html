@@ -501,6 +501,66 @@
   #hdr-arrow:active{transform:translateX(-50%) scale(.93)}
   #sb-arrow:active{transform:translateY(-50%) scale(.93)}
   @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-delay:0s !important;transition-duration:.01ms !important;transition-delay:0s !important}}
+  /* ===== Message action buttons sit BESIDE the bubble ===== */
+  #box{overflow-x:hidden}
+  .act{top:50%;bottom:auto;transform:translateY(-50%)}
+  .me .act{right:calc(100% + 8px);left:auto}
+  .peer .act{left:calc(100% + 8px);right:auto}
+  body[data-theme="discord"] .act,body[data-theme="discord"] .me .act,body[data-theme="discord"] .peer .act,
+  body[data-theme="roblox"] .act,body[data-theme="roblox"] .me .act,body[data-theme="roblox"] .peer .act{left:calc(100% + 8px);right:auto}
+  .act::before{content:"";position:absolute;top:-8px;bottom:-8px;right:100%;width:14px}      /* invisible bridge so the buttons stay open while the mouse crosses the gap */
+  .me .act::before{right:auto;left:100%}
+  body[data-theme="discord"] .me .act::before,body[data-theme="roblox"] .me .act::before{left:auto;right:100%}
+  @keyframes actBeside{from{opacity:0;transform:translateY(-50%) scale(.7)}to{opacity:1;transform:translateY(-50%)}}
+  .msg:hover .act,.msg.tap .act,.act:focus-within{animation:actBeside .16s cubic-bezier(.2,.9,.3,1.2)}
+  body.in-gal .act{top:8px !important;right:8px !important;left:auto !important;transform:none !important;background:rgba(0,0,0,.6)}
+  body.in-gal .act::before{display:none}
+  body.in-gal .msg:hover .act,body.in-gal .msg.tap .act{animation:actIn .15s cubic-bezier(.2,.9,.3,1.2)}
+  body[data-theme="discord"] .col{max-width:calc(100% - 120px)}
+  @media(max-width:600px){.act button{width:24px;height:24px}.msg{max-width:76%}}
+
+  /* ===== Fullscreen settings with live preview ===== */
+  @keyframes stgIn{from{opacity:0;transform:scale(1.03)}to{opacity:1;transform:none}}
+  @keyframes stgOut{from{opacity:1;transform:none}to{opacity:0;transform:scale(1.03)}}
+  #stg{display:none;position:fixed;inset:0;z-index:40;background:var(--bg);color:var(--text)}
+  #stg.open{display:block;animation:stgIn .32s cubic-bezier(.2,.9,.3,1)}
+  #stg.open.closing{animation:stgOut .24s ease-in forwards}
+  .stg-wrap{display:grid;grid-template-columns:minmax(320px,440px) 1fr;height:100%}
+  .stg-ctl{display:flex;flex-direction:column;min-height:0;min-width:0;border-right:1px solid var(--line);background:var(--side)}
+  .stg-top{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 10px}
+  .stg-top h2{margin:0;font-size:24px}
+  .stg-x{width:34px;height:34px;border-radius:50%;border:none;background:var(--row);color:var(--text);font-size:15px;cursor:pointer}
+  .stg-scroll{flex:1;overflow-y:auto;padding:4px 20px 20px;display:flex;flex-direction:column;gap:14px}
+  .stg-card{background:var(--row);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+  .stg-card h3{margin:0 0 2px;font-size:14px}
+  #stg label{font-size:11px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);display:block;margin:4px 0 0}
+  #stg label.chk{text-transform:none;font-size:14px;letter-spacing:0;color:var(--text);display:flex;align-items:center;gap:8px;font-weight:500;cursor:pointer}
+  #stg input[type=text],#stg select{width:100%;padding:9px 10px;background:var(--input);border:1px solid var(--line);color:var(--text);border-radius:8px;font-size:14px;outline:none}
+  #stg input[type=text]:focus,#stg select:focus{border-color:var(--accent)}
+  #stg input[type=color]{width:100%;height:36px;padding:0;border:1px solid var(--line);border-radius:8px;background:none;cursor:pointer}
+  #stg input[type=range]{width:100%}
+  #stg input[type=checkbox]{width:18px;height:18px}
+  #stg .btn{padding:8px 12px;border:none;border-radius:8px;background:var(--accent);color:var(--on-accent,#fff);font-weight:700;font-size:13px;cursor:pointer}
+  #stg .btn.alt{background:var(--input);color:var(--text);border:1px solid var(--line);font-weight:600}
+  .stg-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .stg-foot{padding:12px 20px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);display:flex;gap:10px}
+  .stg-foot .btn{flex:1;padding:12px;font-size:15px}
+  #stgerr{color:#ff453a;font-size:12px;padding:6px 20px 0;min-height:20px}
+  #stg #pfpprev{width:72px;height:72px;font-size:28px;margin:0}
+  .stg-prev{display:flex;flex-direction:column;min-width:0;min-height:0;padding:18px 24px 18px;gap:12px;background:radial-gradient(circle at 50% 0%,var(--side),var(--bg) 75%)}
+  .stg-prevhead{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .stg-prevhead h3{margin:0;font-size:15px}
+  .seg{display:flex;gap:2px;background:var(--row);padding:2px;border-radius:999px}
+  .seg button{border:none;background:none;color:var(--text);padding:5px 12px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer}
+  .seg button.on{background:var(--accent);color:var(--on-accent,#fff)}
+  .stg-note{font-size:12px;color:var(--muted)}
+  #pvwrap{flex:1;min-height:0;display:flex;justify-content:center}
+  #pvframe{width:100%;height:100%;border:1px solid var(--line);border-radius:16px;background:#000;box-shadow:0 12px 40px rgba(0,0,0,.45);transition:width .32s cubic-bezier(.2,.9,.3,1)}
+  #pvwrap.phone #pvframe{width:390px;max-width:100%}
+  @media(max-width:800px){.stg-wrap{grid-template-columns:1fr;grid-template-rows:minmax(230px,38%) 1fr}.stg-prev{order:-1;padding:10px 12px}.stg-ctl{border-right:none}.stg-note{display:none}}
+  #stg .btn,.stg-x,.seg button{transition:transform .22s cubic-bezier(.34,1.56,.64,1),background .15s,filter .15s}
+  @media (hover:hover){#stg .btn:hover,.seg button:hover{transform:scale(1.05)}.stg-x:hover{transform:scale(1.15)}}
+  #stg .btn:active,.stg-x:active,.seg button:active{transform:scale(.94)}
 </style>
 </head>
 <body data-theme="imessage">
@@ -531,50 +591,7 @@
     <a class="goback" href="https://docs.google.com/document/d/1oa90mU-jYczqySulirTvHqqNWTSaNwPGnnArgBdVGrs/edit?tab=t.pqncc0vmsgzp" rel="noopener">← Go back</a>
     <div id="youare"></div>
     <button class="stg-btn" id="stg-toggle">⚙️ Settings</button>
-    <div class="stg-box" id="sd">
-      <details class="sec" open>
-        <summary>👤 Profile</summary>
-        <div class="sec-body">
-          <label>Name</label><input type="text" id="hi" maxlength="12">
-          <label>Profile picture (everyone sees it)</label>
-          <div id="pfpprev"></div>
-          <button id="pfpbtn" type="button">Choose picture</button><input type="file" id="pfpfile" accept="image/*" style="display:none">
-          <button id="pfprm" type="button" class="alt">Remove picture</button>
-        </div>
-      </details>
-      <details class="sec">
-        <summary>💬 Messages</summary>
-        <div class="sec-body">
-          <label>Message font (everyone sees it)</label><select id="font"></select>
-          <label>My bubble color (everyone sees it)</label>
-          <input type="color" id="bcol" value="#0a84ff" style="padding:0;height:30px">
-          <button id="bcolrm" type="button" class="alt">Use theme color</button>
-          <label>My bubble image (overrides color)</label>
-          <button id="bimgbtn" type="button">Choose image</button><input type="file" id="bimgfile" accept="image/*" style="display:none">
-          <button id="bimgrm" type="button" class="alt">Remove bubble image</button>
-        </div>
-      </details>
-      <details class="sec">
-        <summary>🎨 Appearance</summary>
-        <div class="sec-body">
-          <label>Theme</label>
-          <select id="theme"><option value="imessage">iMessage</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option></select>
-          <label>Wallpaper &amp; accent color (also tints top bar, message bar &amp; left bar)</label><input type="color" id="wcol" value="#000000" style="padding:0;height:30px">
-          <label>Wallpaper image (stays on this device)</label>
-          <button id="wimg" type="button">Choose image</button><input type="file" id="wfile" accept="image/*" style="display:none">
-          <label>Image dimming</label><input type="range" id="wdim" min="0" max="80" value="30" style="padding:0">
-          <button id="wreset" type="button" class="alt">Reset wallpaper</button>
-        </div>
-      </details>
-      <details class="sec">
-        <summary>🧩 Layout</summary>
-        <div class="sec-body">
-          <label><input type="checkbox" id="hh">Hide top bar</label>
-          <label><input type="checkbox" id="hs">Hide messages sidebar</label>
-        </div>
-      </details>
-      <button id="save">Save</button>
-    </div>
+
   </div>
 </div>
 
@@ -585,6 +602,44 @@
   <div id="glist"></div>
   <div id="gerr2"></div>
   <div class="grow"><button id="gcancel" type="button" class="alt">Cancel</button><button id="gcreate" type="button">Create</button></div>
+</div></div>
+<div id="stg" role="dialog" aria-label="Settings"><div class="stg-wrap">
+  <div class="stg-ctl">
+    <div class="stg-top"><h2>Settings</h2><button id="stgx" class="stg-x" type="button" title="Close without saving">✕</button></div>
+    <div class="stg-scroll">
+      <div class="stg-card"><h3>👤 Profile</h3>
+        <label>Name</label><input type="text" id="hi" maxlength="12" autocomplete="off">
+        <label>Profile picture (everyone sees it)</label>
+        <div class="stg-row"><div id="pfpprev"></div><button id="pfpbtn" type="button" class="btn">Choose picture</button><button id="pfprm" type="button" class="btn alt">Remove</button><input type="file" id="pfpfile" accept="image/*" style="display:none"></div>
+      </div>
+      <div class="stg-card"><h3>💬 Messages</h3>
+        <label>Message font (everyone sees it)</label><select id="font"></select>
+        <label>My bubble color (everyone sees it)</label>
+        <div class="stg-row"><input type="color" id="bcol" value="#0a84ff" style="flex:1;min-width:90px"><button id="bcolrm" type="button" class="btn alt">Use theme color</button></div>
+        <label>My bubble image (overrides color)</label>
+        <div class="stg-row"><button id="bimgbtn" type="button" class="btn">Choose image</button><button id="bimgrm" type="button" class="btn alt">Remove</button><input type="file" id="bimgfile" accept="image/*" style="display:none"></div>
+      </div>
+      <div class="stg-card"><h3>🎨 Appearance</h3>
+        <label>Theme</label>
+        <select id="theme"><option value="imessage">iMessage</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option></select>
+        <label>Wallpaper &amp; accent color (also tints top bar, message bar &amp; left bar)</label><input type="color" id="wcol" value="#000000">
+        <label>Wallpaper image (stays on this device)</label>
+        <div class="stg-row"><button id="wimg" type="button" class="btn">Choose image</button><button id="wreset" type="button" class="btn alt">Reset wallpaper</button><input type="file" id="wfile" accept="image/*" style="display:none"></div>
+        <label>Image dimming</label><input type="range" id="wdim" min="0" max="80" value="30">
+      </div>
+      <div class="stg-card"><h3>🧩 Layout</h3>
+        <label class="chk"><input type="checkbox" id="hh">Hide top bar</label>
+        <label class="chk"><input type="checkbox" id="hs">Hide messages sidebar</label>
+      </div>
+    </div>
+    <div id="stgerr"></div>
+    <div class="stg-foot"><button id="stgcancel" type="button" class="btn alt">Cancel</button><button id="save" type="button" class="btn">Save changes</button></div>
+  </div>
+  <div class="stg-prev">
+    <div class="stg-prevhead"><h3>Live preview</h3><div class="seg"><button id="pvdesk" type="button" class="on">Desktop</button><button id="pvphone" type="button">Phone</button></div></div>
+    <div id="pvwrap"><iframe id="pvframe" title="Preview of your settings"></iframe></div>
+    <div class="stg-note">Nothing changes until you press Save changes.</div>
+  </div>
 </div></div>
 <button id="sb-arrow" class="arrow" title="Hide / show messages bar"></button>
 <div id="main">
@@ -620,6 +675,9 @@ let usr = "User", peer = null, conns = [], isHost = false, logs = [];
 let dmWith = "", dmNm = "", chipT = null;
 let seen = {}; try { seen = JSON.parse(load("dm_seen", "{}")) || {}; } catch(e){ seen = {}; }
 const PH = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage"};
+const THEMES = ["imessage","discord","whatsapp","tiktok","roblox","instagram","twitter"];
+const CHNAME = {discord:"# purebred-chat",whatsapp:"WhatsApp Group",tiktok:"TikTok Inbox",roblox:"Roblox Chat",instagram:"Instagram Direct",twitter:"Twitter Messages",imessage:"iMessage Channel"};
+let draft = null, stgOpen = false, pvLoaded = false, pvq = 0;
 const shownKeys = new Set();
 let groups = {};
 function okGid(g){ return typeof g === "string" && /^g[a-z0-9]{3,30}$/.test(g); }
@@ -708,27 +766,6 @@ function applyWall(){
     }
   }
 }
-$("wcol").oninput = e => { save("wall_kind", "color"); save("wall_color", e.target.value); applyWall(); };
-$("wdim").oninput = e => { save("wall_dim", e.target.value); applyWall(); };
-$("wimg").onclick = () => $("wfile").click();
-$("wfile").onchange = e => {
-  const f = e.target.files[0]; if(!f) return;
-  const r = new FileReader();
-  r.onload = ev => {
-    const im = new Image();
-    im.onload = () => {
-      const sc = Math.min(1, 1280 / Math.max(im.width, im.height)), cv = document.createElement("canvas");
-      cv.width = Math.round(im.width * sc); cv.height = Math.round(im.height * sc);
-      cv.getContext("2d").drawImage(im, 0, 0, cv.width, cv.height);
-      try { localStorage.setItem("wall_img", cv.toDataURL("image/jpeg", 0.8)); }
-      catch(err){ sys("That image is too big to save as a wallpaper."); return; }
-      save("wall_kind", "image"); applyWall();
-    };
-    im.src = ev.target.result;
-  };
-  r.readAsDataURL(f); e.target.value = "";
-};
-$("wreset").onclick = () => { save("wall_kind", "none"); try{ localStorage.removeItem("wall_img"); }catch(e){} applyWall(); };
 
 /* ---------- hide / show bars ---------- */
 function applyBars(){
@@ -736,8 +773,6 @@ function applyBars(){
   document.body.classList.toggle("hide-hdr", h); document.body.classList.toggle("hide-sb", sb);
   $("hh").checked = h; $("hs").checked = sb; updateArrows();
 }
-$("hh").onchange = e => { save("hide_hdr", e.target.checked ? "1" : "0"); applyBars(); };
-$("hs").onchange = e => { save("hide_sb", e.target.checked ? "1" : "0"); applyBars(); };
 const isMobile = () => window.matchMedia("(max-width:600px)").matches;
 function updateArrows(){
   const sbShown = isMobile() ? $("sb").classList.contains("open") : load("hide_sb", "0") !== "1";
@@ -775,29 +810,11 @@ function paintAv(el, name){
 }
 function refreshAvatars(){
   document.querySelectorAll(".msg[data-user]").forEach(w => { const a = w.querySelector(".av"); if(a) paintAv(a, w.dataset.user); });
-  const pv = $("pfpprev"); paintAv(pv, usr); pv.classList.remove("has-pfp");
+  paintPfp();
 }
 function cacheAvatars(){ save("chat_avatars", JSON.stringify(avatars)); }
 function me(){ return { n: usr, a: myAvatar, d: myDevice, c: uid }; }
 function announce(){ if(isHost) pushRoster(); else send({ t: "P", u: usr, a: myAvatar, d: myDevice, c: uid, i: newId() }); }
-$("pfpbtn").onclick = () => $("pfpfile").click();
-$("pfpfile").onchange = e => {
-  const f = e.target.files[0]; if(!f) return;
-  const r = new FileReader();
-  r.onload = ev => {
-    const im = new Image();
-    im.onload = () => {
-      const cv = document.createElement("canvas"), n = 80, m = Math.min(im.width, im.height);
-      cv.width = cv.height = n;
-      cv.getContext("2d").drawImage(im, (im.width - m) / 2, (im.height - m) / 2, m, m, 0, 0, n, n);
-      myAvatar = cv.toDataURL("image/jpeg", 0.75); save("chat_pfp", myAvatar);
-      avatars[usr] = myAvatar; cacheAvatars(); refreshAvatars(); announce(); sys("Profile picture updated.");
-    };
-    im.src = ev.target.result;
-  };
-  r.readAsDataURL(f); e.target.value = "";
-};
-$("pfprm").onclick = () => { myAvatar = ""; save("chat_pfp", ""); delete avatars[usr]; cacheAvatars(); refreshAvatars(); announce(); };
 
 /* ---------- who's online ---------- */
 let lastRoster = [];
@@ -884,20 +901,198 @@ $("g-go").onclick = () => {
 $("g-theme").addEventListener("change", e => setTheme(e.target.value));   // preview the theme on the join screen
 
 function updateYou(){ $("youare").textContent = "Signed in as " + usr; }
-$("sd").classList.add("anim-pop");
-$("hdr-set").onclick = () => { $("sb").classList.toggle("open"); setShown($("sd"), true); };
-$("stg-toggle").onclick = () => { const d = $("sd"); setShown(d, getComputedStyle(d).display === "none" || d.classList.contains("closing")); };
+/* ---------- settings screen (fullscreen, live preview) ---------- */
+function currentSettings(){
+  return { name: usr, avatar: myAvatar, font: myFont, bc: myBc, bi: myBi, theme: document.body.dataset.theme,
+    wallKind: load("wall_kind", "none"), wallColor: load("wall_color", "#000000"), wallImg: load("wall_img", ""), wallDim: +load("wall_dim", "30"),
+    hideHdr: load("hide_hdr", "0") === "1", hideSb: load("hide_sb", "0") === "1" };
+}
+function fillControls(){
+  const d = draft;
+  $("hi").value = d.name; $("font").value = d.font; $("bcol").value = d.bc || "#0a84ff"; $("theme").value = d.theme;
+  $("wcol").value = d.wallColor; $("wdim").value = d.wallDim; $("hh").checked = d.hideHdr; $("hs").checked = d.hideSb; paintPfp();
+}
+function paintPfp(){
+  const pv = $("pfpprev"); if(!pv) return;
+  const on = stgOpen && draft, name = on ? (draft.name || usr) : usr, a = on ? draft.avatar : myAvatar;
+  if(a){ pv.style.background = 'url("' + a + '") center/cover'; pv.textContent = ""; }
+  else { pv.style.background = colorFor(name); pv.textContent = (name[0] || "?").toUpperCase(); }
+}
+function setStg(on){
+  const m = $("stg"); clearTimeout(m._t);
+  if(on){ m.classList.remove("closing"); m.classList.add("open"); }
+  else if(m.classList.contains("open")){ stgOpen = false; m.classList.add("closing"); m._t = setTimeout(() => { m.classList.remove("open", "closing"); draft = null; }, 250); }
+}
+function openSettings(){
+  draft = currentSettings(); stgOpen = true;
+  fillControls(); $("stgerr").textContent = "";
+  $("sb").classList.remove("open");
+  setStg(true);
+  const f = $("pvframe");
+  if(pvLoaded){ renderPreview(); return; }
+  pvLoaded = true; f.onload = () => renderPreview(); f.srcdoc = pvHTML();
+}
+$("stg-toggle").onclick = openSettings;
+$("hdr-set").onclick = openSettings;
+$("stgx").onclick = $("stgcancel").onclick = () => setStg(false);
+document.addEventListener("keydown", e => { if(e.key === "Escape" && stgOpen) setStg(false); });
+$("pvdesk").onclick = () => { $("pvwrap").classList.remove("phone"); $("pvdesk").classList.add("on"); $("pvphone").classList.remove("on"); };
+$("pvphone").onclick = () => { $("pvwrap").classList.add("phone"); $("pvphone").classList.add("on"); $("pvdesk").classList.remove("on"); };
+
+// every control edits the draft and refreshes the preview; nothing is applied until Save
+function upd(fn){ return e => { if(!draft) return; fn(e); renderPreview(); }; }
+$("hi").addEventListener("input", upd(e => { draft.name = e.target.value.slice(0, 12); paintPfp(); }));
+$("font").addEventListener("change", upd(e => { draft.font = okFont(e.target.value); }));
+$("theme").addEventListener("change", upd(e => { draft.theme = THEMES.includes(e.target.value) ? e.target.value : "imessage"; }));
+$("bcol").addEventListener("input", upd(e => { draft.bc = okBc(e.target.value); }));
+$("bcolrm").onclick = upd(() => { draft.bc = ""; $("bcol").value = "#0a84ff"; });
+$("bimgrm").onclick = upd(() => { draft.bi = ""; });
+$("pfprm").onclick = upd(() => { draft.avatar = ""; paintPfp(); });
+$("wcol").addEventListener("input", upd(e => { draft.wallKind = "color"; draft.wallColor = e.target.value; }));
+$("wdim").addEventListener("input", upd(e => { draft.wallDim = +e.target.value; }));
+$("wreset").onclick = upd(() => { draft.wallKind = "none"; draft.wallImg = ""; });
+$("hh").addEventListener("change", upd(e => { draft.hideHdr = e.target.checked; }));
+$("hs").addEventListener("change", upd(e => { draft.hideSb = e.target.checked; }));
+$("pfpbtn").onclick = () => $("pfpfile").click();
+$("bimgbtn").onclick = () => $("bimgfile").click();
+$("wimg").onclick = () => $("wfile").click();
+function readImage(e, maxSide, quality, done){
+  const f = e.target.files[0]; e.target.value = ""; if(!f || !draft) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    const im = new Image();
+    im.onload = () => {
+      const sc = Math.min(1, maxSide / Math.max(im.width, im.height)), cv = document.createElement("canvas");
+      cv.width = Math.max(1, Math.round(im.width * sc)); cv.height = Math.max(1, Math.round(im.height * sc));
+      cv.getContext("2d").drawImage(im, 0, 0, cv.width, cv.height);
+      $("stgerr").textContent = ""; done(cv.toDataURL("image/jpeg", quality), cv);
+    };
+    im.src = ev.target.result;
+  };
+  r.readAsDataURL(f);
+}
+$("pfpfile").onchange = e => readImage(e, 80, 0.75, (u, cv) => {   // square crop for the profile picture
+  const im = new Image();
+  im.onload = () => {
+    const c = document.createElement("canvas"), n = 80, m = Math.min(im.width, im.height);
+    c.width = c.height = n; c.getContext("2d").drawImage(im, (im.width - m) / 2, (im.height - m) / 2, m, m, 0, 0, n, n);
+    draft.avatar = c.toDataURL("image/jpeg", 0.75); paintPfp(); renderPreview();
+  };
+  im.src = u;
+});
+$("bimgfile").onchange = e => readImage(e, 240, 0.6, u => {
+  if(!okBi(u)){ $("stgerr").textContent = "That bubble image is too detailed — try a simpler one."; return; }
+  draft.bi = u; renderPreview();
+});
+$("wfile").onchange = e => readImage(e, 1280, 0.8, u => { draft.wallImg = u; draft.wallKind = "image"; renderPreview(); });
+
 $("save").onclick = () => {
-  const old = usr;
-  myFont = $("font").value; save("chat_font", myFont); $("inp").style.fontFamily = FONT_MAP[myFont] || "";
-  usr = ($("hi").value.trim() || usr).slice(0, 12); $("hi").value = usr; save("chat_usr", usr);
-  setTheme($("theme").value); updateYou();
-  rerender();
-  if(myAvatar) avatars[usr] = myAvatar; refreshAvatars();
-  if(usr !== old){ send({ t: "N", u: old, b: usr, i: newId() }); sys("You changed your name to " + usr + "."); if(isHost) pushRoster(); }
+  if(!draft) return;
+  const d = draft, old = usr, oldAv = myAvatar;
+  if(d.wallKind === "image" && d.wallImg){
+    try { localStorage.setItem("wall_img", d.wallImg); }
+    catch(err){ $("stgerr").textContent = "That wallpaper is too big to save — pick a smaller image."; return; }
+  } else { try { localStorage.removeItem("wall_img"); } catch(err){} }
+  save("wall_kind", d.wallKind); save("wall_color", d.wallColor); save("wall_dim", String(d.wallDim));
+  save("hide_hdr", d.hideHdr ? "1" : "0"); save("hide_sb", d.hideSb ? "1" : "0");
+  myFont = okFont(d.font); save("chat_font", myFont); $("inp").style.fontFamily = FONT_MAP[myFont] || "";
+  usr = (d.name.trim() || usr).slice(0, 12); save("chat_usr", usr); updateYou();
+  myAvatar = okAv(d.avatar); save("chat_pfp", myAvatar);
+  if(myAvatar) avatars[usr] = myAvatar; else delete avatars[usr]; cacheAvatars();
+  const bChanged = d.bc !== myBc || d.bi !== myBi;
+  myBc = d.bc; myBi = d.bi; save("chat_bc", myBc); save("chat_bi", myBi);
+  setTheme(d.theme); applyBars(); rerender(); refreshAvatars();
+  if(bChanged) setMyStyle();
+  if(usr !== old){ send({ t: "N", u: old, b: usr, i: newId() }); sys("You changed your name to " + usr + "."); }
   else sys("Settings saved.");
-  setShown($("sd"), false); $("sb").classList.remove("open");
+  if(usr !== old || myAvatar !== oldAv) announce();
+  setStg(false);
 };
+
+/* ---- live preview: a sandboxed copy of the real UI that follows the draft ---- */
+function pvHTML(){
+  const css = [...document.querySelectorAll("style")].map(x => x.textContent).join("\n");
+  const links = [...document.querySelectorAll("link[rel=stylesheet]")].map(l => l.outerHTML).join("");
+  const svg = '<svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>';
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' + links +
+    '<style>' + css + '\n#gate,.arrow,#stg,#gmod{display:none !important} body{pointer-events:none;user-select:none}</style></head>' +
+    '<body data-theme="imessage" class="has-peers">' +
+    '<div id="sb"><div><div class="hdr-sb">Messages</div>' +
+    '<div class="row-ch active"><div class="av-sb lp"></div><div><b style="font-size:15px">Los Purebreds</b><br><span id="chname" class="csub"></span></div></div>' +
+    '<div class="row-ch"><div class="av-sb" style="font-size:18px">🖼️</div><div><b style="font-size:15px">Image Gallery</b><br><span class="csub">Photos only</span></div></div></div>' +
+    '<div class="stg-sb"><div id="youare"></div></div></div>' +
+    '<div id="main"><div id="hdrwrap"><div id="hdr"><span id="status">Online — 2 connected</span>' +
+    '<div id="chtabs"><button type="button" class="on">💬 Chat</button><button type="button">🖼️ Image Gallery</button></div><div id="online"></div></div></div>' +
+    '<div id="box"></div><div id="typing"></div>' +
+    '<div id="tray"><label class="plus">+</label><span id="emo-btn">😊</span><div class="pill"><input type="text" id="inp" disabled><button id="sendbtn" type="button">' + svg + '</button></div></div></div>' +
+    '</body></html>';
+}
+function renderPreview(){ if(pvq) return; pvq = requestAnimationFrame(() => { pvq = 0; try { drawPreview(); } catch(err){ console.warn("preview failed", err); } }); }
+function paintTo(el, name, a){
+  if(a){ el.style.background = 'url("' + a + '") center/cover'; el.textContent = ""; }
+  else { el.style.background = colorFor(name); el.textContent = (name[0] || "?").toUpperCase(); }
+}
+function drawPreview(){
+  if(!draft) return;
+  const doc = $("pvframe").contentDocument;
+  if(!doc || !doc.body || !doc.getElementById("box")) return;
+  const d = draft, body = doc.body, theme = THEMES.includes(d.theme) ? d.theme : "imessage";
+  const E = (t, c, x) => { const e = doc.createElement(t); if(c) e.className = c; if(x != null) e.textContent = x; return e; };
+  doc.documentElement.className = document.documentElement.className;
+  doc.documentElement.style.cssText = document.documentElement.style.cssText;
+  body.dataset.theme = theme; body.classList.toggle("hide-hdr", d.hideHdr); body.classList.toggle("hide-sb", d.hideSb);
+  const myName = d.name || usr;
+  doc.getElementById("chname").textContent = CHNAME[theme];
+  doc.getElementById("inp").placeholder = PH[theme];
+  doc.getElementById("youare").textContent = "Signed in as " + myName;
+  // wallpaper + accent (same rules as the real app)
+  const box = doc.getElementById("box");
+  box.style.backgroundImage = ""; box.style.backgroundColor = "";
+  ["--accent", "--me", "--on-accent", "--bar", "--bar-text"].forEach(v => body.style.removeProperty(v));
+  if(d.wallKind === "color"){
+    box.style.backgroundColor = d.wallColor; const a = accentFrom(d.wallColor);
+    body.style.setProperty("--accent", a.color); body.style.setProperty("--on-accent", a.text);
+    body.style.setProperty("--bar", a.color); body.style.setProperty("--bar-text", a.text);
+    if(theme !== "discord") body.style.setProperty("--me", a.color);
+  } else if(d.wallKind === "image" && d.wallImg){
+    const dim = d.wallDim / 100;
+    box.style.backgroundImage = "linear-gradient(rgba(0,0,0," + dim + "),rgba(0,0,0," + dim + ")),url(\"" + d.wallImg + "\")";
+    box.style.backgroundSize = "cover"; box.style.backgroundPosition = "center";
+  }
+  // who's online
+  const on = doc.getElementById("online"); on.replaceChildren();
+  [[myName, d.avatar], ["Sam", ""]].forEach(([n, a]) => { const o = E("div", "oav"); o.dataset.dev = "💻"; paintTo(o, n, a); on.appendChild(o); });
+  on.appendChild(E("span", "ocount", "2 online"));
+  // sample conversation
+  const items = [
+    { s: "peer", n: "Sam", t: "Hey! Did you change your settings? 👀" },
+    { s: "me", t: "Yep — this is my new look" },
+    { s: "me", t: "Here's how my messages will look", act: true },
+    { s: "peer", n: "Sam", t: "Love it!" }
+  ];
+  let lastMe = -1; items.forEach((it, i) => { if(it.s === "me") lastMe = i; });
+  const nodes = [E("div", "tsep", "Today 9:41 AM")];
+  items.forEach((it, i) => {
+    const first = !items[i - 1] || items[i - 1].s !== it.s, last = !items[i + 1] || items[i + 1].s !== it.s;
+    const w = E("div", "msg " + it.s + (first ? " first" : "") + (last ? " last" : "") + (it.act ? " tap" : "") + (i === lastMe ? " lastmine" : ""));
+    const nm = it.s === "me" ? myName : it.n;
+    const av = E("div", "av"); paintTo(av, nm, it.s === "me" ? d.avatar : "");
+    const col = E("div", "col"), lbl = E("span", "lbl", nm); lbl.style.setProperty("--uc", colorFor(nm)); col.appendChild(lbl);
+    const wrap = E("div", "bwrap"), bub = E("div", "bubble", it.t);
+    if(it.s === "me"){
+      if(d.font && FONT_MAP[d.font]) bub.style.fontFamily = FONT_MAP[d.font];
+      applyBubbleStyle(bub, { bc: d.bc, bi: d.bi }, theme);
+    }
+    wrap.appendChild(bub);
+    if(it.act){                               // shows where the reply / edit / delete buttons appear
+      const act = E("div", "act");
+      [["rep", ICON_REPLY], ["edt", ICON_EDIT], ["del", ICON_DEL]].forEach(([c, svg]) => { const b = E("button", c); b.innerHTML = svg; act.appendChild(b); });
+      wrap.appendChild(act);
+    }
+    col.appendChild(wrap); w.append(av, col); nodes.push(w);
+  });
+  box.replaceChildren(...nodes); box.scrollTop = box.scrollHeight;
+}
 
 /* ---------- networking (host relays to everyone) ---------- */
 function setStatus(t){ $("status").textContent = t; }
@@ -1546,13 +1741,13 @@ function textOn(hex){
   const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
   return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 > 0.6 ? "#000" : "#fff";
 }
-function styleBubble(bub, c){
-  const s = bstyle[c];
+function styleBubble(bub, c){ applyBubbleStyle(bub, bstyle[c], document.body.dataset.theme); }
+function applyBubbleStyle(bub, s, theme){
   bub.style.backgroundColor = ""; bub.style.backgroundImage = ""; bub.style.color = "";
   bub.style.textShadow = ""; bub.style.padding = ""; bub.style.borderRadius = "";
   bub.style.removeProperty("--bub"); delete bub.dataset.img;
   if(!s || (!s.bc && !s.bi)) return;
-  if(document.body.dataset.theme === "discord"){ bub.style.padding = "4px 10px"; bub.style.borderRadius = "8px"; }
+  if(theme === "discord"){ bub.style.padding = "4px 10px"; bub.style.borderRadius = "8px"; }
   if(s.bi){
     bub.dataset.img = "1";   // image bubbles have no tail
     bub.style.backgroundImage = 'url("' + s.bi + '")'; bub.style.backgroundSize = "cover"; bub.style.backgroundPosition = "center";
@@ -1575,26 +1770,6 @@ function setMyStyle(){
   bstyle[uid] = { bc: myBc, bi: myBi, v }; cacheB(); restyleAll();
   send({ t: "B", i: newId(), c: uid, bc: myBc, bi: myBi, v });
 }
-$("bcol").onchange = e => { myBc = e.target.value; save("chat_bc", myBc); setMyStyle(); };
-$("bcolrm").onclick = () => { myBc = ""; save("chat_bc", ""); $("bcol").value = "#0a84ff"; setMyStyle(); };
-$("bimgbtn").onclick = () => $("bimgfile").click();
-$("bimgrm").onclick = () => { myBi = ""; save("chat_bi", ""); setMyStyle(); };
-$("bimgfile").onchange = e => {
-  const f = e.target.files[0]; if(!f) return;
-  const r = new FileReader();
-  r.onload = ev => {
-    const im = new Image();
-    im.onload = () => {
-      const sc = Math.min(1, 240 / Math.max(im.width, im.height)), cv = document.createElement("canvas");
-      cv.width = Math.max(1, Math.round(im.width * sc)); cv.height = Math.max(1, Math.round(im.height * sc));
-      cv.getContext("2d").drawImage(im, 0, 0, cv.width, cv.height);
-      myBi = cv.toDataURL("image/jpeg", 0.6); save("chat_bi", myBi); setMyStyle(); sys("Bubble image updated.");
-    };
-    im.src = ev.target.result;
-  };
-  r.readAsDataURL(f); e.target.value = "";
-};
-
 function sys(t){
   const d = document.createElement("div"); d.className = "msg sys"; d.textContent = "System: " + t;
   $("box").appendChild(d); $("box").scrollTop = $("box").scrollHeight;
