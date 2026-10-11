@@ -2647,5 +2647,443 @@ label.plus.open{transform:rotate(45deg)}
   };
 })();
 </script>
+
+<!-- ===================================================================
+  PUREBRED ADD-ON  —  merged in after the attach-js block
+  Adds: screen sharing in calls · emoji-picker layering fix · user passwords
+        · hidden admin login (top-left of the join screen) · admin panel
+==================================================================== -->
+<style id="addon-css">
+/* ---- fix: messages drawing over the emoji picker ---- */
+#tray{position:relative;z-index:8}
+
+/* ---- screen share ---- */
+#cscr.sharing{background:#30d158 !important;color:#04210d !important}
+.ct.ss video{visibility:visible !important;object-fit:contain;background:#000}
+.ct.ss .cav{display:none}
+.ct.loc.ss video{transform:none}
+.ct.ss{cursor:zoom-in}
+.ct.ss .cl::after{content:" · sharing screen"}
+#ccam.locked{pointer-events:none;opacity:.35}
+
+/* ---- gate: secret admin button + password field ---- */
+#gadm{position:absolute;top:10px;left:10px;z-index:12;width:26px;height:26px;border-radius:50%;border:none;background:rgba(255,255,255,.08);color:#fff;font-size:12px;cursor:pointer;opacity:.18;padding:0;transition:opacity .2s}
+#gadm:hover,#gadm.on{opacity:.9}
+#gadm.on{background:#ffd60a;color:#000}
+#gadmbox{display:none;position:absolute;top:42px;left:10px;z-index:12;background:var(--side);border:1px solid var(--line);border-radius:12px;padding:10px;gap:6px;flex-direction:column;width:210px;box-shadow:0 8px 28px rgba(0,0,0,.5)}
+#gadmbox.open{display:flex}
+#gadmbox input{padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--text);font-size:14px;outline:none;width:100%}
+#gadmbox button{padding:8px;border:none;border-radius:8px;background:var(--accent);color:var(--on-accent,#fff);font-weight:700;cursor:pointer}
+#gadmbox .gm{font-size:12px;color:var(--muted);min-height:15px}
+#gate .fld input[type=password]{padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--input);color:var(--text);font-size:15px;outline:none;width:100%}
+#gate .fld input[type=password]:focus{border-color:var(--accent)}
+#stg input[type=password]{width:100%;padding:9px 10px;background:var(--input);border:1px solid var(--line);color:var(--text);border-radius:8px;font-size:14px;outline:none}
+#stg input[type=password]:focus{border-color:var(--accent)}
+
+/* ---- admin panel ---- */
+#amod{display:none;position:fixed;inset:0;z-index:45;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:16px}
+#amod.open{display:flex;animation:fadeIn .2s ease-out}
+#amod .acard{background:var(--side);color:var(--text);border:1px solid var(--line);border-radius:18px;width:min(520px,100%);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+#amod .ah{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 6px;font-size:18px}
+#amod .ah button{border:none;background:var(--row);color:var(--text);width:30px;height:30px;border-radius:50%;cursor:pointer}
+#amsg{padding:0 18px;font-size:12px;color:var(--muted);min-height:18px}
+#amb{overflow-y:auto;padding:6px 18px 18px;display:flex;flex-direction:column;gap:14px}
+#amod h4{margin:0 0 6px;font-size:12px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
+#amod .arow{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;background:var(--row);margin-bottom:4px;flex-wrap:wrap}
+#amod .arow .pav{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+#amod .arow .an{flex:1;min-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+#amod .arow button,#amod .abtn{border:none;background:var(--input);color:var(--text);border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer}
+#amod .arow button.red,#amod .abtn.red{background:rgba(255,69,58,.2);color:#ff6b61;border-color:transparent}
+#amod .aform{display:flex;gap:6px;flex-wrap:wrap}
+#amod .aform input{flex:1;min-width:110px;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--text);font-size:14px;outline:none}
+#amod .none{font-size:13px;color:var(--muted);padding:2px 4px}
+</style>
+<script id="addon-js">
+(function(){
+  /* =============== crypto helpers (pure JS, works on http too) =============== */
+  function sha256(str){
+    const b=new TextEncoder().encode(str), l=b.length, K=[], H=[], pr=[];
+    for(let n=2;pr.length<64;n++){let ok=true;for(const p of pr){if(p*p>n)break;if(n%p===0){ok=false;break;}}if(ok)pr.push(n);}
+    const fr=x=>((x-Math.floor(x))*4294967296)>>>0;
+    for(let i=0;i<64;i++)K[i]=fr(Math.cbrt(pr[i]));
+    for(let i=0;i<8;i++)H[i]=fr(Math.sqrt(pr[i]));
+    const total=((l+8)>>6)+1, words=new Uint32Array(total*16);
+    for(let i=0;i<l;i++)words[i>>2]|=b[i]<<(24-(i&3)*8);
+    words[l>>2]|=0x80<<(24-(l&3)*8);
+    words[total*16-1]=l*8;
+    const W=new Uint32Array(64);
+    for(let j=0;j<total;j++){
+      for(let t=0;t<16;t++)W[t]=words[j*16+t];
+      for(let t=16;t<64;t++){
+        const a=W[t-15],c=W[t-2];
+        const s0=((a>>>7)|(a<<25))^((a>>>18)|(a<<14))^(a>>>3);
+        const s1=((c>>>17)|(c<<15))^((c>>>19)|(c<<13))^(c>>>10);
+        W[t]=(W[t-16]+s0+W[t-7]+s1)>>>0;
+      }
+      let [a,b2,c,d,e,f,g,h]=H;
+      for(let t=0;t<64;t++){
+        const S1=((e>>>6)|(e<<26))^((e>>>11)|(e<<21))^((e>>>25)|(e<<7));
+        const ch=(e&f)^(~e&g), t1=(h+S1+ch+K[t]+W[t])>>>0;
+        const S0=((a>>>2)|(a<<30))^((a>>>13)|(a<<19))^((a>>>22)|(a<<10));
+        const mj=(a&b2)^(a&c)^(b2&c), t2=(S0+mj)>>>0;
+        h=g;g=f;f=e;e=(d+t1)>>>0;d=c;c=b2;b2=a;a=(t1+t2)>>>0;
+      }
+      [a,b2,c,d,e,f,g,h].forEach((v,i)=>{H[i]=(H[i]+v)>>>0;});
+    }
+    return H.map(v=>v.toString(16).padStart(8,"0")).join("");
+  }
+  // sha256("pbadmin:1214")  — the admin password is checked against this hash, never stored in plain text
+  const ADMIN_KEY="f8166acc73453bd8652123ff0fdd7cc7e54def7a1b9efa50fbbc90f7d85e82d5";
+  const hCred=p=>sha256("pb1:"+p);            // what a user's browser remembers + sends to log in
+  const hVer=h=>sha256("pbv:"+h);             // what the room stores (can't be replayed as a login)
+  const HEX=/^[0-9a-f]{64}$/;
+  const own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k)?o[k]:"";
+
+  /* =============== shared registry: protected names, bans, last chat-clear =============== */
+  function cleanReg(r){
+    const o={acc:{},bans:[],clr:0,v:0}; if(!r||typeof r!=="object") return o;
+    if(r.acc&&typeof r.acc==="object") Object.keys(r.acc).slice(0,500).forEach(k=>{ if(k&&k.length<=12&&k!=="__proto__"&&HEX.test(String(r.acc[k]))) o.acc[k]=r.acc[k]; });
+    if(Array.isArray(r.bans)) o.bans=[...new Set(r.bans.map(x=>String(x).slice(0,12).toLowerCase()).filter(Boolean))].slice(0,500);
+    o.clr=+r.clr||0; o.v=+r.v||0; return o;
+  }
+  let reg=cleanReg((()=>{try{return JSON.parse(load("pb_reg","{}"));}catch(e){return {};}})());
+  const saveReg=()=>save("pb_reg",JSON.stringify(reg));
+  const areg=()=>({t:"A",i:newId(),acc:reg.acc,bans:reg.bans,clr:reg.clr,v:reg.v});
+  let myPwH=load("chat_pwh",""), adminMode=false, pendW=null;
+  const low=n=>String(n||"").trim().slice(0,12).toLowerCase();
+
+  function commit(){ reg.v=Math.max(Date.now(),reg.v+1); saveReg(); if(isHost) send(areg()); refreshUI(); }
+  function applyClear(){
+    logs=logs.filter(l=>l.to||l.g||(l.ts||0)>reg.clr);
+    persist(); rerender();
+  }
+  const _cleanEntry=cleanEntry;
+  cleanEntry=function(e){ const o=_cleanEntry(e); if(o&&!o.to&&!o.g&&(o.ts||0)<=reg.clr) return null; return o; };
+  window.addEventListener("load",()=>{ if(reg.clr) applyClear(); refreshUI(); });
+
+  /* =============== sending my login (hash + admin key) with every "P" message =============== */
+  const _addConn=addConn;
+  addConn=function(c){
+    const os=c.send.bind(c);
+    c.send=function(d){ if(d&&d.t==="P"){ d.h=myPwH; if(adminMode) d.k=ADMIN_KEY; } return os(d); };
+    _addConn(c);
+  };
+
+  /* =============== host-side rules =============== */
+  function deny(conn,why){
+    conn.denied=true;
+    try{ conn.send({t:"X",i:newId(),why}); }catch(e){}
+    setTimeout(()=>{ try{ conn.close(); }catch(e){} },400);
+  }
+  function nameBlocked(nm,conn,hh){          // true when a non-admin may not use this name
+    if(conn.admin) return "";
+    const l=low(nm); if(conn.allow===l) return "";
+    if(reg.bans.includes(l)) return "banned";
+    const v=own(reg.acc,l); if(v&&hVer(String(hh||""))!==v) return "password";
+    return "";
+  }
+  function kickConn(conn,why){ deny(conn,why); }
+
+  function procW(m,f){                          // change / remove / move a password
+    const reply=(ok,msg)=>f.reply&&f.reply({t:"WA",i:newId(),ok,msg:msg||""});
+    const l=low(m.n); if(!l) return reply(false,"Missing name.");
+    if(!f.admin && l!==low(f.name)) return reply(false,"You can only change your own password.");
+    if(m.mv){                                   // account follows a rename
+      const from=low(m.mv), c0=own(reg.acc,from);
+      if(!c0) return reply(true,"");
+      if(!f.admin && hVer(String(m.a||""))!==c0) return reply(false,"Wrong password.");
+      if(from!==l && own(reg.acc,l)) return reply(false,"That name already has a password.");
+      delete reg.acc[from]; reg.acc[l]=c0; commit(); return reply(true,"");
+    }
+    const cur=own(reg.acc,l);
+    if(cur && !f.admin && hVer(String(m.a||""))!==cur) return reply(false,"Wrong current password.");
+    if(!f.admin && reg.bans.includes(l)) return reply(false,"That name is banned.");
+    if(m.v===""){ delete reg.acc[l]; }
+    else if(HEX.test(String(m.v||""))){ reg.acc[l]=m.v; }
+    else return reply(false,"Invalid password.");
+    commit(); reply(true,m.v===""?"Password removed.":"Password saved.");
+  }
+
+  function procM(m,f){                          // admin actions
+    if(m.k!==ADMIN_KEY) return;
+    const say=t=>f.reply&&f.reply({t:"E",i:newId(),msg:t});
+    const conn=u=>conns.find(c=>c.uid===u&&c.ok2);
+    if(m.a==="kick"){
+      if(m.u===uid) return say("You can't kick the host's own browser — close it instead.");
+      const c=conn(m.u); if(!c) return say("They're not connected."); kickConn(c,"kicked"); say("Kicked "+(c.userName||"user")+".");
+    }
+    else if(m.a==="ban"){
+      const l=low(m.name); if(!l) return;
+      if(!reg.bans.includes(l)) reg.bans.push(l);
+      conns.filter(c=>c.ok2&&low(c.userName)===l).forEach(c=>kickConn(c,"banned"));
+      commit(); say('Banned the name "'+l+'"'+(low(usr)===l?" (the host itself can't be removed).":"."));
+    }
+    else if(m.a==="unban"){ const l=low(m.name); reg.bans=reg.bans.filter(x=>x!==l); commit(); say('Unbanned "'+l+'".'); }
+    else if(m.a==="clear"){ reg.clr=Date.now(); applyClear(); commit(); say("Chat cleared for everyone."); }
+    else if(m.a==="rename"){
+      const nn=String(m.n||"").trim().slice(0,12); if(!nn) return say("Name can't be empty.");
+      if(reg.bans.includes(low(nn))) return say("That name is banned.");
+      const old=m.u===uid?usr:(conn(m.u)||{}).userName; if(!old) return say("They're not connected.");
+      const ol=low(old), nl=low(nn), c0=own(reg.acc,ol);
+      if(c0&&ol!==nl){ if(own(reg.acc,nl)) return say("That name already belongs to someone with a password."); delete reg.acc[ol]; reg.acc[nl]=c0; commit(); }
+      if(m.u===uid) applyRename(nn); else { const c=conn(m.u); c.allow=nl; c.send({t:"Z",i:newId(),n:nn}); }
+      say(old+" is now "+nn+".");
+    }
+    else if(m.a==="setpw"){
+      procW({n:m.name,v:m.v},{admin:true,reply:r=>say(r.ok?("Password "+(m.v===""?"removed":"set")+" for "+m.name+"."):r.msg)});
+    }
+  }
+
+  function onWA(d){
+    if(d.ok&&pendW!==null){ myPwH=pendW; save("chat_pwh",myPwH); }
+    const had=pendW!==null; pendW=null;
+    if(!had&&d.ok) return;                       // silent: account followed a rename
+    refreshUI();
+    const msg=d.ok?(d.msg||"Done."):(d.msg||"Couldn't change password.");
+    $("pwst").textContent=msg; sys(msg);
+  }
+
+  function applyRename(n){
+    const old=usr; usr=String(n).slice(0,12); save("chat_usr",usr); updateYou();
+    if(myAvatar) avatars[usr]=myAvatar; $("hi").value=usr;
+    rerender(); refreshAvatars();
+    sys("An admin changed your name to "+usr+".");
+    send({t:"N",u:old,b:usr,i:newId()});
+    if(isHost) pushRoster(); else announce();
+  }
+
+  function leaveRoom(msg){
+    if($("callov")&&$("callov").classList.contains("on")) $("cend").click();
+    try{ peer&&peer.destroy(); }catch(e){}
+    peer=null; conns=[]; isHost=false;
+    $("inp").disabled=true; $("fi").disabled=true; setStatus("Disconnected");
+    setStg(false); $("admbtn").style.display="none";
+    const g=$("gate"); g.classList.remove("leaving"); g.style.display="flex"; $("gerr").textContent=msg||"";
+  }
+
+  /* =============== message routing (wraps the existing handler) =============== */
+  const _handle=handle;
+  handle=function(d,from){
+    if(!d||typeof d!=="object"||!validId(d.i)) return;
+    if(isHost){
+      if(from.denied) return;
+      if(d.t==="P"){
+        const nm=String(d.u||"").slice(0,12), first=!from.ok2;
+        const changed=first||(from.userName&&low(nm)!==low(from.userName));
+        if(d.k===ADMIN_KEY) from.admin=true;
+        if(changed){ const why=nameBlocked(nm,from,d.h); if(why) return deny(from,why); }
+        if(first){ from.ok2=true; from.pwh=String(d.h||""); from.send(areg()); }
+      }
+      else if(!from.ok2) return;
+      else if(d.t==="N"){
+        const why=nameBlocked(String(d.b||"").slice(0,12),from,from.pwh); if(why) return deny(from,why);
+      }
+      else if(d.t==="W"){ procW(d,{admin:from.admin||d.k===ADMIN_KEY,name:from.userName,reply:r=>{try{from.send(r);}catch(e){}}}); return; }
+      else if(d.t==="M"){ procM(d,{reply:r=>{try{from.send(r);}catch(e){}}}); return; }
+      else if(d.t==="SS"){ send(d,from); ssApply(d); return; }
+    }
+    else {
+      if(d.t==="A"){
+        const n=cleanReg(d); if(n.v<reg.v) return;
+        const grew=n.clr>reg.clr; reg=n; saveReg(); if(grew) applyClear(); refreshUI(); return;
+      }
+      if(d.t==="X"){
+        const why=d.why; if(why==="password"){ myPwH=""; save("chat_pwh",""); }
+        leaveRoom(why==="banned"?"That name is banned.":why==="kicked"?"You were removed by an admin.":"That name is protected — enter its password."); return;
+      }
+      if(d.t==="Z"){ if(typeof d.n==="string") applyRename(d.n); return; }
+      if(d.t==="E"){ note(String(d.msg||"").slice(0,200)); sys(String(d.msg||"").slice(0,200)); return; }
+      if(d.t==="WA"){ onWA(d); return; }
+      if(d.t==="SS"){ ssApply(d); return; }
+    }
+    if(d.t==="A"||d.t==="X"||d.t==="Z"||d.t==="E"||d.t==="WA"||d.t==="W"||d.t==="M"||d.t==="SS") return;
+    _handle(d,from);
+  };
+
+  /* =============== gate: password field, secret admin button =============== */
+  const lab=document.createElement("label"); lab.className="fld";
+  lab.innerHTML='<span>Password <i style="text-transform:none;font-weight:400;opacity:.7">(only if your name has one)</i></span><input id="g-pw" type="password" autocomplete="current-password" placeholder="Leave empty if none">';
+  $("gerr").before(lab);
+  $("g-pw").addEventListener("keydown",e=>{ if(e.key==="Enter") $("g-go").click(); });
+
+  const adm=document.createElement("button"); adm.id="gadm"; adm.type="button"; adm.textContent="🛡"; adm.setAttribute("aria-label","Admin");
+  const box=document.createElement("div"); box.id="gadmbox";
+  box.innerHTML='<input id="gadmpw" type="password" placeholder="Admin password" autocomplete="off"><button type="button" id="gadmok">Unlock</button><div class="gm" id="gadmm"></div>';
+  $("gate").append(adm,box);
+  adm.onclick=()=>{
+    if(adminMode){ adminMode=false; adm.classList.remove("on"); $("gadmm").textContent="Admin mode off."; return; }
+    box.classList.toggle("open"); $("gadmpw").focus();
+  };
+  function tryAdmin(){
+    if(sha256("pbadmin:"+$("gadmpw").value)===ADMIN_KEY){
+      adminMode=true; adm.classList.add("on"); $("gadmpw").value=""; box.classList.remove("open");
+      $("gerr").style.color="#ffd60a"; $("gerr").textContent="🛡 Admin mode on — join as usual."; setTimeout(()=>{$("gerr").style.color="";},4000);
+    } else { $("gadmm").textContent="Wrong password."; $("gadmpw").select(); }
+  }
+  $("gadmok").onclick=tryAdmin;
+  $("gadmpw").addEventListener("keydown",e=>{ if(e.key==="Enter") tryAdmin(); });
+
+  const origGo=$("g-go").onclick;
+  $("g-go").onclick=()=>{
+    if($("g-code").value.trim().toLowerCase()!==ROOM_CODE){ origGo(); return; }
+    const nm=low($("g-name").value||load("chat_usr","User"));
+    const typed=$("g-pw").value;
+    myPwH=typed?hCred(typed):load("chat_pwh","");
+    if(!adminMode){
+      if(reg.bans.includes(nm)){ $("gerr").textContent="That name is banned."; return; }
+      const v=own(reg.acc,nm);
+      if(v&&hVer(myPwH)!==v){ $("gerr").textContent="That name is protected — enter its password."; return; }
+      if(!v&&!typed) myPwH=""; 
+    }
+    save("chat_pwh",myPwH); $("g-pw").value="";
+    origGo();
+    $("admbtn").style.display=adminMode?"":"none";
+  };
+
+  /* =============== settings: password card =============== */
+  const card=document.createElement("div"); card.className="stg-card";
+  card.innerHTML='<h3>🔑 Password</h3><div class="stg-note" id="pwst"></div><label>New password (at least 4 characters)</label><input type="password" id="pwnew" autocomplete="new-password"><div class="stg-row"><button id="pwset" type="button" class="btn">Set password</button><button id="pwrm" type="button" class="btn alt">Remove password</button></div><div class="stg-note">Protects your name so nobody else can use it. If you forget it, an admin can reset it.</div>';
+  document.querySelector(".stg-scroll").appendChild(card);
+  function refreshUI(){
+    const st=$("pwst"); if(st&&!pendW) st.textContent=own(reg.acc,low(usr))?"🔒 Your name “"+usr+"” is password-protected.":"No password yet — anyone could use the name “"+usr+"”.";
+    renderAdminLists();
+  }
+  new MutationObserver(refreshUI).observe($("stg"),{attributes:true,attributeFilter:["class"]});
+  function sendW(m){
+    m.t="W"; m.i=newId(); m.n=usr; m.a=myPwH;
+    if(isHost) procW(m,{admin:adminMode,name:usr,reply:onWA}); else send(m);
+  }
+  $("pwset").onclick=()=>{
+    const p=$("pwnew").value;
+    if(p.length<4){ $("pwst").textContent="Use at least 4 characters."; return; }
+    const h=hCred(p); pendW=h; $("pwnew").value=""; $("pwst").textContent="Saving…";
+    sendW({v:hVer(h)});
+  };
+  $("pwrm").onclick=()=>{ pendW=""; $("pwst").textContent="Removing…"; sendW({v:""}); };
+
+  // renaming: keep the password with the new name, and don't take a protected / banned name
+  const origSave=$("save").onclick;
+  $("save").onclick=()=>{
+    const d=(typeof draft!=="undefined")?draft:null;
+    const nn=d?String(d.name||"").trim().slice(0,12):"";
+    const old=usr;
+    if(nn&&low(nn)!==low(old)&&!adminMode){
+      const l=low(nn);
+      if(reg.bans.includes(l)){ $("stgerr").textContent="That name is banned."; return; }
+      const v=own(reg.acc,l); if(v&&hVer(myPwH)!==v){ $("stgerr").textContent="That name belongs to someone with a password."; return; }
+    }
+    origSave();
+    if(usr!==old&&own(reg.acc,low(old))){
+      const m={t:"W",i:newId(),n:usr,mv:old,a:myPwH};
+      if(isHost) procW(m,{admin:adminMode,name:usr}); else send(m);
+    }
+  };
+
+  /* =============== admin panel =============== */
+  const ab=document.createElement("button"); ab.id="admbtn"; ab.className="stg-btn"; ab.type="button"; ab.textContent="🛡 Admin panel"; ab.style.display="none";
+  document.querySelector(".stg-sb").insertBefore(ab,$("stg-toggle"));
+  const am=document.createElement("div"); am.id="amod";
+  am.innerHTML='<div class="acard"><div class="ah"><b>🛡 Admin panel</b><button type="button" id="amx" title="Close">✕</button></div><div id="amsg"></div><div id="amb"><div><h4>Online now</h4><div id="amon"></div></div><div><h4>Banned names</h4><div id="ambn"></div><div class="aform" style="margin-top:6px"><input id="amban" type="text" maxlength="12" placeholder="Name to ban"><button class="abtn red" type="button" id="ambanb">Ban name</button></div></div><div><h4>Set or reset a password for any name</h4><div class="aform"><input id="ampn" type="text" maxlength="12" placeholder="Name"><input id="ampp" type="text" placeholder="New password (empty = remove)" autocomplete="off"><button class="abtn" type="button" id="ampb">Apply</button></div></div><div><h4>Danger zone</h4><button class="abtn red" type="button" id="amclr">🗑 Clear the main chat for everyone</button></div></div></div>';
+  document.body.appendChild(am);
+  function note(t){ const e=$("amsg"); if(e) e.textContent=t; }
+  function adminDo(m){
+    m.k=ADMIN_KEY;
+    if(isHost) procM(m,{reply:r=>{ note(r.msg); }});
+    else { m.t="M"; m.i=newId(); send(m); }
+  }
+  function mk(tag,cls,txt){ const e=document.createElement(tag); if(cls) e.className=cls; if(txt!=null) e.textContent=txt; return e; }
+  function renderAdminLists(){
+    if(!$("amod")||!$("amod").classList.contains("open")) return;
+    const on=$("amon"); on.replaceChildren();
+    (lastRoster||[]).forEach(e=>{
+      const r=mk("div","arow"), av=mk("div","pav"); paintAv(av,e.n);
+      r.append(av,mk("span","an",e.n+(e.c===uid?" (you)":"")+(own(reg.acc,low(e.n))?" 🔒":"")));
+      if(e.c&&e.c!==uid){
+        const b1=mk("button","","Rename"); b1.onclick=()=>{ const n=prompt("New name for "+e.n+" (max 12 characters):",e.n); if(n&&n.trim()) adminDo({a:"rename",u:e.c,n:n.trim().slice(0,12)}); };
+        const b2=mk("button","","Password"); b2.onclick=()=>{ const p=prompt("New password for "+e.n+" (at least 4 characters).\nLeave empty to remove their password:"); if(p===null) return; if(p&&p.length<4){ note("Use at least 4 characters."); return; } adminDo({a:"setpw",name:e.n,v:p?hVer(hCred(p)):""}); };
+        const b3=mk("button","red","Kick"); b3.onclick=()=>adminDo({a:"kick",u:e.c});
+        const b4=mk("button","red","Ban"); b4.onclick=()=>{ if(confirm('Ban the name "'+e.n+'" and remove them?')) adminDo({a:"ban",name:e.n}); };
+        r.append(b1,b2,b3,b4);
+      }
+      on.appendChild(r);
+    });
+    const bn=$("ambn"); bn.replaceChildren();
+    if(!reg.bans.length) bn.appendChild(mk("div","none","No banned names."));
+    reg.bans.forEach(n=>{ const r=mk("div","arow"); r.append(mk("span","an",n)); const b=mk("button","","Unban"); b.onclick=()=>adminDo({a:"unban",name:n}); r.appendChild(b); bn.appendChild(r); });
+  }
+  ab.onclick=()=>{ am.classList.add("open"); note(""); renderAdminLists(); };
+  $("amx").onclick=()=>am.classList.remove("open");
+  am.addEventListener("mousedown",e=>{ if(e.target===am) am.classList.remove("open"); });
+  $("ambanb").onclick=()=>{ const n=$("amban").value.trim(); if(n){ adminDo({a:"ban",name:n}); $("amban").value=""; } };
+  $("ampb").onclick=()=>{
+    const n=$("ampn").value.trim(), p=$("ampp").value;
+    if(!n){ note("Type a name first."); return; }
+    if(p&&p.length<4){ note("Use at least 4 characters."); return; }
+    adminDo({a:"setpw",name:n,v:p?hVer(hCred(p)):""}); $("ampp").value="";
+  };
+  $("amclr").onclick=()=>{ if(confirm("Delete all messages in the main chat for everyone? Private chats aren't touched.")) adminDo({a:"clear"}); };
+  setInterval(renderAdminLists,1500);
+
+  /* =============== screen sharing in calls =============== */
+  const callbar=document.querySelector("#callov .call-bar");
+  const sbtn=document.createElement("button"); sbtn.id="cscr"; sbtn.type="button"; sbtn.title="Share your screen"; sbtn.textContent="🖥";
+  callbar.insertBefore(sbtn,$("cend"));
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia) sbtn.style.display="none";   // phones can't share their screen from a browser
+  let share=null, tT=0;
+  function toast(t){ const e=$("calltoast"); e.textContent=t; e.classList.add("on"); clearTimeout(tT); tT=setTimeout(()=>e.classList.remove("on"),3500); }
+  function mediaConns(){ return peer&&peer.connections?Object.values(peer.connections).flat().filter(c=>c&&c.type==="media"&&c.peerConnection):[]; }
+  function vSender(c){ return c.peerConnection.getSenders().find(s=>s.track&&s.track.kind==="video"); }
+  function enforce(){
+    if(!share) return;
+    mediaConns().forEach(c=>{
+      const s=vSender(c); if(!s||s.track===share.track) return;
+      if(!share.prev.has(s)) share.prev.set(s,s.track);
+      s.replaceTrack(share.track).catch(()=>{});
+    });
+  }
+  function ssSend(on){ const m={t:"SS",i:newId(),f:uid,n:usr,on:!!on}; send(m); }
+  function ssApply(m){
+    if(m.f===uid) return;
+    const n=String(m.n||"").slice(0,12);
+    document.querySelectorAll("#calltiles .ct:not(.loc)").forEach(el=>{
+      const nm=el.querySelector(".cl").textContent.replace(/ 🔇$/,"").replace(/ · sharing screen$/,"");
+      if(nm===n) el.classList.toggle("ss",!!m.on);
+    });
+  }
+  async function startShare(){
+    if(share){ stopShare(); return; }
+    if(!$("callov").classList.contains("on")){ toast("Start or join a call first."); return; }
+    let stream;
+    try{ stream=await navigator.mediaDevices.getDisplayMedia({video:{frameRate:15},audio:false}); }
+    catch(e){ toast("Screen sharing was cancelled or isn't allowed."); return; }
+    const track=stream.getVideoTracks()[0]; try{ track.contentHint="detail"; }catch(e){}
+    share={track,stream,prev:new Map(),t1:0,t2:0};
+    track.onended=stopShare;
+    const loc=document.querySelector("#calltiles .ct.loc");
+    if(loc){ const v=loc.querySelector("video"); share.locPrev=v.srcObject; v.srcObject=new MediaStream([track]); loc.classList.add("ss"); }
+    sbtn.classList.add("sharing"); sbtn.title="Stop sharing"; $("ccam").classList.add("locked");
+    enforce(); ssSend(true);
+    share.t1=setInterval(()=>{ if(!$("callov").classList.contains("on")) return stopShare(); enforce(); },700);
+    share.t2=setInterval(()=>ssSend(true),3000);
+    toast("You're sharing your screen. Click a shared tile to go fullscreen.");
+  }
+  function stopShare(){
+    if(!share) return; const s=share; share=null;
+    clearInterval(s.t1); clearInterval(s.t2);
+    s.prev.forEach((tr,snd)=>{ if(tr&&tr.readyState==="live") snd.replaceTrack(tr).catch(()=>{}); });
+    try{ s.track.onended=null; s.stream.getTracks().forEach(t=>t.stop()); }catch(e){}
+    const loc=document.querySelector("#calltiles .ct.loc");
+    if(loc){ loc.classList.remove("ss"); loc.querySelector("video").srcObject=s.locPrev||null; }
+    sbtn.classList.remove("sharing"); sbtn.title="Share your screen"; $("ccam").classList.remove("locked");
+    ssSend(false);
+  }
+  sbtn.onclick=startShare;
+  $("calltiles").addEventListener("click",e=>{
+    const t=e.target.closest(".ct.ss"); if(!t) return;
+    const v=t.querySelector("video"); if(v&&v.requestFullscreen) v.requestFullscreen().catch(()=>{});
+  });
+})();
+</script>
+
 </body>
 </html>
