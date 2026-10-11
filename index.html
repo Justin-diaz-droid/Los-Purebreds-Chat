@@ -788,13 +788,13 @@ function addConn(c){
   c.on("open", () => {
     conns.push(c); ready();
     c.send({ t: "P", u: usr, a: myAvatar, d: myDevice, c: uid, i: newId() });   // host sends its id too
-    if(!isHost) c.send({ t: "S", i: newId(), s: logs.map(l => [l.i, l.v || 0]) });   // host answers once it knows who you are
+    c.send({ t: "S", i: newId(), s: logs.filter(l => !l.to).map(l => [l.i, l.v || 0]) });   // public history summary, sent immediately like before (DM ids are added once the joiner identifies itself)
     c.send({ t: "B", i: newId(), c: uid, bc: myBc, bi: myBi, v: bstyle[uid] ? bstyle[uid].v : 0 });
     setStatus("Online — " + conns.length + " connected");
     sys(isHost ? "A friend joined." : "Connected to the room.");
     queueRegroup();
   });
-  c.on("data", d => handle(d, c));
+  c.on("data", d => { try { handle(d, c); } catch(err){ console.error("handle failed", err, d); } });
   c.on("close", () => {
     conns = conns.filter(x => x !== c);
     if(isHost) pushRoster(); else renderOnline([me()]);
@@ -821,7 +821,7 @@ function handle(d, from){
     if(okUid(d.c)) from.uid = d.c;
     if(isHost && typeof d.u === "string"){
       from.userName = d.u.slice(0, 12); from.avatar = okAv(d.a); from.device = okDev(d.d);
-      if(!from.sentS){ from.sentS = 1; from.send({ t: "S", i: newId(), s: logs.filter(l => !l.to || l.to === from.uid || l.c === from.uid).map(l => [l.i, l.v || 0]) }); }
+      if(!from.sentS && from.uid){ from.sentS = 1; const mine = logs.filter(l => l.to && (l.to === from.uid || l.c === from.uid)); if(mine.length) from.send({ t: "S", i: newId(), s: mine.map(l => [l.i, l.v || 0]) }); }   // DM sync, only for that person
       pushRoster();
     }
     return;
