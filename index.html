@@ -2103,6 +2103,13 @@ $("dmleave").onclick = () => {
 #callring .rb button{border:none;border-radius:999px;padding:8px 14px;font-weight:700;cursor:pointer;color:#fff}
 #callring .no{background:#ff453a}
 #callring .yes{background:#30d158;color:#04210d !important}
+.ct .cm{position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(255,255,255,.1)}
+.ct .cm i{display:block;height:100%;width:0;background:#30d158;transition:width .1s}
+.ct:not(.loc) .cm{display:none}
+.ct.talk{box-shadow:inset 0 0 0 3px #30d158}
+#cmicsel{max-width:150px;background:rgba(255,255,255,.12);color:#fff;border:none;border-radius:999px;padding:6px 8px;font-size:12px}
+#cmicsel option{color:#000}
+#callov.mini #cmicsel{display:none}
 #calltoast{position:fixed;z-index:50;left:50%;bottom:90px;transform:translateX(-50%);background:rgba(30,30,32,.95);color:#fff;padding:10px 16px;border-radius:999px;font-size:13px;display:none;max-width:90vw;text-align:center}
 #calltoast.on{display:block}
 </style>
@@ -2113,7 +2120,7 @@ $("dmleave").onclick = () => {
 
   /* ---------- UI shell ---------- */
   const ov = document.createElement("div"); ov.id = "callov";
-  ov.innerHTML = '<div class="call-head"><b id="callt"></b><span id="calls"></span><button type="button" id="callsize" title="Shrink / expand">⤡</button></div><div id="calltiles"></div><div class="call-bar"><button type="button" id="cmic" title="Mute / unmute">🎤</button><button type="button" id="ccam" class="off" title="Camera on / off">📷</button><button type="button" id="cend" class="end" title="Hang up">📞</button></div>';
+  ov.innerHTML = '<div class="call-head"><b id="callt"></b><span id="calls"></span><select id="cmicsel" title="Microphone"></select><button type="button" id="callsize" title="Shrink / expand">⤡</button></div><div id="calltiles"></div><div class="call-bar"><button type="button" id="cmic" title="Mute / unmute">🎤</button><button type="button" id="ccam" class="off" title="Camera on / off">📷</button><button type="button" id="cend" class="end" title="Hang up">📞</button></div>';
   document.body.appendChild(ov);
   const rg = document.createElement("div"); rg.id = "callring";
   rg.innerHTML = '<div class="rc"><div class="rav" id="ringav"></div><div><b id="ringt"></b><div class="rs" id="rings">Incoming call…</div></div><div class="rb"><button type="button" id="ringno" class="no">Decline</button><button type="button" id="ringyes" class="yes">Accept</button></div></div>';
@@ -2179,8 +2186,9 @@ $("dmleave").onclick = () => {
     const v = document.createElement("video"); v.autoplay = true; v.playsInline = true; if(local) v.muted = true;
     const av = document.createElement("div"); av.className = "cav"; paintAv(av, name);
     const lb = document.createElement("div"); lb.className = "cl";
-    el.append(v, av, lb);
-    const t = { el, v, av, lb, name, local, cam: false, mic: true, stream: null, call: null };
+    const cm = document.createElement("div"); cm.className = "cm"; cm.appendChild(document.createElement("i"));
+    el.append(v, av, lb, cm);
+    const t = { el, v, av, lb, cm, name, local, cam: false, mic: true, stream: null, call: null };
     refreshTile(t); return t;
   }
   function refreshTile(t){
@@ -2198,14 +2206,16 @@ $("dmleave").onclick = () => {
   }
 
   /* ---------- local media ---------- */
+  const AUDIO_OPTS = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
   async function openLocal(){
     if(!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
       toast("Calls need the site opened over https (or localhost)."); return null;
     }
-    let at = null;
-    try { at = (await navigator.mediaDevices.getUserMedia({ audio: true })).getAudioTracks()[0]; }
+    let at = null, silent = false;
+    try { at = (await navigator.mediaDevices.getUserMedia({ audio: AUDIO_OPTS })).getAudioTracks()[0]; }
     catch(e){
-      toast("Mic blocked — you'll be listen-only.");
+      silent = true;
+      toast("Mic blocked or not found — you're listen-only. Pick a microphone at the top of the call.");
       try { const c = new (window.AudioContext || window.webkitAudioContext)(); at = c.createMediaStreamDestination().stream.getAudioTracks()[0]; } catch(x){ return null; }
     }
     // a black placeholder video track, so the camera can be switched on/off later without renegotiating
@@ -2213,7 +2223,7 @@ $("dmleave").onclick = () => {
     const paint = () => { cx.fillStyle = "#000"; cx.fillRect(0, 0, 160, 120); }; paint();
     const timer = setInterval(paint, 500);
     const ph = cv.captureStream(2).getVideoTracks()[0];
-    return { at, ph, cam: null, camOn: false, micOn: true, timer };
+    return { at, ph, cam: null, camOn: false, micOn: true, timer, silent };
   }
   function outStream(){ const L = CALL.cs.L; return new MediaStream([L.at, L.camOn && L.cam ? L.cam : L.ph]); }
   function setVideoTrack(tr){
@@ -2236,6 +2246,7 @@ $("dmleave").onclick = () => {
     $$("callt").textContent = (cs.gid ? "👥 " : "📞 ") + title;
     $$("cmic").textContent = "🎤"; $$("cmic").classList.remove("off"); $$("ccam").classList.add("off");
     ov.classList.remove("mini"); ov.classList.add("on", "full"); stopRing(); hideRing();
+    restartMeter(cs); fillMics(cs);
     return cs;
   }
   async function startCall(){
@@ -2268,7 +2279,8 @@ $("dmleave").onclick = () => {
     const cs = CALL.cs; if(!cs) return;
     CALL.cs = null; clearTimeout(cs.to);
     if(notify) sig({ k: "leave", cid: cs.cid, ...dest(cs) });
-    Object.values(cs.tiles).forEach(t => { const c = t.call; t.call = null; try { c && c.close(); } catch(e){} });
+    Object.values(cs.tiles).forEach(t => { const c = t.call; t.call = null; try { c && c.close(); } catch(e){} if(t.stopMeter) t.stopMeter(); });
+    if(cs.stopMeter) cs.stopMeter();
     const L = cs.L; clearInterval(L.timer);
     [L.at, L.ph, L.cam].forEach(tr => { try { tr && tr.stop(); } catch(e){} });
     $$("calltiles").replaceChildren(); ov.classList.remove("on", "full", "mini");
@@ -2293,7 +2305,7 @@ $("dmleave").onclick = () => {
   function bindCall(u, mc){
     const t = CALL.cs && CALL.cs.tiles[u]; if(!t) return;
     t.call = mc;
-    mc.on("stream", rs => { t.stream = rs; if(t.v.srcObject !== rs) t.v.srcObject = rs; const p = t.v.play && t.v.play(); if(p && p.catch) p.catch(() => {}); });
+    mc.on("stream", rs => { t.stream = rs; if(t.stopMeter) t.stopMeter(); if(rs.getAudioTracks().length) t.stopMeter = meter(rs, lv => t.el.classList.toggle("talk", lv > .04)); if(t.v.srcObject !== rs) t.v.srcObject = rs; const p = t.v.play && t.v.play(); if(p && p.catch) p.catch(() => {}); });
     mc.on("close", () => dropPeer(u, mc));
     mc.on("error", () => dropPeer(u, mc));
   }
@@ -2301,6 +2313,7 @@ $("dmleave").onclick = () => {
     const cs = CALL.cs; if(!cs) return; const t = cs.tiles[u]; if(!t) return;
     if(mc && t.call !== mc) return;
     const c = t.call; t.call = null; try { c && c.close(); } catch(e){}
+    if(t.stopMeter) t.stopMeter();
     t.el.remove(); delete cs.tiles[u];
     if(!cs.gid && !Object.keys(cs.tiles).length){ toast("Call ended."); endCall(false); }
   }
@@ -2363,6 +2376,44 @@ $("dmleave").onclick = () => {
   };
 
   /* ---------- controls ---------- */
+  /* ---------- mic level meter + microphone picker ---------- */
+  function meter(stream, onLevel){
+    try {
+      const c = new (window.AudioContext || window.webkitAudioContext)(); if(c.state === "suspended") c.resume();
+      const an = c.createAnalyser(); an.fftSize = 256; c.createMediaStreamSource(stream).connect(an);
+      const buf = new Uint8Array(an.frequencyBinCount);
+      const id = setInterval(() => { an.getByteTimeDomainData(buf); let m = 0; for(let i = 0; i < buf.length; i++) m = Math.max(m, Math.abs(buf[i] - 128)); onLevel(m / 128); }, 120);
+      return () => { clearInterval(id); try { c.close(); } catch(e){} };
+    } catch(e){ return () => {}; }
+  }
+  function restartMeter(cs){
+    if(cs.stopMeter) cs.stopMeter();
+    const bar = cs.me.cm.firstChild;
+    cs.stopMeter = meter(new MediaStream([cs.L.at]), lv => { bar.style.width = (cs.L.micOn ? Math.min(100, lv * 250) : 0) + "%"; });
+  }
+  async function fillMics(cs){
+    const sel = $$("cmicsel"); sel.replaceChildren();
+    try {
+      const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === "audioinput");
+      if(cs.L.silent){ const o = document.createElement("option"); o.value = "default"; o.textContent = "🎙 Allow microphone…"; sel.appendChild(o); }
+      devs.forEach((d, i) => { const o = document.createElement("option"); o.value = d.deviceId; o.textContent = "🎙 " + (d.label || "Microphone " + (i + 1)); sel.appendChild(o); });
+      const cur = cs.L.at.getSettings && cs.L.at.getSettings().deviceId; if(cur && !cs.L.silent) sel.value = cur;
+    } catch(e){}
+  }
+  $$("cmicsel").onchange = async e => {
+    const cs = CALL.cs; if(!cs) return; const L = cs.L;
+    try {
+      const opts = Object.assign({}, AUDIO_OPTS); if(e.target.value && e.target.value !== "default") opts.deviceId = { exact: e.target.value };
+      const nt = (await navigator.mediaDevices.getUserMedia({ audio: opts })).getAudioTracks()[0];
+      nt.enabled = L.micOn;
+      Object.values(cs.tiles).forEach(t => {
+        const pc = t.call && t.call.peerConnection; if(!pc) return;
+        const sd = pc.getSenders().find(x => x.track && x.track.kind === "audio"); if(sd) sd.replaceTrack(nt).catch(() => {});
+      });
+      try { L.at.stop(); } catch(x){}
+      L.at = nt; L.silent = false; restartMeter(cs); fillMics(cs); toast("Microphone switched.");
+    } catch(err){ toast("Couldn't use that microphone."); }
+  };
   cb.onclick = startCall;
   $$("cend").onclick = () => endCall(true);
   $$("callsize").onclick = () => { ov.classList.toggle("full"); ov.classList.toggle("mini"); };
