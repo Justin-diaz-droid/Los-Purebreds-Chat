@@ -2713,6 +2713,9 @@ label.plus.open{transform:rotate(45deg)}
 #amod .aform{display:flex;gap:6px;flex-wrap:wrap}
 #amod .aform input{flex:1;min-width:110px;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--text);font-size:14px;outline:none}
 #amod .none{font-size:13px;color:var(--muted);padding:2px 4px}
+#amod select{padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--text);font-size:14px;outline:none}
+.msg.ghost .bubble,.msg.ghost .img{opacity:.6;outline:2px dashed #ff453a;outline-offset:2px}
+.ghost-tag{font-size:10px;font-weight:700;color:#ff6b61;margin:0 4px 3px}
 </style>
 <script id="addon-js">
 (function(){
@@ -2757,27 +2760,28 @@ label.plus.open{transform:rotate(45deg)}
 
   /* =============== shared registry: protected names, bans, last chat-clear =============== */
   function cleanReg(r){
-    const o={acc:{},bans:[],mutes:[],clr:0,v:0}; if(!r||typeof r!=="object") return o;
+    const o={acc:{},bans:[],mutes:[],clr:0,clg:0,muteAll:false,v:0}; if(!r||typeof r!=="object") return o;
     if(r.acc&&typeof r.acc==="object") Object.keys(r.acc).slice(0,500).forEach(k=>{ if(k&&k.length<=12&&k!=="__proto__"&&HEX.test(String(r.acc[k]))) o.acc[k]=r.acc[k]; });
     if(Array.isArray(r.bans)) o.bans=[...new Set(r.bans.map(x=>String(x).slice(0,12).toLowerCase()).filter(Boolean))].slice(0,500);
     if(Array.isArray(r.mutes)) o.mutes=[...new Set(r.mutes.map(x=>String(x).slice(0,12).toLowerCase()).filter(Boolean))].slice(0,500);
-    o.clr=+r.clr||0; o.v=+r.v||0; return o;
+    o.clr=+r.clr||0; o.clg=+r.clg||0; o.muteAll=!!r.muteAll; o.v=+r.v||0; return o;
   }
   let reg=cleanReg((()=>{try{return JSON.parse(load("pb_reg","{}"));}catch(e){return {};}})());
   const saveReg=()=>save("pb_reg",JSON.stringify(reg));
-  const areg=()=>({t:"A",i:newId(),acc:reg.acc,bans:reg.bans,mutes:reg.mutes,clr:reg.clr,v:reg.v});
+  const areg=()=>({t:"A",i:newId(),acc:reg.acc,bans:reg.bans,mutes:reg.mutes,clr:reg.clr,clg:reg.clg,muteAll:reg.muteAll,v:reg.v});
   let myPwH="", adminMode=false, pendW=null;
   const low=n=>String(n||"").trim().slice(0,12).toLowerCase();
-  window.__pbMuted=n=>reg.mutes.includes(low(n));   // lets the drawing board respect admin mutes
+  window.__pbMuted=(n,conn)=>{ if(conn?conn.admin:adminMode) return false; return reg.muteAll||reg.mutes.includes(low(n)); };   // lets the drawing board respect admin mutes
 
   function commit(){ reg.v=Math.max(Date.now(),reg.v+1); saveReg(); if(isHost) send(areg()); refreshUI(); }
   function applyClear(){
-    logs=logs.filter(l=>l.to||l.g||(l.ts||0)>reg.clr);
+    // main chat and image gallery are cleared separately; private chats are never touched
+    logs=logs.filter(l=>l.to||l.g||(l.ts||0)>(l.del?Math.min(reg.clr,reg.clg):l.ch==="gal"?reg.clg:reg.clr));
     persist(); rerender();
   }
   const _cleanEntry=cleanEntry;
-  cleanEntry=function(e){ const o=_cleanEntry(e); if(o&&!o.to&&!o.g&&(o.ts||0)<=reg.clr) return null; return o; };
-  window.addEventListener("load",()=>{ if(reg.clr) applyClear(); refreshUI(); });
+  cleanEntry=function(e){ const o=_cleanEntry(e); if(o&&!o.to&&!o.g&&(o.ts||0)<=(o.del?Math.min(reg.clr,reg.clg):o.ch==="gal"?reg.clg:reg.clr)) return null; return o; };
+  window.addEventListener("load",()=>{ if(reg.clr||reg.clg) applyClear(); refreshUI(); });
 
   /* =============== sending my login (hash + admin key) with every "P" message =============== */
   const _addConn=addConn;
@@ -2850,7 +2854,17 @@ label.plus.open{transform:rotate(45deg)}
     else if(m.a==="unmute"){ const l=low(m.name); reg.mutes=reg.mutes.filter(x=>x!==l); commit(); say('Unmuted "'+l+'".');
       conns.filter(c=>c.ok2&&low(c.userName)===l).forEach(c=>{ try{ c.send({t:"E",i:newId(),msg:"You were unmuted."}); }catch(e){} }); }
     else if(m.a==="unban"){ const l=low(m.name); reg.bans=reg.bans.filter(x=>x!==l); commit(); say('Unbanned "'+l+'".'); }
-    else if(m.a==="clear"){ reg.clr=Date.now(); applyClear(); commit(); say("Chat cleared for everyone."); }
+    else if(m.a==="clear"){
+      const g=m.ch==="gal"; if(g) reg.clg=Date.now(); else reg.clr=Date.now();
+      applyClear(); commit(); say(g?"Image gallery cleared for everyone.":"Main chat cleared for everyone.");
+    }
+    else if(m.a==="muteall"||m.a==="unmuteall"){
+      reg.muteAll=m.a==="muteall"; commit();
+      const t=reg.muteAll?"An admin muted everyone.":"An admin unmuted everyone.";
+      conns.forEach(c=>{ if(c.ok2&&!c.admin){ try{ c.send({t:"E",i:newId(),msg:t}); }catch(e){} } });
+      if(!adminMode) sys(t);
+      say(reg.muteAll?"Everyone except admins is muted.":"Everyone can chat again.");
+    }
     else if(m.a==="rename"){
       const nn=String(m.n||"").trim().slice(0,12); if(!nn) return say("Name can't be empty.");
       if(reg.bans.includes(low(nn))) return say("That name is banned.");
@@ -2900,7 +2914,7 @@ label.plus.open{transform:rotate(45deg)}
 
   /* =============== message routing (wraps the existing handler) =============== */
   const _postMsg=postMsg;
-  postMsg=function(){ if(!adminMode&&reg.mutes.includes(low(usr))){ sys("You're muted by an admin."); return; } return _postMsg.apply(this,arguments); };
+  postMsg=function(){ if(!adminMode&&(reg.muteAll||reg.mutes.includes(low(usr)))){ sys("You're muted by an admin."); return; } return _postMsg.apply(this,arguments); };
   window.__leave=leaveRoom;
   window.addEventListener("offline",()=>{ if(peer) leaveRoom("You went offline. Rejoin when you're back."); });
   const _reveal=window.revealChat;
@@ -2923,11 +2937,11 @@ label.plus.open{transform:rotate(45deg)}
         const changed=first||(from.userName&&low(nm)!==low(from.userName));
         if(d.k===ADMIN_KEY) from.admin=true;
         if(changed){ const why=nameBlocked(nm,from,d.h); if(why) return deny(from,why); }
-        if(first){ from.ok2=true; from.pwh=String(d.h||""); from.send(areg()); }
+        if(first){ from.ok2=true; from.pwh=String(d.h||""); from.send(areg()); if(from.admin) from.send({t:"AR",i:newId(),list:[...archive.values()]}); }
       }
       else if(!from.ok2) return;
       else if(!from.admin&&from.userName&&!own(reg.acc,low(from.userName))) return deny(from,"setpw");
-      else if(d.t==="Y"&&!from.admin&&reg.mutes.includes(low(from.userName))){
+      else if(d.t==="Y"&&!from.admin&&(reg.muteAll||reg.mutes.includes(low(from.userName)))){
         try{ from.send({t:"E",i:newId(),msg:"You're muted by an admin."}); }catch(e){} return;
       }
       else if(d.t==="N"){
@@ -2947,7 +2961,7 @@ label.plus.open{transform:rotate(45deg)}
         const n=cleanReg(d);
         if(window.revealChat) window.revealChat();       // the host accepted us: now show the chat
         if(n.v<reg.v) return;
-        const grew=n.clr>reg.clr; reg=n; saveReg(); if(grew) applyClear(); refreshUI(); return;
+        const grew=n.clr>reg.clr||n.clg>reg.clg; reg=n; saveReg(); if(grew) applyClear(); refreshUI(); return;
       }
       if(d.t==="X"){
         const why=d.why; if(why==="password"){ myPwH=""; save("chat_pwh",""); }
@@ -2957,10 +2971,45 @@ label.plus.open{transform:rotate(45deg)}
       if(d.t==="E"){ note(String(d.msg||"").slice(0,200)); sys(String(d.msg||"").slice(0,200)); return; }
       if(d.t==="WA"){ onWA(d); return; }
       if(d.t==="SS"){ ssApply(d); return; }
+      if(d.t==="AR"){
+        if(adminMode&&Array.isArray(d.list)) d.list.slice(0,400).forEach(raw=>{
+          const o=_cleanEntry(raw); if(!o||o.to||o.g||o.del||o.b==null) return;
+          archive.set(o.i,o); const l=logs.find(x=>x.i===o.i); if(l&&l.del) ghost(o.i);
+        });
+        return;
+      }
     }
-    if(d.t==="A"||d.t==="X"||d.t==="Z"||d.t==="E"||d.t==="WA"||d.t==="W"||d.t==="M"||d.t==="SS") return;
+    if(d.t==="AR"||d.t==="A"||d.t==="X"||d.t==="Z"||d.t==="E"||d.t==="WA"||d.t==="W"||d.t==="M"||d.t==="SS") return;
     _handle(d,from);
   };
+
+  /* =============== admin mode: deleted messages stay visible (public channels only) =============== */
+  const archive=new Map();
+  function keepCopy(l){
+    if(!l||l.del||l.to||l.g||l.b==null||!(isHost||adminMode)) return;
+    archive.set(l.i,JSON.parse(JSON.stringify(l)));
+    let tot=0; archive.forEach(a=>{ tot+=String(a.b).length; });
+    while(archive.size>1&&(archive.size>400||tot>6e6)){ const k=archive.keys().next().value; tot-=String(archive.get(k).b).length; archive.delete(k); }
+  }
+  const _mergeEntry=mergeEntry;
+  mergeEntry=function(o){ if(o&&o.del&&!o.to&&!o.g){ const c=logs.find(l=>l.i===o.i); if(c&&!c.del) keepCopy(c); } return _mergeEntry(o); };
+  const _deleteMsg=deleteMsg;
+  deleteMsg=function(id){ const l=logs.find(x=>x.i===id); if(l&&!l.del) keepCopy(l); return _deleteMsg(id); };
+  function ghost(id){
+    if(!adminMode) return; const a=archive.get(id); if(!a) return;
+    if((a.ts||0)<=(a.ch==="gal"?reg.clg:reg.clr)) return;
+    let e=$(id);
+    if(!e){ renderRow(Object.assign({},a),false); e=$(id); }
+    if(!e||e.classList.contains("ghost")) return;
+    e.classList.add("ghost"); e.querySelectorAll(".act").forEach(x=>x.remove());
+    const col=e.querySelector(".col"), tag=document.createElement("div");
+    tag.className="ghost-tag"; tag.textContent="🗑 deleted — only admins can see this";
+    col.insertBefore(tag,col.querySelector(".bwrap")); queueRegroup();
+  }
+  const _applyToDom=applyToDom;
+  applyToDom=function(l){ if(adminMode&&l&&l.del&&archive.has(l.i)){ ghost(l.i); return; } _applyToDom(l); };
+  const _rerender=rerender;
+  rerender=function(){ _rerender(); if(adminMode) archive.forEach((a,id)=>{ const l=logs.find(x=>x.i===id); if(l&&l.del) ghost(id); }); };
 
   /* =============== gate: password field, secret admin button =============== */
   const lab=document.createElement("label"); lab.className="fld";
@@ -3044,7 +3093,7 @@ label.plus.open{transform:rotate(45deg)}
   const ab=document.createElement("button"); ab.id="admbtn"; ab.className="stg-btn"; ab.type="button"; ab.textContent="🛡 Admin panel"; ab.style.display="none";
   document.querySelector(".stg-sb").insertBefore(ab,$("stg-toggle"));
   const am=document.createElement("div"); am.id="amod";
-  am.innerHTML='<div class="acard"><div class="ah"><b>🛡 Admin panel</b><button type="button" id="amx" title="Close">✕</button></div><div id="amsg"></div><div id="amb"><div><h4>Online now</h4><div id="amon"></div></div><div><h4>Muted names</h4><div id="ammu"></div></div><div><h4>Banned names</h4><div id="ambn"></div><div class="aform" style="margin-top:6px"><input id="amban" type="text" maxlength="12" placeholder="Name to ban"><button class="abtn red" type="button" id="ambanb">Ban name</button></div></div><div><h4>Set or reset a password for any name</h4><div class="aform"><input id="ampn" type="text" maxlength="12" placeholder="Name"><input id="ampp" type="text" placeholder="New password (min 4 characters)" autocomplete="off"><button class="abtn" type="button" id="ampb">Apply</button></div></div><div><h4>Danger zone</h4><button class="abtn red" type="button" id="amclr">🗑 Clear the main chat for everyone</button></div></div></div>';
+  am.innerHTML='<div class="acard"><div class="ah"><b>🛡 Admin panel</b><button type="button" id="amx" title="Close">✕</button></div><div id="amsg"></div><div id="amb"><div><h4>Quick actions</h4><button class="abtn red" type="button" id="ammall">🔇 Mute everyone (except admins)</button></div><div><h4>Online now</h4><div id="amon"></div></div><div><h4>Muted names</h4><div id="ammu"></div></div><div><h4>Banned names</h4><div id="ambn"></div><div class="aform" style="margin-top:6px"><input id="amban" type="text" maxlength="12" placeholder="Name to ban"><button class="abtn red" type="button" id="ambanb">Ban name</button></div></div><div><h4>Set or reset a password for any name</h4><div class="aform"><input id="ampn" type="text" maxlength="12" placeholder="Name"><input id="ampp" type="text" placeholder="New password (min 4 characters)" autocomplete="off"><button class="abtn" type="button" id="ampb">Apply</button></div></div><div><h4>Clear a channel for everyone</h4><div class="aform"><select id="amch"><option value="main">💬 Main chat</option><option value="gal">🖼️ Image gallery</option><option value="draw">🎨 Drawing board</option></select><button class="abtn red" type="button" id="amclr">🗑 Clear this channel</button></div><div class="none">Only the selected channel is cleared. Private chats are never touched.</div></div></div></div>';
   document.body.appendChild(am);
   function note(t){ const e=$("amsg"); if(e) e.textContent=t; }
   function adminDo(m){
@@ -3055,6 +3104,7 @@ label.plus.open{transform:rotate(45deg)}
   function mk(tag,cls,txt){ const e=document.createElement(tag); if(cls) e.className=cls; if(txt!=null) e.textContent=txt; return e; }
   function renderAdminLists(){
     if(!$("amod")||!$("amod").classList.contains("open")) return;
+    $("ammall").textContent=reg.muteAll?"🔊 Unmute everyone":"🔇 Mute everyone (except admins)";
     const on=$("amon"); on.replaceChildren();
     (lastRoster||[]).forEach(e=>{
       const r=mk("div","arow"), av=mk("div","pav"); paintAv(av,e.n);
@@ -3076,7 +3126,7 @@ label.plus.open{transform:rotate(45deg)}
     if(!reg.bans.length) bn.appendChild(mk("div","none","No banned names."));
     reg.bans.forEach(n=>{ const r=mk("div","arow"); r.append(mk("span","an",n)); const b=mk("button","","Unban"); b.onclick=()=>adminDo({a:"unban",name:n}); r.appendChild(b); bn.appendChild(r); });
   }
-  ab.onclick=()=>{ am.classList.add("open"); note(""); renderAdminLists(); };
+  ab.onclick=()=>{ am.classList.add("open"); note(""); $("amch").value=curCh==="gal"?"gal":curCh==="draw"?"draw":"main"; renderAdminLists(); };
   $("amx").onclick=()=>am.classList.remove("open");
   am.addEventListener("mousedown",e=>{ if(e.target===am) am.classList.remove("open"); });
   $("ambanb").onclick=()=>{ const n=$("amban").value.trim(); if(n){ adminDo({a:"ban",name:n}); $("amban").value=""; } };
@@ -3086,7 +3136,13 @@ label.plus.open{transform:rotate(45deg)}
     if(!p||p.length<4){ note("Use at least 4 characters."); return; }
     adminDo({a:"setpw",name:n,v:hVer(hCred(p))}); $("ampp").value="";
   };
-  $("amclr").onclick=()=>{ if(confirm("Delete all messages in the main chat for everyone? Private chats aren't touched.")) adminDo({a:"clear"}); };
+  $("amclr").onclick=()=>{
+    const ch=$("amch").value, nm=ch==="gal"?"the image gallery":ch==="draw"?"the drawing board":"the main chat";
+    if(!confirm("Clear "+nm+" for everyone? Other channels and private chats aren't touched.")) return;
+    if(ch==="draw"){ if(window.__pbBoardClear){ window.__pbBoardClear(); note("Drawing board cleared."); } }
+    else adminDo({a:"clear",ch});
+  };
+  $("ammall").onclick=()=>adminDo({a:reg.muteAll?"unmuteall":"muteall"});
   setInterval(renderAdminLists,1500);
 
   /* =============== admin: 🦵 kick / 🔨 ban buttons next to reply / edit / delete =============== */
@@ -3353,10 +3409,11 @@ body.in-draw #draw{display:flex}
 body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray,body.in-draw #attach{display:none !important}
 #dtools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 14px;background:var(--bar,var(--side));color:var(--bar-text,var(--text));border-bottom:1px solid var(--line)}
 #dtools .dsep{width:1px;height:22px;background:var(--line);margin:0 2px}
-.dbtn{border:none;background:var(--row);color:var(--text);border-radius:999px;padding:7px 13px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:transform .2s cubic-bezier(.34,1.56,.64,1),background .15s}
+.dbtn{border:none;background:var(--row);color:var(--text);border-radius:999px;padding:7px 13px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:transform .2s cubic-bezier(.34,1.56,.64,1),background .15s,opacity .15s}
 .dbtn:hover{transform:scale(1.06)}
 .dbtn.on{background:var(--accent);color:var(--on-accent,#fff)}
 .dbtn.red{background:rgba(255,69,58,.2);color:#ff6b61}
+.dbtn:disabled{opacity:.35;pointer-events:none}
 #dpal{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
 .dsw{width:24px;height:24px;border-radius:50%;border:2px solid transparent;box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0;transition:transform .15s}
 .dsw:hover{transform:scale(1.15)}
@@ -3366,7 +3423,13 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
 #dsz{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--bar-text,var(--muted))}
 #dwho{margin-left:auto;font-size:12px;color:var(--bar-text,var(--muted));min-height:16px}
 #dwrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:12px;overflow:hidden}
-#dcv{background:#fff;border-radius:var(--r,16px);box-shadow:0 8px 30px rgba(0,0,0,.35);touch-action:none;cursor:crosshair;display:block}
+#dstage{position:relative}
+#dcv{background:#fff;border-radius:var(--r,16px);box-shadow:0 8px 30px rgba(0,0,0,.35);touch-action:none;cursor:crosshair;display:block;width:100%;height:100%}
+#dcur{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:var(--r,16px)}
+.dcur{position:absolute;transform:translate(-50%,-50%);pointer-events:none;transition:left .08s linear,top .08s linear}
+.dcur i{display:block;width:12px;height:12px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.45)}
+.dcur span{position:absolute;left:14px;top:8px;font-size:11px;font-weight:600;background:rgba(0,0,0,.72);color:#fff;padding:1px 7px;border-radius:999px;white-space:nowrap}
+.dcur.dr i{transform:scale(1.35)}
 </style>
 <script id="draw-js">
 (function(){
@@ -3382,33 +3445,70 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
 
   const COLORS = ["#111111","#ffffff","#ef4444","#f97316","#facc15","#22c55e","#14b8a6","#3b82f6","#8b5cf6","#ec4899","#92400e","#9ca3af"];
   const board = document.createElement("div"); board.id = "draw";
-  board.innerHTML = '<div id="dtools"><button class="dbtn on" id="dpen" type="button">✏️ Pen</button><button class="dbtn" id="der" type="button">🧽 Eraser</button><span class="dsep"></span><div id="dpal"></div><input type="color" id="dcolor" value="#3b82f6" title="Custom color"><span class="dsep"></span><span id="dsz"><input type="range" id="dsize" min="1" max="40" value="6"><b id="dszv">6</b></span><span class="dsep"></span><button class="dbtn" id="dundo" type="button">↩ Undo</button><button class="dbtn" id="dsave" type="button">💾 Save</button><button class="dbtn red" id="dclr" type="button">🗑 Clear</button><span id="dwho"></span></div><div id="dwrap"><canvas id="dcv" width="' + W + '" height="' + H + '"></canvas></div>';
+  board.innerHTML = '<div id="dtools"><button class="dbtn on" id="dpen" type="button" title="Pen">✏️ Pen</button><button class="dbtn" id="dfill" type="button" title="Paint bucket: click a closed area to fill it">🪣 Fill</button><button class="dbtn" id="der" type="button" title="Eraser">🧽 Eraser</button><span class="dsep"></span><div id="dpal"></div><input type="color" id="dcolor" value="#3b82f6" title="Custom color"><span class="dsep"></span><span id="dsz"><input type="range" id="dsize" min="1" max="40" value="6"><b id="dszv">6</b></span><span class="dsep"></span><button class="dbtn" id="dundo" type="button" title="Undo (Ctrl+Z)">↩ Undo</button><button class="dbtn" id="dredo" type="button" title="Redo (Ctrl+Y)" disabled>↪ Redo</button><button class="dbtn" id="dsave" type="button">💾 Save</button><button class="dbtn red" id="dclr" type="button">🗑 Clear</button><span id="dwho"></span></div><div id="dwrap"><div id="dstage"><canvas id="dcv" width="' + W + '" height="' + H + '"></canvas><div id="dcur"></div></div></div>';
   $$("box").after(board);
-  const cv = $$("dcv"), cx = cv.getContext("2d");
+  const cv = $$("dcv"), cx = cv.getContext("2d", { willReadFrequently: true }), stage = $$("dstage");
   cx.lineCap = "round"; cx.lineJoin = "round";
 
   /* ---------- state ---------- */
-  let strokes = [], byId = new Map(), gone = new Set(), clr = 0, mine = [];
-  let tool = "pen", color = COLORS[0], size = 6, cur = null, pend = [], flushT = 0, persistT = 0, whoT = 0;
+  let strokes = [], byId = new Map(), gone = new Set(), clr = 0, mine = [], redoS = [];
+  let tool = "pen", color = COLORS[0], size = 6, cur = null, pend = [], flushT = 0, persistT = 0, whoT = 0, lastC = 0;
   const okId = s => typeof s === "string" && /^[A-Za-z0-9_-]{4,60}$/.test(s);
   const okCol = c => typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c);
   const cl = (v, a, b) => Math.min(b, Math.max(a, Math.round(+v || 0)));
+  const mkId = () => "s" + uid.slice(-5) + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
 
   function cleanStroke(s){
     if(!s || typeof s !== "object" || !okId(s.id) || !okCol(s.c) || !Array.isArray(s.p)) return null;
-    const p = []; for(let i = 0; i + 1 < s.p.length && p.length < 8000; i += 2) p.push(cl(s.p[i], 0, W), cl(s.p[i + 1], 0, H));
+    const fill = s.t === "f", p = [];
+    for(let i = 0; i + 1 < s.p.length && p.length < (fill ? 2 : 8000); i += 2) p.push(cl(s.p[i], 0, W - 1), cl(s.p[i + 1], 0, H - 1));
     if(!p.length) return null;
-    return { id: s.id, o: okUid(s.o) ? s.o : "", n: String(s.n || "").slice(0, 12), c: s.c, w: cl(s.w, 1, 80), ts: +s.ts || 0, p };
+    const o = { id: s.id, o: okUid(s.o) ? s.o : "", n: String(s.n || "").slice(0, 12), c: s.c, w: cl(s.w, 1, 80), ts: +s.ts || 0, p };
+    if(fill) o.t = "f";
+    return o;
   }
   function reindex(){ byId = new Map(strokes.map(s => [s.id, s])); }
+  function addStroke(s){          // keeps strokes ordered by time so every browser replays the same picture
+    let lo = 0, hi = strokes.length;
+    while(lo < hi){ const m = (lo + hi) >> 1, a = strokes[m]; if(a.ts < s.ts || (a.ts === s.ts && a.id <= s.id)) lo = m + 1; else hi = m; }
+    strokes.splice(lo, 0, s); byId.set(s.id, s); return lo === strokes.length - 1;
+  }
   function cap(){
     let pts = 0; for(let i = strokes.length - 1; i >= 0; i--) pts += strokes[i].p.length;
     while(strokes.length > 1500 || (pts > 150000 && strokes.length > 1)){ pts -= strokes[0].p.length; strokes.shift(); }
     reindex();
   }
 
-  /* ---------- drawing ---------- */
+  /* ---------- painting (pen strokes + paint bucket) ---------- */
+  function floodFill(x0, y0, hex){
+    const img = cx.getImageData(0, 0, W, H), d = img.data, u = new Uint32Array(d.buffer);
+    const i0 = (y0 * W + x0) * 4, tr = d[i0], tg = d[i0 + 1], tb = d[i0 + 2];
+    const fr = parseInt(hex.slice(1, 3), 16), fg = parseInt(hex.slice(3, 5), 16), fb = parseInt(hex.slice(5, 7), 16);
+    if(Math.abs(tr - fr) + Math.abs(tg - fg) + Math.abs(tb - fb) < 6) return;
+    const fill = ((255 << 24) | (fb << 16) | (fg << 8) | fr) >>> 0, TOL = 90;
+    const seen = new Uint8Array(W * H);
+    const m = p => { const j = p * 4; return Math.abs(d[j] - tr) + Math.abs(d[j + 1] - tg) + Math.abs(d[j + 2] - tb) <= TOL; };
+    const stack = [x0, y0];
+    while(stack.length){
+      const y = stack.pop(), x = stack.pop(), row = y * W;
+      if(seen[row + x] || !m(row + x)) continue;
+      let lx = x, rx = x;
+      while(lx > 0 && !seen[row + lx - 1] && m(row + lx - 1)) lx--;
+      while(rx < W - 1 && !seen[row + rx + 1] && m(row + rx + 1)) rx++;
+      for(let i = lx; i <= rx; i++){ seen[row + i] = 1; u[row + i] = fill; }
+      for(const ny of [y - 1, y + 1]){
+        if(ny < 0 || ny >= H) continue;
+        const nr = ny * W; let inSpan = false;
+        for(let i = lx; i <= rx; i++){
+          const q = nr + i;
+          if(!seen[q] && m(q)){ if(!inSpan){ stack.push(i, ny); inSpan = true; } } else inSpan = false;
+        }
+      }
+    }
+    cx.putImageData(img, 0, 0);
+  }
   function paint(s, i0){
+    if(s.t === "f"){ floodFill(s.p[0], s.p[1], s.c); return; }
     const p = s.p; cx.strokeStyle = s.c; cx.fillStyle = s.c; cx.lineWidth = s.w;
     if(p.length === 2){ cx.beginPath(); cx.arc(p[0], p[1], s.w / 2, 0, 6.2832); cx.fill(); return; }
     const st = Math.max(0, i0 - 2);
@@ -3422,26 +3522,32 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
   }
   redraw();
 
-  /* ---------- persistence (this browser) ---------- */
-  function persistSoon(){
-    clearTimeout(persistT);
-    persistT = setTimeout(() => {
-      let list = strokes.slice();
-      while(true){
-        try { localStorage.setItem("pb_board", JSON.stringify({ clr, strokes: list, gone: [...gone].slice(-1500) })); return; }
-        catch(e){ if(list.length <= 1) return; list = list.slice(Math.ceil(list.length / 4)); }
-      }
-    }, 1200);
+  /* ---------- saving: survives a refresh (IndexedDB has far more room than localStorage) ---------- */
+  const dbP = new Promise(res => {
+    try { const r = indexedDB.open("purebred-board", 1); r.onupgradeneeded = () => r.result.createObjectStore("kv"); r.onsuccess = () => res(r.result); r.onerror = () => res(null); }
+    catch(e){ res(null); }
+  });
+  function snapForSave(){ cap(); return { clr, strokes: strokes.slice(), gone: [...gone].slice(-1500) }; }
+  async function saveNow(){
+    clearTimeout(persistT); persistT = 0;
+    const o = snapForSave();
+    const db = await dbP;
+    if(db){ try { db.transaction("kv", "readwrite").objectStore("kv").put(o, "board"); } catch(e){} }
+    try { localStorage.setItem("pb_board", JSON.stringify({ clr: o.clr, strokes: o.strokes.slice(-150), gone: [] })); } catch(e){}   // small backup copy
   }
-  try {
-    const b = JSON.parse(load("pb_board", "{}")) || {};
-    clr = +b.clr || 0;
-    (Array.isArray(b.strokes) ? b.strokes : []).forEach(s => { const c = cleanStroke(s); if(c && c.ts > clr) strokes.push(c); });
-    (Array.isArray(b.gone) ? b.gone : []).forEach(g => { if(okId(g)) gone.add(g); });
-    strokes = strokes.filter(s => !gone.has(s.id)); reindex(); redraw();
-  } catch(e){}
+  function persistSoon(){ clearTimeout(persistT); persistT = setTimeout(saveNow, 600); }
+  async function loadSaved(){
+    try { const b = JSON.parse(load("pb_board", "{}")); if(b && typeof b === "object") merge(b); } catch(e){}
+    const db = await dbP; if(!db) return;
+    try {
+      const q = db.transaction("kv").objectStore("kv").get("board");
+      q.onsuccess = () => { if(q.result && typeof q.result === "object") merge(q.result); };
+    } catch(e){}
+  }
+  window.addEventListener("pagehide", saveNow);
+  document.addEventListener("visibilitychange", () => { if(document.visibilityState === "hidden") saveNow(); });
 
-  /* ---------- network ---------- */
+  /* ---------- sharing ---------- */
   function sendD(o){ o.t = "D"; o.i = newId(); o.f = uid; o.n = usr; send(o); }
   function snapObj(){ cap(); return { t: "D", i: newId(), k: "snap", clr, strokes: strokes.slice(), gone: [...gone].slice(-1500) }; }
   function sendSnap(conn){ try { conn.send(snapObj()); } catch(e){} }
@@ -3450,17 +3556,28 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     const nc = +sn.clr || 0;
     if(nc > clr){ clr = nc; strokes = strokes.filter(s => s.ts > clr); gone.clear(); changed = true; }
     (Array.isArray(sn.gone) ? sn.gone : []).slice(0, 3000).forEach(g => { if(okId(g) && !gone.has(g)){ gone.add(g); if(byId.has(g)) changed = true; } });
-    if(changed) { strokes = strokes.filter(s => !gone.has(s.id)); reindex(); }
+    if(changed){ strokes = strokes.filter(s => !gone.has(s.id)); reindex(); }
     (Array.isArray(sn.strokes) ? sn.strokes : []).slice(0, 2000).forEach(raw => {
       const s = cleanStroke(raw); if(!s || s.ts <= clr || gone.has(s.id) || byId.has(s.id)) return;
-      strokes.push(s); byId.set(s.id, s); changed = true;
+      addStroke(s); changed = true;
     });
-    if(changed){ strokes.sort((a, b) => a.ts - b.ts); cap(); redraw(); persistSoon(); }
+    if(changed){ cap(); redraw(); persistSoon(); }
     return changed;
   }
-  function who(n){ const e = $$("dwho"); e.textContent = "✏️ " + n + " is drawing…"; clearTimeout(whoT); whoT = setTimeout(() => { e.textContent = ""; }, 1800); }
+  function who(t){ const e = $$("dwho"); e.textContent = t; clearTimeout(whoT); whoT = setTimeout(() => { e.textContent = ""; }, 1800); }
   function rm(id){ if(!byId.has(id)) return; strokes = strokes.filter(s => s.id !== id); gone.add(id); reindex(); redraw(); persistSoon(); }
-  function applyClr(t){ clr = Math.max(clr, t); strokes = strokes.filter(s => s.ts > clr); gone.clear(); mine = []; reindex(); redraw(); persistSoon(); }
+  function applyClr(t){ clr = Math.max(clr, t); strokes = strokes.filter(s => s.ts > clr); gone.clear(); mine = []; redoS = []; reindex(); redraw(); persistSoon(); updBtns(); }
+
+  /* ---------- everyone's cursors ---------- */
+  const curs = new Map();
+  function showCursor(f, n, x, y, drawing){
+    let c = curs.get(f);
+    if(!c){ const el = document.createElement("div"); el.className = "dcur"; el.innerHTML = "<i></i><span></span>"; $$("dcur").appendChild(el); c = { el }; curs.set(f, c); }
+    c.el.style.left = (x / W * 100) + "%"; c.el.style.top = (y / H * 100) + "%";
+    c.el.firstChild.style.background = colorFor(n); c.el.lastChild.textContent = n; c.el.classList.toggle("dr", !!drawing); c.t = Date.now();
+  }
+  function hideCursor(f){ const c = curs.get(f); if(c){ c.el.remove(); curs.delete(f); } }
+  setInterval(() => { if(!curs.size) return; const now = Date.now(); curs.forEach((c, f) => { if(now - c.t > 2500) hideCursor(f); }); }, 700);
 
   function onDraw(d, fromConn){
     const host = isHost;
@@ -3469,29 +3586,39 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
       else {
         const had = strokes.length > 0;
         merge(d);
-        if(had && strokes.length) { const o = snapObj(); try { conns.forEach(c => c.open && c.send(o)); } catch(e){} }   // give the host anything it was missing
+        if(had && strokes.length){ const o = snapObj(); try { conns.forEach(c => c.open && c.send(o)); } catch(e){} }   // give the host anything it was missing
       }
       return;
     }
-    if(!okUid(d.f)) return;
-    if(d.k === "p"){
+    if(!okUid(d.f) || d.f === uid) return;
+    const nm = String(d.n || "Someone").slice(0, 12);
+    if(d.k === "c"){
+      if(d.off) hideCursor(d.f); else showCursor(d.f, nm, cl(d.x, 0, W), cl(d.y, 0, H), d.d);
+    }
+    else if(d.k === "p"){
       if(!okId(d.s) || !okCol(d.c) || !Array.isArray(d.pts) || !d.pts.length || d.pts.length > 400) return;
       const ts = +d.ts || 0; if(ts <= clr || gone.has(d.s)) return;
-      let s = byId.get(d.s);
-      const w = cl(d.w, 1, 80), old = s ? s.p.length : 0;
-      if(!s){ s = { id: d.s, o: d.f, n: String(d.n || "").slice(0, 12), c: d.c, w, ts, p: [] }; strokes.push(s); byId.set(s.id, s); }
-      else if(s.o !== d.f) return;
+      let s = byId.get(d.s), atEnd = true;
+      const old = s ? s.p.length : 0;
+      if(!s){ s = { id: d.s, o: d.f, n: nm, c: d.c, w: cl(d.w, 1, 80), ts, p: [] }; atEnd = addStroke(s); }
+      else if(s.o !== d.f || s.t === "f") return;
       for(let i = 0; i + 1 < d.pts.length && s.p.length < 8000; i += 2) s.p.push(cl(d.pts[i], 0, W), cl(d.pts[i + 1], 0, H));
-      paint(s, old); who(s.n || "Someone"); persistSoon();
+      if(atEnd) paint(s, old); else redraw();
+      who("✏️ " + nm + " is drawing…"); persistSoon();
+    }
+    else if(d.k === "s"){                     // a finished stroke / fill (fills and redo arrive this way)
+      const s = cleanStroke(d.s); if(!s || s.ts <= clr || gone.has(s.id) || byId.has(s.id)) return;
+      s.o = d.f; s.n = nm; addStroke(s); redraw();
+      who((s.t === "f" ? "🪣 " : "✏️ ") + nm + (s.t === "f" ? " filled an area" : " drew")); persistSoon();
     }
     else if(d.k === "u"){
       if(!okId(d.s)) return; const s = byId.get(d.s);
       if(s && s.o !== d.f) return;
       rm(d.s);
     }
-    else if(d.k === "clr"){ const t = +d.ts || 0; if(t > Date.now() + 60000) return; applyClr(t || Date.now()); who(String(d.n || "Someone").slice(0, 12) + " cleared the board —"); }
+    else if(d.k === "clr"){ const t = +d.ts || 0; if(t > Date.now() + 60000) return; applyClr(t || Date.now()); who("🗑 " + nm + " cleared the board"); }
     else return;
-    if(host) send(d, fromConn);                       // relay to everyone else
+    if(host) send(d, fromConn);              // relay to everyone else
   }
 
   const _h = handle;
@@ -3500,7 +3627,7 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
       if(!validId(d.i)) return;
       if(isHost){
         if(!from.ok2 || from.denied || !from.uid) return;
-        if(window.__pbMuted && window.__pbMuted(from.userName)) return;
+        if(window.__pbMuted && window.__pbMuted(from.userName, from) && d.k !== "c") return;
         if(d.k !== "snap"){ d.f = from.uid; d.n = String(from.userName || "").slice(0, 12); }
         onDraw(d, from);
       } else onDraw(d, null);
@@ -3517,42 +3644,73 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     b.onclick = () => setColor(c); pal.appendChild(b);
   });
   function setColor(c){ color = c; if(tool === "erase") setTool("pen"); pal.querySelectorAll(".dsw").forEach(b => b.classList.toggle("on", b.dataset.c === c)); }
-  function setTool(t){ tool = t; $$("dpen").classList.toggle("on", t === "pen"); $$("der").classList.toggle("on", t === "erase"); }
-  $$("dpen").onclick = () => setTool("pen");
-  $$("der").onclick = () => setTool("erase");
-  $$("dcolor").oninput = e => { pal.querySelectorAll(".dsw").forEach(b => b.classList.remove("on")); color = e.target.value; setTool("pen"); };
-  $$("dsize").oninput = e => { size = +e.target.value; $$("dszv").textContent = size; };
-  function undo(){
-    while(mine.length){ const id = mine.pop(); if(byId.has(id)){ sendD({ k: "u", s: id }); rm(id); return; } }
+  function setTool(t){
+    tool = t;
+    $$("dpen").classList.toggle("on", t === "pen"); $$("dfill").classList.toggle("on", t === "fill"); $$("der").classList.toggle("on", t === "erase");
+    cv.style.cursor = t === "fill" ? "cell" : "crosshair";
   }
-  $$("dundo").onclick = undo;
+  $$("dpen").onclick = () => setTool("pen");
+  $$("dfill").onclick = () => setTool("fill");
+  $$("der").onclick = () => setTool("erase");
+  $$("dcolor").oninput = e => { pal.querySelectorAll(".dsw").forEach(b => b.classList.remove("on")); color = e.target.value; if(tool === "erase") setTool("pen"); };
+  $$("dsize").oninput = e => { size = +e.target.value; $$("dszv").textContent = size; };
+
+  function updBtns(){ $$("dredo").disabled = !redoS.length; $$("dundo").disabled = !mine.some(id => byId.has(id)); }
+  function undo(){
+    while(mine.length){
+      const id = mine.pop(), s = byId.get(id);
+      if(s){ redoS.push(JSON.parse(JSON.stringify(s))); sendD({ k: "u", s: id }); rm(id); break; }
+    }
+    updBtns();
+  }
+  function redo(){
+    const o = redoS.pop(); if(!o) return;
+    const s = Object.assign({}, o, { id: mkId(), ts: Date.now(), o: uid, n: usr });     // comes back on top as a fresh stroke
+    addStroke(s); mine.push(s.id); redraw(); sendD({ k: "s", s }); persistSoon(); updBtns();
+  }
+  $$("dundo").onclick = undo; $$("dredo").onclick = redo;
   $$("dclr").onclick = () => { if(!confirm("Clear the whole drawing board for everyone?")) return; const t = Date.now(); applyClr(t); sendD({ k: "clr", ts: t }); };
   $$("dsave").onclick = () => cv.toBlob(b => {
     if(!b) return; const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = "purebred-drawing.png";
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   });
   document.addEventListener("keydown", e => {
-    if(document.body.classList.contains("in-draw") && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z"){ e.preventDefault(); undo(); }
+    if(!document.body.classList.contains("in-draw") || !(e.ctrlKey || e.metaKey)) return;
+    const k = e.key.toLowerCase();
+    if(k === "z" && !e.shiftKey){ e.preventDefault(); undo(); }
+    else if(k === "y" || (k === "z" && e.shiftKey)){ e.preventDefault(); redo(); }
   });
 
-  /* ---------- pointer drawing ---------- */
-  function pt(e){ const r = cv.getBoundingClientRect(); return [cl((e.clientX - r.left) * W / r.width, 0, W), cl((e.clientY - r.top) * H / r.height, 0, H)]; }
-  function flush(final){
+  /* ---------- pointer drawing (several people can draw at the same time) ---------- */
+  function pt(e){ const r = cv.getBoundingClientRect(); return [cl((e.clientX - r.left) * W / r.width, 0, W - 1), cl((e.clientY - r.top) * H / r.height, 0, H - 1)]; }
+  function flush(){
     clearTimeout(flushT); flushT = 0;
     if(!cur || !pend.length) return;
     sendD({ k: "p", s: cur.id, c: cur.c, w: cur.w, ts: cur.ts, pts: pend }); pend = [];
   }
+  function sendCursor(x, y, drawing){
+    const now = Date.now(); if(now - lastC < 70) return; lastC = now;
+    sendD({ k: "c", x, y, d: drawing ? 1 : 0 });
+  }
+  const muteCheck = () => { if(window.__pbMuted && window.__pbMuted(usr)){ sys("You're muted by an admin."); return true; } return false; };
   cv.addEventListener("pointerdown", e => {
     if(e.button > 0 || cur) return;
-    if(window.__pbMuted && window.__pbMuted(usr)){ sys("You're muted by an admin."); return; }
-    e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch(x){}
+    if(muteCheck()) return;
+    e.preventDefault();
     const [x, y] = pt(e);
-    cur = { id: "s" + uid.slice(-5) + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), o: uid, n: usr,
-      c: tool === "erase" ? "#ffffff" : color, w: tool === "erase" ? Math.min(80, size * 2.5) : size, ts: Date.now(), p: [x, y] };
-    strokes.push(cur); byId.set(cur.id, cur); mine.push(cur.id);
-    paint(cur, 0); pend = [x, y]; flush();
+    redoS = [];
+    if(tool === "fill"){
+      const s = { id: mkId(), o: uid, n: usr, c: color, w: 1, ts: Date.now(), t: "f", p: [x, y] };
+      addStroke(s); mine.push(s.id); redraw(); sendD({ k: "s", s }); persistSoon(); updBtns(); return;
+    }
+    try { cv.setPointerCapture(e.pointerId); } catch(x2){}
+    cur = { id: mkId(), o: uid, n: usr, c: tool === "erase" ? "#ffffff" : color, w: tool === "erase" ? Math.min(80, size * 2.5) : size, ts: Date.now(), p: [x, y] };
+    mine.push(cur.id);
+    if(addStroke(cur)) paint(cur, 0); else redraw();
+    pend = [x, y]; flush(); updBtns();
   });
   cv.addEventListener("pointermove", e => {
+    const [hx, hy] = pt(e); sendCursor(hx, hy, !!cur);
     if(!cur) return;
     const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
     const old = cur.p.length;
@@ -3564,15 +3722,16 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     });
     if(cur.p.length > old){ paint(cur, old); if(!flushT) flushT = setTimeout(flush, 45); }
   });
-  const end = () => { if(!cur) return; flush(true); cur = null; persistSoon(); };
+  const end = () => { if(!cur) return; flush(); cur = null; persistSoon(); };
   cv.addEventListener("pointerup", end); cv.addEventListener("pointercancel", end);
+  cv.addEventListener("pointerleave", () => { if(!cur){ lastC = 0; sendD({ k: "c", off: 1 }); } });
 
   /* ---------- fit the canvas to the pane (16:9) ---------- */
   function fit(){
     const wrap = $$("dwrap"), aw = wrap.clientWidth - 24, ah = wrap.clientHeight - 24;
     if(aw <= 0 || ah <= 0) return;
     const w = Math.max(120, Math.min(aw, ah * W / H));
-    cv.style.width = w + "px"; cv.style.height = (w * H / W) + "px";
+    stage.style.width = w + "px"; stage.style.height = (w * H / W) + "px";
   }
   new ResizeObserver(fit).observe($$("dwrap")); fit();
 
@@ -3584,6 +3743,9 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     $$("ch-draw").classList.toggle("active", c === "draw");
     if(c === "draw") setTimeout(fit, 0);
   };
+
+  window.__pbBoardClear = () => { const t = Date.now(); applyClr(t); sendD({ k: "clr", ts: t }); };
+  updBtns(); loadSaved();
 })();
 </script>
 </body>
