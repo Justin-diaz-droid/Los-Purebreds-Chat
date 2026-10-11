@@ -2716,6 +2716,9 @@ label.plus.open{transform:rotate(45deg)}
 #amod select{padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--text);font-size:14px;outline:none}
 .msg.ghost .bubble,.msg.ghost .img{opacity:.6;outline:2px dashed #ff453a;outline-offset:2px}
 .ghost-tag{font-size:10px;font-weight:700;color:#ff6b61;margin:0 4px 3px}
+#hmute{border:none;border-radius:999px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;background:var(--row);color:var(--text);white-space:nowrap;flex-shrink:0}
+#hmute.on{background:#ff453a;color:#fff}
+.hide-hdr #hmute{display:none !important}
 </style>
 <script id="addon-js">
 (function(){
@@ -2769,6 +2772,7 @@ label.plus.open{transform:rotate(45deg)}
   let reg=cleanReg((()=>{try{return JSON.parse(load("pb_reg","{}"));}catch(e){return {};}})());
   const saveReg=()=>save("pb_reg",JSON.stringify(reg));
   const areg=()=>({t:"A",i:newId(),acc:reg.acc,bans:reg.bans,mutes:reg.mutes,clr:reg.clr,clg:reg.clg,muteAll:reg.muteAll,v:reg.v});
+  reg.muteAll=false;
   let myPwH="", adminMode=false, pendW=null;
   const low=n=>String(n||"").trim().slice(0,12).toLowerCase();
   window.__pbMuted=(n,conn)=>{ if(conn?conn.admin:adminMode) return false; return reg.muteAll||reg.mutes.includes(low(n)); };   // lets the drawing board respect admin mutes
@@ -2915,6 +2919,11 @@ label.plus.open{transform:rotate(45deg)}
   /* =============== message routing (wraps the existing handler) =============== */
   const _postMsg=postMsg;
   postMsg=function(){ if(!adminMode&&(reg.muteAll||reg.mutes.includes(low(usr)))){ sys("You're muted by an admin."); return; } return _postMsg.apply(this,arguments); };
+  const _sendText=sendText;
+  sendText=function(){
+    if(!adminMode&&(reg.muteAll||reg.mutes.includes(low(usr)))){ sys("You're muted by an admin."); return; }
+    return _sendText();
+  };
   window.__leave=leaveRoom;
   window.addEventListener("offline",()=>{ if(peer) leaveRoom("You went offline. Rejoin when you're back."); });
   const _reveal=window.revealChat;
@@ -2960,7 +2969,6 @@ label.plus.open{transform:rotate(45deg)}
       if(d.t==="A"){
         const n=cleanReg(d);
         if(window.revealChat) window.revealChat();       // the host accepted us: now show the chat
-        if(n.v<reg.v) return;
         const grew=n.clr>reg.clr||n.clg>reg.clg; reg=n; saveReg(); if(grew) applyClear(); refreshUI(); return;
       }
       if(d.t==="X"){
@@ -3143,6 +3151,17 @@ label.plus.open{transform:rotate(45deg)}
     else adminDo({a:"clear",ch});
   };
   $("ammall").onclick=()=>adminDo({a:reg.muteAll?"unmuteall":"muteall"});
+  /* =============== one-click "Mute all" in the top bar (admins only) =============== */
+  const hm=document.createElement("button"); hm.id="hmute"; hm.type="button"; hm.style.display="none";
+  hm.title="Mute / unmute everyone except admins";
+  $("hdr").insertBefore(hm,$("online"));
+  hm.onclick=()=>adminDo({a:reg.muteAll?"unmuteall":"muteall"});
+  setInterval(()=>{
+    const inRoom=adminMode&&!!peer&&$("gate").style.display==="none";
+    hm.style.display=inRoom?"":"none";
+    hm.textContent=reg.muteAll?"🔊 Unmute all":"🔇 Mute all";
+    hm.classList.toggle("on",!!reg.muteAll);
+  },400);
   setInterval(renderAdminLists,1500);
 
   /* =============== admin: 🦵 kick / 🔨 ban buttons next to reply / edit / delete =============== */
