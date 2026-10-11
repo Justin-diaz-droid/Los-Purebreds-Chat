@@ -746,6 +746,33 @@ function accentFrom(hex){
   const toHex = n => n.toString(16).padStart(2, "0");
   return { color: "#" + toHex(r) + toHex(g) + toHex(b), text: lum(r, g, b) > 0.6 ? "#000" : "#fff" };
 }
+/* most popular colour of an image (as #rrggbb) */
+function dominantColor(url, cb){
+  const im = new Image();
+  im.onload = () => {
+    try {
+      const n = 48, cv = document.createElement("canvas"); cv.width = cv.height = n;
+      const cx = cv.getContext("2d", { willReadFrequently: true }); cx.drawImage(im, 0, 0, n, n);
+      const px = cx.getImageData(0, 0, n, n).data, bins = {};
+      for(let i = 0; i < px.length; i += 4){
+        if(px[i + 3] < 128) continue;
+        const r = px[i], g = px[i + 1], b = px[i + 2], key = (r >> 4) << 8 | (g >> 4) << 4 | (b >> 4);
+        const o = bins[key] || (bins[key] = { n: 0, r: 0, g: 0, b: 0 });
+        o.n++; o.r += r; o.g += g; o.b += b;
+      }
+      let best = null, bs = -1;
+      Object.values(bins).forEach(o => {
+        const r = o.r / o.n, g = o.g / o.n, b = o.b / o.n, mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+        const sat = mx ? (mx - mn) / mx : 0, score = o.n * (0.5 + sat);   // popular first, greys count a bit less
+        if(score > bs){ bs = score; best = [r, g, b]; }
+      });
+      if(!best) return cb("");
+      cb("#" + best.map(v => Math.round(v).toString(16).padStart(2, "0")).join(""));
+    } catch(e){ cb(""); }
+  };
+  im.onerror = () => cb("");
+  im.src = url;
+}
 function applyWall(){
   const box = $("box"), k = load("wall_kind", "none"), dim = (+load("wall_dim", "30")) / 100;
   box.style.backgroundImage = ""; box.style.backgroundColor = "";
@@ -765,6 +792,13 @@ function applyWall(){
     if(img){
       box.style.backgroundImage = `linear-gradient(rgba(0,0,0,${dim}),rgba(0,0,0,${dim})),url("${img}")`;
       box.style.backgroundSize = "cover"; box.style.backgroundPosition = "center";
+      const ic = load("wall_img_col", "");
+      if(/^#[0-9a-f]{6}$/i.test(ic)){
+        const a = accentFrom(ic);
+        st.setProperty("--accent", a.color); st.setProperty("--on-accent", a.text);
+        st.setProperty("--bar", a.color); st.setProperty("--bar-text", a.text);
+        if(document.body.dataset.theme !== "discord") st.setProperty("--me", a.color);
+      } else dominantColor(img, c => { if(c){ save("wall_img_col", c); applyWall(); } });   // older saved wallpapers
     }
   }
 }
@@ -906,7 +940,7 @@ function updateYou(){ $("youare").textContent = "Signed in as " + usr; }
 /* ---------- settings screen (fullscreen, live preview) ---------- */
 function currentSettings(){
   return { name: usr, avatar: myAvatar, font: myFont, bc: myBc, bi: myBi, theme: document.body.dataset.theme,
-    wallKind: load("wall_kind", "none"), wallColor: load("wall_color", "#000000"), wallImg: load("wall_img", ""), wallDim: +load("wall_dim", "30"),
+    wallKind: load("wall_kind", "none"), wallColor: load("wall_color", "#000000"), wallImg: load("wall_img", ""), wallImgCol: load("wall_img_col", ""), wallDim: +load("wall_dim", "30"),
     hideHdr: load("hide_hdr", "0") === "1", hideSb: load("hide_sb", "0") === "1" };
 }
 function fillControls(){
@@ -986,7 +1020,7 @@ $("bimgfile").onchange = e => readImage(e, 240, 0.6, u => {
   if(!okBi(u)){ $("stgerr").textContent = "That bubble image is too detailed — try a simpler one."; return; }
   draft.bi = u; renderPreview();
 });
-$("wfile").onchange = e => readImage(e, 1280, 0.8, u => { draft.wallImg = u; draft.wallKind = "image"; renderPreview(); });
+$("wfile").onchange = e => readImage(e, 1280, 0.8, u => { draft.wallImg = u; draft.wallKind = "image"; draft.wallImgCol = ""; renderPreview(); dominantColor(u, c => { if(draft && draft.wallImg === u){ draft.wallImgCol = c; renderPreview(); } }); });
 
 $("save").onclick = () => {
   if(!draft) return;
@@ -995,7 +1029,7 @@ $("save").onclick = () => {
     try { localStorage.setItem("wall_img", d.wallImg); }
     catch(err){ $("stgerr").textContent = "That wallpaper is too big to save — pick a smaller image."; return; }
   } else { try { localStorage.removeItem("wall_img"); } catch(err){} }
-  save("wall_kind", d.wallKind); save("wall_color", d.wallColor); save("wall_dim", String(d.wallDim));
+  save("wall_img_col", d.wallKind === "image" ? (d.wallImgCol || "") : ""); save("wall_kind", d.wallKind); save("wall_color", d.wallColor); save("wall_dim", String(d.wallDim));
   save("hide_hdr", d.hideHdr ? "1" : "0"); save("hide_sb", d.hideSb ? "1" : "0");
   myFont = okFont(d.font); save("chat_font", myFont); $("inp").style.fontFamily = FONT_MAP[myFont] || "";
   usr = (d.name.trim() || usr).slice(0, 12); save("chat_usr", usr); updateYou();
@@ -1057,6 +1091,12 @@ function drawPreview(){
     body.style.setProperty("--bar", a.color); body.style.setProperty("--bar-text", a.text);
     if(theme !== "discord") body.style.setProperty("--me", a.color);
   } else if(d.wallKind === "image" && d.wallImg){
+    if(/^#[0-9a-f]{6}$/i.test(d.wallImgCol || "")){
+      const a = accentFrom(d.wallImgCol);
+      body.style.setProperty("--accent", a.color); body.style.setProperty("--on-accent", a.text);
+      body.style.setProperty("--bar", a.color); body.style.setProperty("--bar-text", a.text);
+      if(theme !== "discord") body.style.setProperty("--me", a.color);
+    }
     const dim = d.wallDim / 100;
     box.style.backgroundImage = "linear-gradient(rgba(0,0,0," + dim + "),rgba(0,0,0," + dim + ")),url(\"" + d.wallImg + "\")";
     box.style.backgroundSize = "cover"; box.style.backgroundPosition = "center";
@@ -2452,6 +2492,159 @@ $("dmleave").onclick = () => {
     updateCallBtn();
   }, 1000);
   window.addEventListener("beforeunload", () => { if(CALL.cs) endCall(true); });
+})();
+</script>
+<style id="attach-css">
+#attach{display:flex;flex-direction:column;max-height:0;opacity:0;overflow:hidden;visibility:hidden;border-top:1px solid transparent;background:var(--bar,var(--side));color:var(--bar-text,var(--text));transition:max-height .26s cubic-bezier(.2,.9,.3,1),opacity .2s,border-color .26s,visibility 0s linear .26s}
+#attach.on{max-height:min(320px,48vh);opacity:1;visibility:visible;border-top-color:var(--line);transition:max-height .26s cubic-bezier(.2,.9,.3,1),opacity .2s,border-color .26s,visibility 0s;padding-bottom:env(safe-area-inset-bottom,0px)}
+#attach .at-head{display:flex;align-items:center;gap:8px;padding:8px 14px;font-size:13px}
+#attach .at-head b{font-size:14px}
+#attach .at-sub{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.7;font-size:12px}
+#attach .at-head button{border:none;background:var(--row);color:var(--text);border-radius:999px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer}
+#attach .at-head button.x{width:28px;height:28px;padding:0;border-radius:50%}
+#atgrid{flex:1;min-height:0;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px;padding:4px 14px 10px;align-content:start}
+#atgrid .th{position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;background:var(--row);cursor:pointer;border:3px solid transparent;transition:transform .15s,border-color .15s}
+#atgrid .th:hover{transform:scale(1.04)}
+#atgrid .th canvas{width:100%;height:100%;display:block;object-fit:cover}
+#atgrid .th.sel{border-color:var(--accent)}
+#atgrid .th.sel::after{content:"✓";position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--on-accent,#fff);font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}
+#atgrid .th.add{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:12px;font-weight:600;border:2px dashed var(--line)}
+#atgrid .th.add i{font-style:normal;font-size:26px}
+#atgrid .note{grid-column:1/-1;font-size:12px;opacity:.65;padding:2px 2px 0}
+#attach .at-foot{display:none;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid var(--line)}
+#attach.has-sel .at-foot{display:flex}
+#attach .at-foot span{flex:1;font-size:13px}
+#attach .at-foot button{border:none;background:var(--accent);color:var(--on-accent,#fff);border-radius:999px;padding:8px 18px;font-weight:700;cursor:pointer}
+label.plus.open{transform:rotate(45deg)}
+</style>
+<script id="attach-js">
+(function(){
+  const $$ = id => document.getElementById(id);
+  const panel = document.createElement("div"); panel.id = "attach";
+  panel.innerHTML = '<div class="at-head"><b>Photos</b><span class="at-sub" id="atsub"></span><button type="button" id="atfolder" style="display:none">📂 Folder</button><button type="button" class="x" id="atclose" title="Close">✕</button></div><div id="atgrid"></div><div class="at-foot"><span id="atcount"></span><button type="button" id="atsend">Send</button></div>';
+  $$("tray").after(panel);
+  const file = document.createElement("input"); file.type = "file"; file.accept = "image/*"; file.multiple = true; file.style.display = "none"; document.body.appendChild(file);
+  const plus = document.querySelector("label.plus");
+
+  let items = [], saved = null, tried = false;
+
+  /* ---- tiny IndexedDB store so a chosen photo folder is remembered ---- */
+  const idb = () => new Promise((res, rej) => { const r = indexedDB.open("purebred-chat", 1); r.onupgradeneeded = () => r.result.createObjectStore("kv"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  async function kvGet(k){ try { const db = await idb(); return await new Promise(res => { const q = db.transaction("kv").objectStore("kv").get(k); q.onsuccess = () => res(q.result); q.onerror = () => res(null); }); } catch(e){ return null; } }
+  async function kvSet(k, v){ try { const db = await idb(); db.transaction("kv", "readwrite").objectStore("kv").put(v, k); } catch(e){} }
+
+  /* ---- thumbnails ---- */
+  async function thumb(it){
+    const cv = document.createElement("canvas"); cv.width = cv.height = 180; const cx = cv.getContext("2d");
+    let src = null;
+    try { src = await createImageBitmap(it.file); }
+    catch(e){ try { src = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = URL.createObjectURL(it.file); }); } catch(x){} }
+    if(src){
+      const w = src.width, h = src.height, m = Math.min(w, h);
+      cx.drawImage(src, (w - m) / 2, (h - m) / 2, m, m, 0, 0, 180, 180);
+      if(src.close) src.close();
+    }
+    it.el.appendChild(cv);
+  }
+  function makeItem(f, pre){
+    const el = document.createElement("div"); el.className = "th" + (pre ? " sel" : "");
+    const it = { file: f, sel: !!pre, el, done: false };
+    el.onclick = () => { it.sel = !it.sel; el.classList.toggle("sel", it.sel); updateSel(); };
+    return it;
+  }
+  async function fillThumbs(){
+    for(const it of items){
+      if(it.done) continue; it.done = true;
+      await thumb(it); await new Promise(r => setTimeout(r, 0));
+    }
+  }
+  function updateSel(){
+    const n = items.filter(i => i.sel).length;
+    panel.classList.toggle("has-sel", n > 0);
+    $$("atcount").textContent = n + " photo" + (n === 1 ? "" : "s") + " selected";
+    $$("atsend").textContent = "Send" + (n > 1 ? " (" + n + ")" : "");
+  }
+  function render(note){
+    const grid = $$("atgrid"); grid.replaceChildren();
+    const add = document.createElement("div"); add.className = "th add"; add.innerHTML = "<i>🖼️</i>Browse"; add.onclick = () => file.click();
+    grid.appendChild(add);
+    items.forEach(it => grid.appendChild(it.el));
+    if(note){ const n = document.createElement("div"); n.className = "note"; n.textContent = note; grid.appendChild(n); }
+    updateSel(); fillThumbs();
+  }
+
+  /* ---- photos chosen with the normal file picker (on phones this opens your photo library) ---- */
+  file.onchange = () => {
+    const fs = [...file.files].filter(f => f.type.startsWith("image/")); file.value = "";
+    if(!fs.length) return;
+    items = fs.map(f => makeItem(f, true)).concat(items.filter(i => !i.sel || true));
+    render(); openAttach();
+  };
+
+  /* ---- photo folder (desktop Chrome / Edge) ---- */
+  const canDir = typeof window.showDirectoryPicker === "function";
+  async function loadDir(dir){
+    $$("atsub").textContent = "Reading " + dir.name + "…";
+    const files = []; let seen = 0;
+    try {
+      for await (const [name, h] of dir.entries()){
+        if(h.kind !== "file" || !/\.(jpe?g|png|webp|gif|bmp|avif)$/i.test(name)) continue;
+        if(++seen > 1500) break;
+        try { files.push(await h.getFile()); } catch(e){}
+      }
+    } catch(e){ $$("atsub").textContent = "Couldn't read that folder."; return; }
+    files.sort((a, b) => b.lastModified - a.lastModified);
+    const staged = items.filter(i => !i.fromDir);
+    items = staged.concat(files.slice(0, 80).map(f => { const it = makeItem(f, false); it.fromDir = true; return it; }));
+    $$("atsub").textContent = dir.name + " · newest first";
+    $$("atfolder").textContent = "📂 Change folder"; saved = dir;
+    render(files.length ? "" : "No photos found in that folder.");
+  }
+  $$("atfolder").onclick = async () => {
+    try {
+      if(saved && saved.requestPermission && (await saved.queryPermission({ mode: "read" })) !== "granted"){
+        if((await saved.requestPermission({ mode: "read" })) === "granted"){ await loadDir(saved); return; }
+      }
+      const dir = await window.showDirectoryPicker({ id: "purebred-photos", mode: "read" });
+      await kvSet("photoDir", dir); await loadDir(dir);
+    } catch(e){}
+  };
+
+  /* ---- open / close ---- */
+  async function openAttach(){
+    panel.classList.add("on"); plus.classList.add("open");
+    if(canDir) $$("atfolder").style.display = "";
+    else if(!$$("atsub").textContent) $$("atsub").textContent = "Tap Browse to pick photos";
+    if(!tried){
+      tried = true; render(canDir ? "Tip: choose a photos folder to see your newest pictures here." : "Browsers can't open your whole photo library — Browse lets you pick photos from it.");
+      if(canDir){
+        const h = await kvGet("photoDir");
+        if(h){
+          saved = h;
+          try { if((await h.queryPermission({ mode: "read" })) === "granted") await loadDir(h); else { $$("atfolder").textContent = "🔓 Reconnect " + h.name; $$("atsub").textContent = "Folder remembered — tap Reconnect"; } } catch(e){}
+        }
+      }
+    }
+  }
+  function closeAttach(){ panel.classList.remove("on"); plus.classList.remove("open"); }
+  plus.addEventListener("click", e => {
+    e.preventDefault();
+    if($$("fi").disabled) return;                       // not connected yet
+    if(panel.classList.contains("on")) closeAttach(); else openAttach();
+  });
+  $$("atclose").onclick = closeAttach;
+  document.addEventListener("keydown", e => { if(e.key === "Escape" && panel.classList.contains("on") && !document.getElementById("stg").classList.contains("open")) closeAttach(); });
+
+  /* ---- send ---- */
+  $$("atsend").onclick = async () => {
+    const sel = items.filter(i => i.sel); if(!sel.length) return;
+    closeAttach();
+    for(const it of sel){
+      if(it.file.size > 10 * 1024 * 1024){ sys("Image too big (10MB max): " + it.file.name); continue; }
+      await new Promise(res => { const r = new FileReader(); r.onload = ev => shrinkImage(ev.target.result, d => { postMsg(d, 1); res(); }); r.onerror = res; r.readAsDataURL(it.file); });
+    }
+    items.forEach(i => { i.sel = false; i.el.classList.remove("sel"); }); updateSel();
+  };
 })();
 </script>
 </body>
