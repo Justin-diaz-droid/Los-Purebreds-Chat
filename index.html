@@ -2757,14 +2757,15 @@ label.plus.open{transform:rotate(45deg)}
 
   /* =============== shared registry: protected names, bans, last chat-clear =============== */
   function cleanReg(r){
-    const o={acc:{},bans:[],clr:0,v:0}; if(!r||typeof r!=="object") return o;
+    const o={acc:{},bans:[],mutes:[],clr:0,v:0}; if(!r||typeof r!=="object") return o;
     if(r.acc&&typeof r.acc==="object") Object.keys(r.acc).slice(0,500).forEach(k=>{ if(k&&k.length<=12&&k!=="__proto__"&&HEX.test(String(r.acc[k]))) o.acc[k]=r.acc[k]; });
     if(Array.isArray(r.bans)) o.bans=[...new Set(r.bans.map(x=>String(x).slice(0,12).toLowerCase()).filter(Boolean))].slice(0,500);
+    if(Array.isArray(r.mutes)) o.mutes=[...new Set(r.mutes.map(x=>String(x).slice(0,12).toLowerCase()).filter(Boolean))].slice(0,500);
     o.clr=+r.clr||0; o.v=+r.v||0; return o;
   }
   let reg=cleanReg((()=>{try{return JSON.parse(load("pb_reg","{}"));}catch(e){return {};}})());
   const saveReg=()=>save("pb_reg",JSON.stringify(reg));
-  const areg=()=>({t:"A",i:newId(),acc:reg.acc,bans:reg.bans,clr:reg.clr,v:reg.v});
+  const areg=()=>({t:"A",i:newId(),acc:reg.acc,bans:reg.bans,mutes:reg.mutes,clr:reg.clr,v:reg.v});
   let myPwH=load("chat_pwh",""), adminMode=false, pendW=null;
   const low=n=>String(n||"").trim().slice(0,12).toLowerCase();
 
@@ -2834,6 +2835,15 @@ label.plus.open{transform:rotate(45deg)}
       conns.filter(c=>c.ok2&&low(c.userName)===l).forEach(c=>kickConn(c,"banned"));
       commit(); say('Banned the name "'+l+'"'+(low(usr)===l?" (the host itself can't be removed).":"."));
     }
+    else if(m.a==="mute"){
+      const l=low(m.name); if(!l) return;
+      if(low(usr)===l) return say("You can't mute the host's own browser.");
+      if(!reg.mutes.includes(l)) reg.mutes.push(l);
+      conns.filter(c=>c.ok2&&low(c.userName)===l).forEach(c=>{ try{ c.send({t:"E",i:newId(),msg:"You were muted by an admin."}); }catch(e){} });
+      commit(); say('Muted "'+l+'".');
+    }
+    else if(m.a==="unmute"){ const l=low(m.name); reg.mutes=reg.mutes.filter(x=>x!==l); commit(); say('Unmuted "'+l+'".');
+      conns.filter(c=>c.ok2&&low(c.userName)===l).forEach(c=>{ try{ c.send({t:"E",i:newId(),msg:"You were unmuted."}); }catch(e){} }); }
     else if(m.a==="unban"){ const l=low(m.name); reg.bans=reg.bans.filter(x=>x!==l); commit(); say('Unbanned "'+l+'".'); }
     else if(m.a==="clear"){ reg.clr=Date.now(); applyClear(); commit(); say("Chat cleared for everyone."); }
     else if(m.a==="rename"){
@@ -2884,6 +2894,8 @@ label.plus.open{transform:rotate(45deg)}
   }
 
   /* =============== message routing (wraps the existing handler) =============== */
+  const _postMsg=postMsg;
+  postMsg=function(){ if(!adminMode&&reg.mutes.includes(low(usr))){ sys("You're muted by an admin."); return; } return _postMsg.apply(this,arguments); };
   window.__leave=leaveRoom;
   window.addEventListener("offline",()=>{ if(peer) leaveRoom("You went offline. Rejoin when you're back."); });
   const _handle=handle;
@@ -2899,7 +2911,11 @@ label.plus.open{transform:rotate(45deg)}
         if(first){ from.ok2=true; from.pwh=String(d.h||""); from.send(areg()); }
       }
       else if(!from.ok2) return;
+      else if(d.t==="Y"&&!from.admin&&reg.mutes.includes(low(from.userName))){
+        try{ from.send({t:"E",i:newId(),msg:"You're muted by an admin."}); }catch(e){} return;
+      }
       else if(d.t==="N"){
+        if(!from.admin&&reg.mutes.includes(low(from.userName))){ const nl=low(String(d.b||"")); if(nl&&!reg.mutes.includes(nl)){ reg.mutes.push(nl); commit(); } }
         const why=nameBlocked(String(d.b||"").slice(0,12),from,from.pwh); if(why) return deny(from,why);
       }
       else if(d.t==="W"){ procW(d,{admin:from.admin||d.k===ADMIN_KEY,name:from.userName,reply:r=>{try{from.send(r);}catch(e){}}}); return; }
@@ -3006,7 +3022,7 @@ label.plus.open{transform:rotate(45deg)}
   const ab=document.createElement("button"); ab.id="admbtn"; ab.className="stg-btn"; ab.type="button"; ab.textContent="🛡 Admin panel"; ab.style.display="none";
   document.querySelector(".stg-sb").insertBefore(ab,$("stg-toggle"));
   const am=document.createElement("div"); am.id="amod";
-  am.innerHTML='<div class="acard"><div class="ah"><b>🛡 Admin panel</b><button type="button" id="amx" title="Close">✕</button></div><div id="amsg"></div><div id="amb"><div><h4>Online now</h4><div id="amon"></div></div><div><h4>Banned names</h4><div id="ambn"></div><div class="aform" style="margin-top:6px"><input id="amban" type="text" maxlength="12" placeholder="Name to ban"><button class="abtn red" type="button" id="ambanb">Ban name</button></div></div><div><h4>Set or reset a password for any name</h4><div class="aform"><input id="ampn" type="text" maxlength="12" placeholder="Name"><input id="ampp" type="text" placeholder="New password (empty = remove)" autocomplete="off"><button class="abtn" type="button" id="ampb">Apply</button></div></div><div><h4>Danger zone</h4><button class="abtn red" type="button" id="amclr">🗑 Clear the main chat for everyone</button></div></div></div>';
+  am.innerHTML='<div class="acard"><div class="ah"><b>🛡 Admin panel</b><button type="button" id="amx" title="Close">✕</button></div><div id="amsg"></div><div id="amb"><div><h4>Online now</h4><div id="amon"></div></div><div><h4>Muted names</h4><div id="ammu"></div></div><div><h4>Banned names</h4><div id="ambn"></div><div class="aform" style="margin-top:6px"><input id="amban" type="text" maxlength="12" placeholder="Name to ban"><button class="abtn red" type="button" id="ambanb">Ban name</button></div></div><div><h4>Set or reset a password for any name</h4><div class="aform"><input id="ampn" type="text" maxlength="12" placeholder="Name"><input id="ampp" type="text" placeholder="New password (empty = remove)" autocomplete="off"><button class="abtn" type="button" id="ampb">Apply</button></div></div><div><h4>Danger zone</h4><button class="abtn red" type="button" id="amclr">🗑 Clear the main chat for everyone</button></div></div></div>';
   document.body.appendChild(am);
   function note(t){ const e=$("amsg"); if(e) e.textContent=t; }
   function adminDo(m){
@@ -3020,16 +3036,20 @@ label.plus.open{transform:rotate(45deg)}
     const on=$("amon"); on.replaceChildren();
     (lastRoster||[]).forEach(e=>{
       const r=mk("div","arow"), av=mk("div","pav"); paintAv(av,e.n);
-      r.append(av,mk("span","an",e.n+(e.c===uid?" (you)":"")+(own(reg.acc,low(e.n))?" 🔒":"")));
+      r.append(av,mk("span","an",e.n+(e.c===uid?" (you)":"")+(own(reg.acc,low(e.n))?" 🔒":"")+(reg.mutes.includes(low(e.n))?" 🔇":"")));
       if(e.c&&e.c!==uid){
         const b1=mk("button","","Rename"); b1.onclick=()=>{ const n=prompt("New name for "+e.n+" (max 12 characters):",e.n); if(n&&n.trim()) adminDo({a:"rename",u:e.c,n:n.trim().slice(0,12)}); };
         const b2=mk("button","","Password"); b2.onclick=()=>{ const p=prompt("New password for "+e.n+" (at least 4 characters).\nLeave empty to remove their password:"); if(p===null) return; if(p&&p.length<4){ note("Use at least 4 characters."); return; } adminDo({a:"setpw",name:e.n,v:p?hVer(hCred(p)):""}); };
+        const bm=mk("button","",reg.mutes.includes(low(e.n))?"Unmute":"Mute"); bm.onclick=()=>adminDo({a:reg.mutes.includes(low(e.n))?"unmute":"mute",name:e.n});
         const b3=mk("button","red","Kick"); b3.onclick=()=>adminDo({a:"kick",u:e.c});
         const b4=mk("button","red","Ban"); b4.onclick=()=>{ if(confirm('Ban the name "'+e.n+'" and remove them?')) adminDo({a:"ban",name:e.n}); };
-        r.append(b1,b2,b3,b4);
+        r.append(b1,b2,bm,b3,b4);
       }
       on.appendChild(r);
     });
+    const mu=$("ammu"); mu.replaceChildren();
+    if(!reg.mutes.length) mu.appendChild(mk("div","none","Nobody is muted."));
+    reg.mutes.forEach(n=>{ const r=mk("div","arow"); r.append(mk("span","an",n)); const b=mk("button","","Unmute"); b.onclick=()=>adminDo({a:"unmute",name:n}); r.appendChild(b); mu.appendChild(r); });
     const bn=$("ambn"); bn.replaceChildren();
     if(!reg.bans.length) bn.appendChild(mk("div","none","No banned names."));
     reg.bans.forEach(n=>{ const r=mk("div","arow"); r.append(mk("span","an",n)); const b=mk("button","","Unban"); b.onclick=()=>adminDo({a:"unban",name:n}); r.appendChild(b); bn.appendChild(r); });
@@ -3058,6 +3078,7 @@ label.plus.open{transform:rotate(45deg)}
     if(!act){ act=document.createElement("div"); act.className="act"; wrap.appendChild(act); }
     const mkb=(txt,title,fn)=>{ const b=document.createElement("button"); b.type="button"; b.className="adm"; b.title=title; b.setAttribute("aria-label",title); b.textContent=txt; b.style.fontSize="13px"; b.onclick=ev=>{ ev.stopPropagation(); fn(); }; return b; };
     act.appendChild(mkb("🦵","Kick "+name+" (they can rejoin)",()=>{ if(confirm("Kick "+name+"? They can rejoin.")) adminDo({a:"kick",u}); }));
+    act.appendChild(mkb("🔇","Mute / unmute "+name,()=>adminDo({a:reg.mutes.includes(low(name))?"unmute":"mute",name})));
     act.appendChild(mkb("🔨","Ban the name “"+name+"”",()=>{ if(confirm('Ban the name "'+name+'" and remove them?')) adminDo({a:"ban",name}); }));
   }
   new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(addAdminBtns))).observe($("box"),{childList:true});
