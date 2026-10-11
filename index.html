@@ -230,6 +230,21 @@
   #hdr-set{display:none;background:none;border:none;font-size:20px;cursor:pointer;margin-right:10px}
   @media(max-width:600px){#sb{display:none;position:fixed;top:0;bottom:0;left:0;width:240px;z-index:5}#sb.open{display:flex}#hdr-set{display:inline-block}.msg{max-width:85%}}
 
+  /* online list in the sidebar + typing dots */
+  #sbroster{padding:10px 8px 0;max-height:40vh;overflow-y:auto}
+  #sbroster .sbh{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--bar-text,var(--muted));opacity:.8;padding:6px 10px}
+  #sbroster .prow,#onpop .prow{display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:8px;font-size:13px}
+  #sbroster .prow{color:var(--bar-text,var(--text))}
+  #sbroster .prow:hover{background:var(--row)}
+  #sbroster .pav{width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff}
+  #sbroster .pnm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #sbroster .pdev{font-size:11px;opacity:.8;white-space:nowrap}
+  .ptyp{display:inline-flex;gap:2px;align-items:center}
+  .ptyp i{width:4px;height:4px;border-radius:50%;background:currentColor;opacity:.7;animation:tdot 1.2s infinite}
+  .ptyp i:nth-child(2){animation-delay:.2s}
+  .ptyp i:nth-child(3){animation-delay:.4s}
+  .tav{width:18px;height:18px;border-radius:50%;font-size:9px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;margin-right:-2px;flex-shrink:0}
+
   /* ===== iMessage theme = Liquid Glass ===== */
   body[data-theme="imessage"]{
     --bg:#0b0f1e; --side:rgba(255,255,255,.10); --row:rgba(255,255,255,.14); --input:rgba(255,255,255,.12);
@@ -287,6 +302,7 @@
     <div class="hdr-sb">Messages</div>
     <div class="row-ch active" id="ch-main"><div class="av-sb lp"></div><div><b style="font-size:15px">Los Purebreds</b><br><span id="chname" class="csub">iMessage Channel</span></div></div>
     <div class="row-ch" id="ch-gal"><div class="av-sb" style="font-size:18px">🖼️</div><div><b style="font-size:15px">Image Gallery</b><br><span class="csub">Photos only</span></div></div>
+    <div id="sbroster"></div>
   </div>
   <div class="stg-sb">
     <a class="goback" href="https://docs.google.com/document/d/1oa90mU-jYczqySulirTvHqqNWTSaNwPGnnArgBdVGrs/edit?tab=t.pqncc0vmsgzp" rel="noopener">← Go back</a>
@@ -522,13 +538,22 @@ $("pfprm").onclick = () => { myAvatar = ""; save("chat_pfp", ""); delete avatars
 
 /* ---------- who's online ---------- */
 let lastRoster = [];
+function typingNames(){ const now = Date.now(); return Object.keys(typers).filter(n => n !== usr && typers[n] >= now); }
 function renderPop(){
-  const p = $("onpop"); p.innerHTML = "";
+  fillRoster($("onpop"));
+  const s = $("sbroster"), h = document.createElement("div"), l = document.createElement("div");
+  h.className = "sbh"; h.textContent = "Online — " + lastRoster.length;
+  fillRoster(l); s.replaceChildren(h, l);
+}
+function fillRoster(p){
+  p.innerHTML = "";
+  const tp = typingNames();
   lastRoster.forEach(e => {
     const r = document.createElement("div"); r.className = "prow";
     const av = document.createElement("div"); av.className = "pav"; paintAv(av, e.n);
     const nm = document.createElement("span"); nm.className = "pnm"; nm.textContent = e.n + (e.n === usr ? " (you)" : "");
     r.append(av, nm);
+    if(tp.includes(e.n)){ const t = document.createElement("span"); t.className = "ptyp"; t.title = "typing…"; t.innerHTML = "<i></i><i></i><i></i>"; r.appendChild(t); }
     if(e.d && DEVS[e.d]){ const t = document.createElement("span"); t.className = "pdev"; t.textContent = DEVS[e.d][0] + " " + DEVS[e.d][1]; r.appendChild(t); }
     p.appendChild(r);
   });
@@ -888,11 +913,12 @@ $("inp").addEventListener("blur", () => setTimeout(hideSug, 120));
 
 /* ---------- typing indicator ---------- */
 const typers = {};
-let lastTyped = 0;
+let lastTyped = 0, lastTypeKey = "";
 function renderTyping(){
   const now = Date.now();
   Object.keys(typers).forEach(k => { if(typers[k] < now) delete typers[k]; });
   const names = Object.keys(typers).filter(n => n !== usr), el = $("typing");
+  const key = names.join("|"); if(key !== lastTypeKey){ lastTypeKey = key; renderPop(); }   // keep the Online lists in sync
   if(!names.length){ el.replaceChildren(); return; }
   const txt = names.length === 1 ? names[0] + " is typing"
     : names.length === 2 ? names[0] + " and " + names[1] + " are typing"
@@ -900,7 +926,8 @@ function renderTyping(){
     : "Several people are typing";
   const s = document.createElement("span"); s.textContent = txt;
   const dots = document.createElement("span"); dots.className = "dots"; dots.innerHTML = "<i></i><i></i><i></i>";
-  el.replaceChildren(s, dots);
+  const avs = names.slice(0, 3).map(n => { const a = document.createElement("div"); a.className = "tav"; paintAv(a, n); return a; });
+  el.replaceChildren(...avs, s, dots);
 }
 setInterval(renderTyping, 1000);
 $("inp").addEventListener("input", () => {
