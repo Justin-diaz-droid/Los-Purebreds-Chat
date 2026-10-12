@@ -670,6 +670,15 @@ const EMO_DATA = {};
 const LOGO = "";
 const ROOM_CODE = "purebred";
 const ROOM_ID = "los-purebreds-chat-" + ROOM_CODE;
+/* Connection settings. STUN finds a direct path; TURN relays when a direct path is blocked
+   (school / mobile / strict networks). Add your own TURN server here for the most reliable result. */
+const TURN_SERVERS = [
+  /* { urls: "turn:your-server:3478", username: "user", credential: "pass" }, */
+  { urls: ["turn:openrelay.metered.ca:80", "turn:openrelay.metered.ca:443", "turns:openrelay.metered.ca:443?transport=tcp"], username: "openrelayproject", credential: "openrelayproject" }
+];
+const PEER_OPTS = { config: { iceServers: [
+  { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302", "stun:global.stun.twilio.com:3478"] },
+  ...TURN_SERVERS ], iceCandidatePoolSize: 4 } };
 const $ = id => document.getElementById(id);
 let usr = "User", peer = null, conns = [], isHost = false, logs = [];
 
@@ -1151,7 +1160,7 @@ function ready(){ $("inp").disabled = false; $("fi").disabled = false; }
 
 function connect(){
   setStatus("Connecting..."); renderOnline([me()]);
-  peer = new Peer(ROOM_ID);
+  peer = new Peer(ROOM_ID, PEER_OPTS);
   peer.on("open", () => {
     isHost = true; ready(); if(window.revealChat) window.revealChat();
     setStatus("Online (hosting) — waiting for friends");
@@ -1160,9 +1169,13 @@ function connect(){
   peer.on("connection", c => addConn(c));
   peer.on("error", err => {
     if(err.type === "unavailable-id" && !isHost){
-      peer = new Peer();
+      peer = new Peer(undefined, PEER_OPTS);
       peer.on("open", () => addConn(peer.connect(ROOM_ID, { reliable: true })));
-      peer.on("error", e => setStatus("Connection error: " + e.type));
+      peer.on("error", e => {
+        setStatus("Connection error: " + e.type);
+        if(e.type === "peer-unavailable" || e.type === "network" || e.type === "server-error" || e.type === "socket-error")
+          setTimeout(() => { try { if(peer && !isHost && peer.open && !conns.length) addConn(peer.connect(ROOM_ID, { reliable: true })); } catch(x){} }, 2500);
+      });
     } else { setStatus("Connection error: " + err.type); }
   });
 }
@@ -1563,10 +1576,10 @@ $("sendbtn").onclick = () => { sendText(); $("inp").focus(); };
 function shrinkImage(url, cb){
   const im = new Image();
   im.onload = () => {
-    const sc = Math.min(1, 1024 / Math.max(im.width, im.height)), cv = document.createElement("canvas");
+    const sc = Math.min(1, 800 / Math.max(im.width, im.height)), cv = document.createElement("canvas");
     cv.width = Math.round(im.width * sc); cv.height = Math.round(im.height * sc);
     cv.getContext("2d").drawImage(im, 0, 0, cv.width, cv.height);
-    cb(cv.toDataURL("image/jpeg", 0.75));
+    cb(cv.toDataURL("image/jpeg", 0.7));
   };
   im.onerror = () => cb(url);
   im.src = url;
@@ -2973,7 +2986,7 @@ label.plus.open{transform:rotate(45deg)}
       }
       if(d.t==="X"){
         const why=d.why; if(why==="password"){ myPwH=""; save("chat_pwh",""); }
-        leaveRoom(why==="banned"?"That name is banned.":why==="kicked"?"You were removed by an admin.":why==="setpw"?"Every name needs a password. Type one in the password box (at least 4 characters) to create it.":"That name is protected — enter its password."); return;
+        leaveRoom(why==="full"?"The room is full (11 people max).":why==="banned"?"That name is banned.":why==="kicked"?"You were removed by an admin.":why==="setpw"?"Every name needs a password. Type one in the password box (at least 4 characters) to create it.":"That name is protected — enter its password."); return;
       }
       if(d.t==="Z"){ if(typeof d.n==="string") applyRename(d.n); return; }
       if(d.t==="E"){ note(String(d.msg||"").slice(0,200)); sys(String(d.msg||"").slice(0,200)); return; }
@@ -3708,7 +3721,7 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     sendD({ k: "p", s: cur.id, c: cur.c, w: cur.w, ts: cur.ts, pts: pend }); pend = [];
   }
   function sendCursor(x, y, drawing){
-    const now = Date.now(); if(now - lastC < 70) return; lastC = now;
+    const now = Date.now(); if(now - lastC < 100) return; lastC = now;
     sendD({ k: "c", x, y, d: drawing ? 1 : 0 });
   }
   const muteCheck = () => { if(window.__pbMuted && window.__pbMuted(usr)){ sys("You're muted by an admin."); return true; } return false; };
@@ -3817,6 +3830,56 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     });
     paintPfp();
   };
+})();
+</script>
+<script id="stability">
+(function(){
+  /* ---- cap at 11 people (host + 10) ---- */
+  const _ac = addConn;
+  addConn = function(c){
+    if(isHost && conns.filter(x => x.open).length >= 10){
+      c.on("open", () => { try { c.send({ t: "X", i: newId(), why: "full" }); } catch(e){} setTimeout(() => { try { c.close(); } catch(e){} }, 400); });
+      return;
+    }
+    _ac(c);
+  };
+
+  /* ---- reconnect to the signalling server if it drops (keeps the room joinable) ---- */
+  let hooked = null;
+  setInterval(() => {
+    if(!peer || peer === hooked) return; hooked = peer;
+    peer.on("disconnected", () => { setTimeout(() => { try { if(peer && peer.disconnected && !peer.destroyed) peer.reconnect(); } catch(e){} }, 1000); });
+  }, 500);
+  setInterval(() => { try { if(peer && peer.disconnected && !peer.destroyed) peer.reconnect(); } catch(e){} }, 8000);
+
+  /* ---- auto-rejoin instead of kicking people to the join screen ----
+     If the host vanishes, whoever gets back first becomes the new host and the rest reconnect to them. */
+  const _leave = window.__leave; let tries = 0, joined = false;
+  const _setStatus = setStatus;
+  setInterval(() => { if(peer && peer.open && (isHost || conns.some(c => c.open))){ joined = true; tries = 0; } }, 1000);
+  window.__leave = function(msg){
+    if(joined && tries < 6 && /^Disconnected from the room|^You went offline/.test(msg || "")){
+      tries++; _setStatus("Connection lost — reconnecting (" + tries + ")…");
+      try { peer && peer.destroy(); } catch(e){}
+      peer = null; conns = []; isHost = false;
+      setTimeout(() => { try { connect(); } catch(e){} }, 1500 + Math.random() * 2500 * tries);
+      return;
+    }
+    _leave(msg);
+  };
+  window.addEventListener("online", () => { if(joined && !peer){ tries = 0; try { connect(); } catch(e){} } });
+
+  /* ---- clients re-check history every 2 minutes so nothing stays out of sync ---- */
+  setInterval(() => {
+    if(isHost || !conns.some(c => c.open) || document.hidden) return;
+    send({ t: "S", i: newId(), s: logs.filter(l => !l.to && !l.g).slice(-300).map(l => [l.i, l.v || 0]) });
+  }, 120000);
+
+  /* ---- keep the host's screen/tab awake so the room doesn't stall ---- */
+  let wl = null;
+  async function keepAwake(){ try { if(isHost && !wl && navigator.wakeLock){ wl = await navigator.wakeLock.request("screen"); wl.addEventListener("release", () => { wl = null; }); } } catch(e){} }
+  setInterval(keepAwake, 5000);
+  document.addEventListener("visibilitychange", () => { if(!document.hidden) keepAwake(); });
 })();
 </script>
 </body>
