@@ -931,7 +931,7 @@ $("g-go").onclick = () => {
   rerender();
   window.__entering = true; $("gerr").textContent = "Connecting…"; $("g-go").disabled = true;
   clearTimeout(window.__enterT);
-  window.__enterT = setTimeout(() => { if(window.__entering && window.__leave) window.__leave("Couldn't connect to the room. Try again."); }, 15000);
+  window.__enterT = setTimeout(() => { if(window.__entering && window.__leave) window.__leave("Couldn't connect to the room. Try again."); }, 30000);
   sys("Welcome to purebred-chat, HM:  RIP: Ryosuke 🕊️🪦🪽");
   connect();
 };
@@ -1308,7 +1308,7 @@ function answerSummary(d, from){
   let batch = [], size = 0;
   const flush = () => { if(batch.length && from.open) from.send({ t: "Y", i: newId(), e: batch }); batch = []; size = 0; };
   const canSee = l => (!l.to && !l.g) || !isHost || (from.uid && ((l.to && (l.to === from.uid || l.c === from.uid)) || (l.g && groups[l.g] && groups[l.g].m.includes(from.uid))));
-  logs.filter(l => canSee(l) && (!theirs.has(l.i) || (l.v || 0) > theirs.get(l.i))).forEach(l => {
+  logs.filter(l => canSee(l) && (!theirs.has(l.i) || (l.v || 0) > theirs.get(l.i))).slice(-80).forEach(l => {
     const s = (l.b || "").length + 200;
     if(batch.length && (size + s > 400000 || batch.length >= 50)) flush();
     batch.push(l); size += s;
@@ -3569,7 +3569,7 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
   /* ---------- sharing ---------- */
   function sendD(o){ o.t = "D"; o.i = newId(); o.f = uid; o.n = usr; send(o); }
   function snapObj(){ cap(); return { t: "D", i: newId(), k: "snap", clr, strokes: strokes.slice(), gone: [...gone].slice(-1500) }; }
-  function sendSnap(conn){ try { conn.send(snapObj()); } catch(e){} }
+  function sendSnap(conn){ (window.heavy || (f => f()))(() => { try { if(conn.open) conn.send(snapObj()); } catch(e){} }); }
   function merge(sn){
     let changed = false;
     const nc = +sn.clr || 0;
@@ -3765,6 +3765,58 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
 
   window.__pbBoardClear = () => { const t = Date.now(); applyClr(t); sendD({ k: "clr", ts: t }); };
   updBtns(); loadSaved();
+})();
+</script>
+<script id="lag-fix">
+(function(){
+  /* serial queue: heavy syncs run one at a time */
+  const q = []; let busy = false;
+  window.heavy = function(fn){
+    q.push(fn);
+    if(busy) return; busy = true;
+    (function run(){
+      const f = q.shift();
+      if(!f){ busy = false; return; }
+      try { f(); } catch(e){}
+      setTimeout(run, 150);
+    })();
+  };
+
+  /* history + bubble styles go through the queue */
+  const _as = answerSummary;
+  answerSummary = function(d, from){ heavy(() => { if(from.open) _as(d, from); }); };
+
+  /* roster: debounced, avatars only when changed */
+  let rosterT = 0;
+  pushRoster = function(){
+    if(!isHost || rosterT) return;
+    rosterT = setTimeout(() => {
+      rosterT = 0;
+      const list = [me(), ...conns.filter(c => c.userName).map(c => ({ n: c.userName, a: c.avatar || "", d: c.device || "", c: c.uid || "" }))];
+      renderOnline(list);
+      conns.forEach(c => {
+        if(!c.open) return;
+        c.avSent = c.avSent || {};
+        const slim = list.map(e => {
+          const k = (e.c || "") + "|" + e.n;
+          if(c.avSent[k] === e.a) return { n: e.n, d: e.d, c: e.c };
+          c.avSent[k] = e.a; return e;
+        });
+        c.send({ t: "R", i: newId(), list: slim });
+      });
+    }, 250);
+  };
+
+  /* only repaint avatars that actually changed */
+  refreshAvatars = function(){
+    document.querySelectorAll(".msg[data-user]").forEach(w => {
+      const a = w.querySelector(".av"); if(!a) return;
+      const k = String((avatars[w.dataset.user] || "").length);
+      if(a.dataset.k === k) return;
+      a.dataset.k = k; paintAv(a, w.dataset.user);
+    });
+    paintPfp();
+  };
 })();
 </script>
 </body>
