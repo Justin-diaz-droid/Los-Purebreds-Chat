@@ -1,1 +1,36 @@
+name: Bump chat version
 
+on:
+  push:
+    branches: [main, master]
+    paths: ["index.html"]
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    # the bot's own commit must not trigger another bump
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Raise the version by 0.0.1 (0.1.9 -> 0.2.0)
+        run: |
+          old=$(grep -oP 'id="gver">Version \K[0-9]+\.[0-9]+\.[0-9]+' index.html | head -1)
+          [ -n "$old" ] || { echo "version tag not found"; exit 1; }
+          IFS=. read -r major minor patch <<< "$old"
+          patch=$((patch+1))
+          if [ "$patch" -ge 10 ]; then patch=0; minor=$((minor+1)); fi
+          new="$major.$minor.$patch"
+          sed -i "s|id=\"gver\">Version $old<|id=\"gver\">Version $new<|" index.html
+          echo "NEW_VERSION=$new" >> "$GITHUB_ENV"
+
+      - name: Commit the new version
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Bump version to $NEW_VERSION [skip ci]"
+          git push
