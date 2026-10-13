@@ -592,7 +592,7 @@
     <div class="logo lp"></div>
     <h1>Los Purebreds</h1>
     <p class="sub">Enter the room to start chatting</p>
-    <label class="fld"><span>Room code</span><input id="g-code" type="text" placeholder="Enter code" autocomplete="off"></label>
+    <label class="fld"><span>Room code</span><input id="g-code" type="password" placeholder="Enter code" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
     <label class="fld"><span>Your name</span><input id="g-name" type="text" placeholder="Pick a name" maxlength="12" autocomplete="off"></label>
     <label class="fld"><span>Theme</span><select id="g-theme"><option value="imessage">iMessage</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option></select></label>
     <div id="gerr"></div>
@@ -691,7 +691,7 @@
 const EMO_DATA = {};
 /* >>> PASTE YOUR LOGO between the quotes: the full  data:image/png;base64,....  string from your original file <<< */
 const LOGO = "";
-const ROOM_CODE = "purebred";
+const ROOM_CODE = "lospurebrochat";
 const ROOM_ID = "los-purebreds-chat-" + ROOM_CODE;
 /* Connection settings. STUN finds a direct path; TURN relays when a direct path is blocked
    (school / mobile / strict networks). Add your own TURN server here for the most reliable result. */
@@ -3389,7 +3389,7 @@ label.plus.open{transform:rotate(45deg)}
         const grew=n.clr>reg.clr||n.clg>reg.clg||n.cls>reg.cls; reg=n; saveReg(); if(grew) applyClear(); refreshUI(); return;
       }
       if(d.t==="X"){
-        const why=d.why; if(why==="password"){ myPwH=""; save("chat_pwh",""); }
+        const why=d.why; if(why==="password"){ myPwH=""; save("chat_pwh",""); save("pb_pwh",""); $("g-pw").placeholder="At least 4 characters"; }
         leaveRoom(why==="full"?"The room is full (11 people max).":why==="banned"?"That name is banned.":why==="kicked"?"You were removed by an admin.":why==="setpw"?"Every name needs a password. Type one in the password box (at least 4 characters) to create it.":"That name is protected — enter its password."); return;
       }
       if(d.t==="Z"){ if(typeof d.n==="string") applyRename(d.n); return; }
@@ -3467,13 +3467,21 @@ label.plus.open{transform:rotate(45deg)}
 
   // the host never gets an "A" message, so it remembers its own login hash here; clients do it when the host accepts them
   const origGo=$("g-go").onclick;
+  // remember the room code + password on this device once you are in, so you only type them once
+  if(load("pb_code","")===ROOM_CODE) $("g-code").value=ROOM_CODE;
+  if(load("pb_pwh","")) $("g-pw").placeholder="Saved on this device — leave blank";
+  setInterval(()=>{
+    if($("gate").style.display!=="none"||window.__entering) return;      // only once the host has let us in
+    if(load("pb_code","")!==ROOM_CODE) save("pb_code",ROOM_CODE);
+    const h=myPwH||""; if(load("pb_pwh","")!==h) save("pb_pwh",h);       // also follows password changes / removal in Settings
+  },1500);
   $("g-go").onclick=()=>{
     if($("g-code").value.trim().toLowerCase()!==ROOM_CODE){ origGo(); return; }
     const typed=$("g-pw").value;
     // The host is the only one who knows the current passwords/bans, so it decides.
     // (Checking against this browser's cached copy rejected correct passwords after a reset.)
     if(typed&&typed.length<4&&!adminMode){ $("gerr").textContent="Password must be at least 4 characters."; return; }
-    myPwH=typed?hCred(typed):"";   // only what you type counts; nothing is remembered between visits
+    myPwH=typed?hCred(typed):(load("pb_pwh","")||"");   // what you type, otherwise the password remembered on this device
     save("chat_pwh","");
     $("g-pw").value=""; leaving=false;
     origGo();
