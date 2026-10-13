@@ -600,7 +600,7 @@
     <button id="g-go">Join chat</button>
     <a class="goback" href="https://docs.google.com/document/d/1oa90mU-jYczqySulirTvHqqNWTSaNwPGnnArgBdVGrs/edit?tab=t.pqncc0vmsgzp" rel="noopener">← Go back</a>
   </div>
-  <div id="gver">Version 8</div>
+  <div id="gver">Version 11</div>
 </div>
 
 <div id="sb">
@@ -650,7 +650,7 @@
         <label>Theme</label>
         <select id="theme"><option value="imessage">iMessage</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option></select>
         <label>Wallpaper &amp; accent color (also tints top bar, message bar &amp; left bar)</label><input type="color" id="wcol" value="#000000">
-        <label>Wallpaper image (stays on this device)</label>
+        <label>Wallpaper image (syncs to your other devices)</label>
         <div class="stg-row"><button id="wimg" type="button" class="btn">Choose image</button><button id="wreset" type="button" class="btn alt">Reset wallpaper</button><input type="file" id="wfile" accept="image/*" style="display:none"></div>
         <label>Image dimming</label><input type="range" id="wdim" min="0" max="80" value="30">
       </div>
@@ -937,7 +937,7 @@ function renderOnline(list){
 }
 function pushRoster(){
   if(!isHost) return;
-  const list = [me(), ...conns.filter(c => c.userName).map(c => ({ n: c.userName, a: c.avatar || "", d: c.device || "", c: c.uid || "" }))];
+  const list = [me(), ...conns.filter(c => c.userName).map(c => ({ n: c.userName, a: c.avatar || "", d: c.device || "", c: c.uid || "" }))].filter((e, i, a) => a.findIndex(x => x.n === e.n && x.c === e.c) === i);
   renderOnline(list); send({ t: "R", i: newId(), list });
 }
 
@@ -1262,6 +1262,7 @@ function handle(d, from){
     if(okUid(d.c)) from.uid = d.c;
     if(isHost && typeof d.u === "string"){
       from.userName = d.u.slice(0, 12); from.avatar = okAv(d.a); from.device = okDev(d.d);
+      if(window.__pbCanonUid) window.__pbCanonUid(from, from.userName);   // same name on another device = same DMs + group chats
       if(!from.sentS && from.uid){
         from.sentS = 1;
         Object.values(groups).forEach(g => { if(g.m.includes(from.uid)) from.send({ t: "G", i: newId(), g }); });
@@ -1341,6 +1342,14 @@ function cleanRx(r){
   }
   return n ? out : null;
 }
+const cleanFn = n => String(n || "file").replace(/[\\\/:*?"<>|\u0000-\u001f]/g, "_").slice(0, 80) || "file";
+function cleanPoll(p){
+  if(!p || typeof p !== "object") return null;
+  const q = String(p.q || "").trim().slice(0, 200);
+  const os = (Array.isArray(p.o) ? p.o : []).map(x => String(x || "").trim().slice(0, 80)).filter(Boolean).slice(0, 8);
+  if(!q || os.length < 2) return null;
+  return { q, o: os, m: p.m ? 1 : 0, end: Math.max(0, Math.min(Date.now() + 8 * 864e5, +p.end || 0)) };
+}
 function cleanEntry(e){
   if(!e || typeof e !== "object" || !validId(e.i)) return null;
   const o = { i: e.i, v: +e.v || 0, ts: +e.ts || 0 };
@@ -1354,6 +1363,8 @@ function cleanEntry(e){
   o.u = e.u.slice(0, 12); o.c = okUid(e.c) ? e.c : ""; o.f = okFont(e.f); o.d = okDev(e.d);
   if(e.img){ if(!e.b.startsWith("data:image/") || e.b.length > 4500000) return null; o.img = 1; }
   else if(e.aud){ if(!e.b.startsWith("data:audio/") || e.b.length > 1800000) return null; o.aud = 1; }
+  else if(e.fl){ if(!/^data:[\w.+\-\/]*;base64,[A-Za-z0-9+\/=]*$/.test(e.b) || e.b.length > 3500000) return null; o.fl = 1; o.fn = cleanFn(e.fn); o.fz = Math.max(0, Math.min(1e8, +e.fz || 0)); }
+  else if(e.poll){ const pl = cleanPoll(e.poll); if(!pl || e.b.length >= 300) return null; o.poll = pl; }
   else if(e.b.length >= 2000) return null;
   o.b = e.b;
   if(e.to){
@@ -1382,6 +1393,7 @@ const rxSig = r => r ? Object.keys(r).sort().map(k => k + ":" + (r[k].v || 0)).j
 const rxv = l => l && l.rx ? Math.max(0, ...Object.values(l.rx).map(x => x.v || 0)) : 0;
 function vetRx(o, from){   // host: a person may only change their own reactions
   const cur = logs.find(l => l.i === o.i), out = {};
+  if(cur && cur.poll && cur.poll.end && Date.now() > cur.poll.end + 5000) return null;   // poll is closed
   Object.keys(o.rx).forEach(k => {
     const same = cur && cur.rx && cur.rx[k] && (cur.rx[k].v || 0) >= (o.rx[k].v || 0);
     if(k === from.uid || same) out[k] = o.rx[k];
@@ -1667,9 +1679,14 @@ $("ch-gal").onclick = () => setChannel("gal");
 $("ch-shame").onclick = () => setChannel("shame");
 document.querySelectorAll("#chtabs button").forEach(b => b.onclick = () => setChannel(b.dataset.ch));
 
-function postMsg(b, img, aud){
+function postMsg(b, img, aud, extra){
   const now = Date.now(), o = { i: newId(), u: usr, c: uid, b, ts: now, v: now, d: myDevice };
   if(img){ o.img = 1; if(curCh === "gal") o.ch = "gal"; } else if(aud){ o.aud = 1; } else o.f = myFont;
+  if(extra){
+    if(curCh === "gal"){ sys("The gallery is for photos only."); return; }
+    if(extra.fl){ o.fl = 1; o.fn = cleanFn(extra.fn); o.fz = extra.fz || 0; delete o.f; }
+    if(extra.poll){ o.poll = cleanPoll(extra.poll); if(!o.poll) return; delete o.f; }
+  }
   if(curCh === "shame" && !aud) o.ch = "shame";
   if(curCh === "dm" && dmWith){
     if(dmWith[0] === "g"){ o.g = dmWith.slice(2); o.ch = "grp"; } else { o.to = dmWith.slice(2); o.tn = dmNm; o.ch = "dm"; }
@@ -1722,7 +1739,7 @@ function startReply(id){
   if(curCh === "gal") return;
   const l = logs.find(x => x.i === id);
   if(!l || l.del) return;
-  replyTo = { i: l.i, u: l.u, t: l.img ? "📷 Photo" : l.aud ? "🎤 Voice message" : String(l.b).slice(0, 80), m: (l.img || l.aud) ? 1 : 0 };
+  replyTo = { i: l.i, u: l.u, t: l.img ? "📷 Photo" : l.fl ? "📎 " + l.fn : l.poll ? "📊 " + l.poll.q.slice(0, 60) : l.aud ? "🎤 Voice message" : String(l.b).slice(0, 80), m: (l.img || l.aud || l.fl || l.poll) ? 1 : 0 };
   showReply();
   const w = $(id); if(w) w.classList.remove("tap");
   $("inp").focus();
@@ -1737,6 +1754,7 @@ function rxNames(us){
 }
 function renderRx(l, w){
   w = w || $(l.i); if(!w) return;
+  if(l.poll){ if(window.renderPoll) window.renderPoll(l, w); return; }
   const col = w.querySelector(":scope > .col"); if(!col) return;
   const by = {};
   Object.keys(l.rx || {}).forEach(u => ((l.rx[u] || {}).e || []).forEach(em => (by[em] = by[em] || []).push(u)));
@@ -1755,7 +1773,7 @@ function renderRx(l, w){
   }));
 }
 function toggleReaction(id, em){
-  const l = logs.find(x => x.i === id); if(!l || l.del || !okEmo(em)) return;
+  const l = logs.find(x => x.i === id); if(!l || l.del || !okEmo(em) || l.poll) return;
   if(window.__pbMuted && window.__pbMuted(usr)){ sys("You're muted by an admin."); return; }
   const mine = (l.rx && l.rx[uid]) || { e: [], v: 0 }, set = new Set(mine.e);
   if(set.has(em)) set.delete(em); else { if(set.size >= 8){ sys("You can add up to 8 reactions to one message."); return; } set.add(em); }
@@ -1821,7 +1839,7 @@ function iconBtn(cls, title, svg, fn){
 /* inline editing: works on ANY text message in the room (DMs: your own only) */
 function startEdit(id){
   const l = logs.find(x => x.i === id), w = $(id);
-  if(!l || l.img || l.aud || l.del || !w || ((l.to || l.g) && l.c !== uid)) return;
+  if(!l || l.img || l.aud || l.fl || l.poll || l.del || !w || ((l.to || l.g) && l.c !== uid)) return;
   const bub = w.querySelector("[data-bubble]"); if(!bub || w.classList.contains("editing")) return;
   const inp = document.createElement("input");
   inp.type = "text"; inp.className = "editin"; inp.value = l.b; inp.maxLength = 1999;
@@ -1877,7 +1895,13 @@ function renderRow(m, animate){
 
   const wrap = document.createElement("div"); wrap.className = "bwrap";
   if(m.img){
-    const im = document.createElement("img"); im.className = "img"; im.src = m.b; wrap.appendChild(im);
+    const im = document.createElement("img"); im.className = "img"; im.decoding = "async"; im.alt = "Photo";
+    if(box.scrollHeight - box.scrollTop - box.clientHeight < 240) im.onload = () => { box.scrollTop = box.scrollHeight; };   // keep the chat pinned to the bottom while photos load
+    im.src = m.b; wrap.appendChild(im);
+  } else if(m.fl){
+    wrap.appendChild(window.buildFileCard ? window.buildFileCard(m) : document.createTextNode("📎 " + (m.fn || "file")));
+  } else if(m.poll){
+    const pc = document.createElement("div"); pc.className = "pollcard"; wrap.appendChild(pc);
   } else if(m.aud){
     const bub = document.createElement("div"); bub.className = "bubble voice";
     const au = document.createElement("audio"); au.controls = true; au.preload = "metadata"; au.src = m.b;
@@ -1893,8 +1917,8 @@ function renderRow(m, animate){
 
   const act = document.createElement("div"); act.className = "act";
   if(m.ch !== "gal") act.appendChild(iconBtn("rep", "Reply", ICON_REPLY, () => startReply(m.i)));
-  act.appendChild(iconBtn("rct", "React with any emoji", ICON_REACT, () => startReact(m.i)));
-  if(!m.img && !m.aud && (!(m.to || m.g) || mine)) act.appendChild(iconBtn("edt", "Edit message", ICON_EDIT, () => startEdit(m.i)));
+  if(!m.poll) act.appendChild(iconBtn("rct", "React with any emoji", ICON_REACT, () => startReact(m.i)));
+  if(!m.img && !m.aud && !m.fl && !m.poll && (!(m.to || m.g) || mine)) act.appendChild(iconBtn("edt", "Edit message", ICON_EDIT, () => startEdit(m.i)));
   if(mine && !(m.ch === "shame" && !(window.__pbAdm && window.__pbAdm()))) act.appendChild(iconBtn("del", "Delete message", ICON_DEL, () => deleteMsg(m.i)));   // hall of shame: only admins delete
   if(act.children.length) wrap.appendChild(act);
   col.appendChild(wrap);
@@ -2058,7 +2082,7 @@ function renderDMList(){
     const x = map[k] || (map[k] = { k, n: "", ts: 0, last: "", un: 0 });
     if((l.ts || 0) >= x.ts){
       x.ts = l.ts || 0;
-      x.last = (l.g ? (l.c === uid ? "You" : l.u) + ": " : "") + (l.img ? "📷 Photo" : l.aud ? "🎤 Voice message" : String(l.b));
+      x.last = (l.g ? (l.c === uid ? "You" : l.u) + ": " : "") + (l.img ? "📷 Photo" : l.fl ? "📎 " + l.fn : l.poll ? "📊 Poll" : l.aud ? "🎤 Voice message" : String(l.b));
       if(!l.g) x.n = (l.c === uid ? l.tn : l.u) || x.n;
     }
     if(l.c !== uid && (l.ts || 0) > (seen[k] || 0)) x.un++;
@@ -2811,7 +2835,7 @@ label.plus.open{transform:rotate(45deg)}
     const cv = document.createElement("canvas"); cv.width = cv.height = 180; const cx = cv.getContext("2d");
     let src = null;
     try { src = await createImageBitmap(it.file); }
-    catch(e){ try { src = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = URL.createObjectURL(it.file); }); } catch(x){} }
+    catch(e){ try { const u = URL.createObjectURL(it.file); src = await new Promise((res, rej) => { const im = new Image(); im.onload = () => { res(im); URL.revokeObjectURL(u); }; im.onerror = rej; im.src = u; }); } catch(x){} }
     if(src){
       const w = src.width, h = src.height, m = Math.min(w, h);
       cx.drawImage(src, (w - m) / 2, (h - m) / 2, m, m, 0, 0, 180, 180);
@@ -2850,7 +2874,7 @@ label.plus.open{transform:rotate(45deg)}
   file.onchange = () => {
     const fs = [...file.files].filter(f => f.type.startsWith("image/")); file.value = "";
     if(!fs.length) return;
-    items = fs.map(f => makeItem(f, true)).concat(items.filter(i => !i.sel || true));
+    items = fs.map(f => makeItem(f, true)).concat(items);
     render(); openAttach();
   };
 
@@ -2916,8 +2940,206 @@ label.plus.open{transform:rotate(45deg)}
       if(it.file.size > 10 * 1024 * 1024){ sys("Image too big (10MB max): " + it.file.name); continue; }
       await new Promise(res => { const r = new FileReader(); r.onload = ev => shrinkImage(ev.target.result, d => { postMsg(d, 1); res(); }); r.onerror = res; r.readAsDataURL(it.file); });
     }
-    items.forEach(i => { i.sel = false; i.el.classList.remove("sel"); }); updateSel();
+    items = items.filter(i => !sel.includes(i) || i.fromDir);          // sent photos leave the picker
+    items.forEach(i => { i.sel = false; i.el.classList.remove("sel"); }); render();
   };
+})();
+</script>
+
+<style id="rich-css">
+/* photos in chat: sensible size, click to enlarge */
+.img{max-width:min(280px,72vw);max-height:340px;width:auto;height:auto;object-fit:contain;cursor:zoom-in;background:rgba(127,127,127,.14)}
+#lbx{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center;padding:16px;cursor:zoom-out}
+#lbx.open{display:flex;animation:fadeIn .15s ease-out}
+#lbx img{max-width:94vw;max-height:86vh;object-fit:contain;border-radius:10px;box-shadow:0 10px 40px rgba(0,0,0,.6)}
+#lbx .lbb{position:absolute;top:max(12px,env(safe-area-inset-top,0px));right:14px;display:flex;gap:8px}
+#lbx .lbb a,#lbx .lbb button{border:none;background:rgba(255,255,255,.16);color:#fff;border-radius:999px;padding:8px 14px;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none}
+/* + menu */
+#plusmenu{position:fixed;z-index:60;display:none;flex-direction:column;min-width:210px;padding:6px;background:var(--side);color:var(--text);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 32px rgba(0,0,0,.45)}
+#plusmenu.open{display:flex;animation:fadeIn .12s ease-out}
+#plusmenu button{display:flex;align-items:center;gap:12px;border:none;background:none;color:inherit;font-size:15px;font-weight:600;padding:10px 12px;border-radius:10px;cursor:pointer;text-align:left}
+#plusmenu button:hover{background:var(--row)}
+#plusmenu button i{font-style:normal;font-size:20px;width:26px;text-align:center}
+/* file card */
+.filecard{display:flex;align-items:center;gap:12px;min-width:220px;max-width:min(320px,78vw);padding:12px 14px;border-radius:14px;background:var(--row,rgba(127,127,127,.16));color:var(--text);border:1px solid var(--line)}
+.filecard .fi{font-size:30px;line-height:1}
+.filecard .fm{flex:1;min-width:0}
+.filecard .fm b{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.filecard .fm span{font-size:12px;color:var(--muted)}
+.filecard button{border:none;background:var(--accent);color:var(--on-accent,#fff);border-radius:999px;padding:7px 13px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+/* poll card */
+.pollcard{width:min(330px,78vw);padding:14px;border-radius:16px;background:var(--row,rgba(127,127,127,.16));color:var(--text);border:1px solid var(--line);text-align:left}
+.pollcard .pq{font-size:16px;font-weight:700;line-height:1.3;margin-bottom:2px;word-break:break-word}
+.pollcard .ps{font-size:12px;color:var(--muted);margin-bottom:10px}
+.pollcard .popt{position:relative;display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;margin-bottom:6px;padding:10px 12px;border:1.5px solid var(--line);border-radius:12px;background:transparent;color:inherit;font-size:14px;font-weight:600;text-align:left;cursor:pointer;overflow:hidden}
+.pollcard .popt.mine{border-color:var(--accent)}
+.pollcard .popt[disabled]{cursor:default}
+.pollcard .popt .fill{position:absolute;left:0;top:0;bottom:0;background:var(--accent);opacity:.2;transition:width .3s}
+.pollcard .popt.mine .fill{opacity:.35}
+.pollcard .popt span{position:relative;z-index:1}
+.pollcard .popt .l{flex:1;min-width:0;word-break:break-word}
+.pollcard .popt .n{white-space:nowrap;font-size:12px;opacity:.8}
+.pollcard .pf{font-size:12px;color:var(--muted);margin-top:4px}
+/* poll maker */
+#pollmod{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:16px}
+#pollmod.open{display:flex;animation:fadeIn .15s ease-out}
+#pollmod .pc{background:var(--side);color:var(--text);border:1px solid var(--line);border-radius:18px;width:min(440px,100%);max-height:90vh;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:10px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+#pollmod h3{margin:0 0 2px;font-size:18px}
+#pollmod label{font-size:12px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:var(--muted)}
+#pollmod input[type=text],#pollmod select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--input);color:var(--text);font-size:15px;outline:none}
+#pollmod input[type=text]:focus,#pollmod select:focus{border-color:var(--accent)}
+#pollmod .chk{display:flex;align-items:center;gap:8px;font-size:14px;text-transform:none;letter-spacing:0;color:var(--text);font-weight:500;cursor:pointer}
+#pollmod .row{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
+#pollmod .row button,#pollmod .addopt{border:none;border-radius:999px;padding:9px 18px;font-size:14px;font-weight:700;cursor:pointer}
+#pollmod .addopt{align-self:flex-start;background:var(--row);color:var(--text)}
+#pollmod .pcancel{background:var(--row);color:var(--text)}
+#pollmod .ppost{background:var(--accent);color:var(--on-accent,#fff)}
+#pollmod .perr{color:#ff6b61;font-size:13px;min-height:16px}
+</style>
+<script id="rich-js">
+(function(){
+  const $$ = id => document.getElementById(id);
+  const VT = ["🔴","🔵","⚫","⚪","🔶","🔷","🔸","🔹"];          // a vote for option N is stored as VT[N] in that person's reactions, so it syncs/merges like reactions do
+  const fmtSize = n => n < 1024 ? n + " B" : n < 1048576 ? (n / 1024).toFixed(n < 10240 ? 1 : 0) + " KB" : (n / 1048576).toFixed(1) + " MB";
+
+  /* ---------- photo viewer ---------- */
+  const lbx = document.createElement("div"); lbx.id = "lbx";
+  lbx.innerHTML = '<div class="lbb"><a id="lbdl" download="photo.jpg">⬇ Save</a><button type="button" id="lbx-x">✕</button></div><img alt="">';
+  document.body.appendChild(lbx);
+  const closeLb = () => lbx.classList.remove("open");
+  lbx.addEventListener("click", e => { if(e.target.closest("#lbdl")) return; closeLb(); });
+  document.addEventListener("keydown", e => { if(e.key === "Escape") closeLb(); });
+  $$("box").addEventListener("click", e => {
+    const im = e.target.closest("img.img"); if(!im || im.closest(".ghost")) return;
+    lbx.querySelector("img").src = im.src; $$("lbdl").href = im.src; lbx.classList.add("open");
+  });
+
+  /* ---------- file card ---------- */
+  const ICO = { pdf:"📕", doc:"📘", docx:"📘", txt:"📄", md:"📄", xls:"📗", xlsx:"📗", csv:"📗", ppt:"📙", pptx:"📙", zip:"🗜️", rar:"🗜️", "7z":"🗜️", mp3:"🎵", wav:"🎵", m4a:"🎵", mp4:"🎬", mov:"🎬", webm:"🎬", js:"🧩", json:"🧩", html:"🧩", py:"🧩" };
+  window.buildFileCard = function(m){
+    const ext = (String(m.fn).split(".").pop() || "").toLowerCase();
+    const c = document.createElement("div"); c.className = "filecard";
+    const i = document.createElement("div"); i.className = "fi"; i.textContent = ICO[ext] || "📎";
+    const mm = document.createElement("div"); mm.className = "fm";
+    const nm = document.createElement("b"); nm.textContent = m.fn || "file"; nm.title = m.fn || "";
+    const sz = document.createElement("span"); sz.textContent = fmtSize(m.fz || 0) + (ext && ext.length < 6 ? " · " + ext.toUpperCase() : "");
+    mm.append(nm, sz);
+    const b = document.createElement("button"); b.type = "button"; b.textContent = "⬇ Download";
+    b.onclick = ev => {
+      ev.stopPropagation();
+      try {
+        const bin = atob(m.b.slice(m.b.indexOf(",") + 1)), u8 = new Uint8Array(bin.length);
+        for(let k = 0; k < bin.length; k++) u8[k] = bin.charCodeAt(k);
+        const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([u8], { type: "application/octet-stream" }));
+        a.download = m.fn || "file"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      } catch(e){ sys("Couldn't open that file."); }
+    };
+    c.append(i, mm, b); return c;
+  };
+
+  /* ---------- poll card ---------- */
+  function endText(end){
+    const ms = end - Date.now(); if(ms <= 0) return "Final results";
+    const m = Math.ceil(ms / 60000); if(m < 60) return "Ends in " + m + " min";
+    const h = Math.round(m / 60); return h < 48 ? "Ends in " + h + " h" : "Ends in " + Math.round(h / 24) + " days";
+  }
+  window.renderPoll = function(l, w){
+    const card = w.querySelector(".pollcard"); if(!card || !l.poll) return;
+    const p = l.poll, by = p.o.map(() => []);
+    Object.keys(l.rx || {}).forEach(u => ((l.rx[u] || {}).e || []).forEach(em => { const k = VT.indexOf(em); if(k >= 0 && k < by.length) by[k].push(u); }));
+    const voters = new Set(); by.forEach(a => a.forEach(u => voters.add(u)));
+    const total = voters.size, ended = !!p.end && Date.now() >= p.end;
+    const q = document.createElement("div"); q.className = "pq"; q.textContent = "📊 " + p.q;
+    const sub = document.createElement("div"); sub.className = "ps";
+    sub.textContent = (p.m ? "Select one or more" : "Select one") + (p.end ? " · " + endText(p.end) : "");
+    const opts = p.o.map((t, k) => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "popt" + (by[k].includes(uid) ? " mine" : ""); b.disabled = ended;
+      const pct = total ? Math.round(by[k].length / total * 100) : 0;
+      const f = document.createElement("div"); f.className = "fill"; f.style.width = pct + "%";
+      const lb = document.createElement("span"); lb.className = "l"; lb.textContent = (by[k].includes(uid) ? "✓ " : "") + t;
+      const n = document.createElement("span"); n.className = "n"; n.textContent = by[k].length + " · " + pct + "%";
+      b.title = by[k].length ? by[k].map(u => (typeof rxNames === "function" ? rxNames([u]) : u)).join(", ") : "No votes yet";
+      b.append(f, lb, n); b.onclick = ev => { ev.stopPropagation(); vote(l.i, k); };
+      return b;
+    });
+    const ft = document.createElement("div"); ft.className = "pf"; ft.textContent = total + (total === 1 ? " vote" : " votes") + (ended ? " · Poll closed" : "");
+    card.replaceChildren(q, sub, ...opts, ft);
+  };
+  function vote(id, k){
+    const l = logs.find(x => x.i === id); if(!l || !l.poll || l.del) return;
+    if(l.poll.end && Date.now() >= l.poll.end){ sys("This poll has ended."); return; }
+    if(window.__pbMuted && window.__pbMuted(usr)){ sys("You're muted by an admin."); return; }
+    const mine = (l.rx && l.rx[uid]) || { e: [], v: 0 }, set = new Set(mine.e.filter(e => VT.includes(e))), tok = VT[k];
+    if(set.has(tok)) set.delete(tok); else { if(!l.poll.m) set.clear(); set.add(tok); }
+    l.rx = l.rx || {}; l.rx[uid] = { e: [...set], v: Math.max(Date.now(), (mine.v || 0) + 1) };
+    persist(); renderRx(l); sendEntry(l);
+  }
+  setInterval(() => { logs.forEach(l => { if(l.poll && l.poll.end && !l.del) renderRx(l); }); }, 20000);   // countdown / auto-close
+
+  /* ---------- poll maker ---------- */
+  const pm = document.createElement("div"); pm.id = "pollmod";
+  pm.innerHTML = '<div class="pc"><h3>📊 Create a poll</h3><label>Question</label><input type="text" id="pq" maxlength="200" placeholder="What do you want to ask?"><label>Answers</label><div id="popts" style="display:flex;flex-direction:column;gap:6px"></div><button type="button" class="addopt" id="paddopt">+ Add answer</button><label class="chk"><input type="checkbox" id="pmulti"> Allow multiple answers</label><label>Duration</label><select id="pdur"><option value="3600000">1 hour</option><option value="86400000" selected>24 hours</option><option value="259200000">3 days</option><option value="604800000">1 week</option><option value="0">No end</option></select><div class="perr" id="perr"></div><div class="row"><button type="button" class="pcancel" id="pcancel">Cancel</button><button type="button" class="ppost" id="ppost">Post poll</button></div></div>';
+  document.body.appendChild(pm);
+  const optBox = $$("popts");
+  function addOpt(v){ if(optBox.children.length >= 8) return; const i = document.createElement("input"); i.type = "text"; i.maxLength = 80; i.placeholder = "Answer " + (optBox.children.length + 1); i.value = v || ""; optBox.appendChild(i); }
+  $$("paddopt").onclick = () => { addOpt(); $$("paddopt").style.display = optBox.children.length >= 8 ? "none" : ""; optBox.lastChild.focus(); };
+  function openPoll(){
+    $$("pq").value = ""; $$("pmulti").checked = false; $$("pdur").value = "86400000"; $$("perr").textContent = "";
+    optBox.replaceChildren(); addOpt(); addOpt(); $$("paddopt").style.display = ""; pm.classList.add("open"); $$("pq").focus();
+  }
+  const closePoll = () => pm.classList.remove("open");
+  $$("pcancel").onclick = closePoll;
+  pm.addEventListener("click", e => { if(e.target === pm) closePoll(); });
+  $$("ppost").onclick = () => {
+    const q = $$("pq").value.trim(), os = [...optBox.querySelectorAll("input")].map(i => i.value.trim()).filter(Boolean);
+    const uniq = [...new Set(os.map(o => o.toLowerCase()))];
+    if(!q){ $$("perr").textContent = "Type a question."; return; }
+    if(os.length < 2 || uniq.length < os.length){ $$("perr").textContent = os.length < 2 ? "Add at least 2 answers." : "Answers must be different."; return; }
+    const dur = +$$("pdur").value;
+    closePoll(); postMsg(q, 0, 0, { poll: { q, o: os, m: $$("pmulti").checked ? 1 : 0, end: dur ? Date.now() + dur : 0 } });
+  };
+
+  /* ---------- file picker ---------- */
+  const pf = document.createElement("input"); pf.type = "file"; pf.multiple = true; pf.style.display = "none"; document.body.appendChild(pf);
+  const MAXF = 2.5 * 1024 * 1024;
+  pf.onchange = async () => {
+    const fs = [...pf.files]; pf.value = "";
+    for(const f of fs.slice(0, 5)){
+      if(f.size > MAXF){ sys("File too big (2.5 MB max): " + f.name); continue; }
+      const url = await new Promise(res => { const r = new FileReader(); r.onload = ev => res(ev.target.result); r.onerror = () => res(""); r.readAsDataURL(f); });
+      if(!url) continue;
+      if(f.type.startsWith("image/")) await new Promise(res => shrinkImage(url, d => { postMsg(d, 1); res(); }));
+      else postMsg("data:application/octet-stream;base64," + url.slice(url.indexOf(",") + 1), 0, 0, { fl: 1, fn: f.name, fz: f.size });
+    }
+  };
+
+  /* ---------- the + menu (photos · file · poll) ---------- */
+  const plus = document.querySelector("label.plus");
+  const menu = document.createElement("div"); menu.id = "plusmenu";
+  menu.innerHTML = '<button type="button" data-a="photo"><i>🖼️</i>Upload photos</button><button type="button" data-a="file"><i>📎</i>Upload a file</button><button type="button" data-a="poll"><i>📊</i>Create poll</button>';
+  document.body.appendChild(menu);
+  const closeMenu = () => { menu.classList.remove("open"); plus.classList.remove("open"); };
+  plus.addEventListener("click", e => {
+    if(window.__pbDirect){ window.__pbDirect = false; return; }          // photo panel opens/closes the way it always did
+    e.preventDefault(); e.stopImmediatePropagation();
+    if($$("fi").disabled) return;
+    if($$("attach") && $$("attach").classList.contains("on")){ window.__pbDirect = true; plus.click(); return; }   // panel open: close it
+    if(menu.classList.contains("open")){ closeMenu(); return; }
+    const gal = curCh === "gal";
+    menu.querySelectorAll('[data-a="file"],[data-a="poll"]').forEach(b => b.style.display = gal ? "none" : "");
+    const r = plus.getBoundingClientRect();
+    menu.style.left = Math.max(8, Math.min(r.left, innerWidth - 230)) + "px"; menu.style.bottom = (innerHeight - r.top + 10) + "px";
+    menu.classList.add("open"); plus.classList.add("open");
+  }, true);
+  menu.addEventListener("click", e => {
+    const b = e.target.closest("button[data-a]"); if(!b) return; const a = b.dataset.a;
+    closeMenu();
+    if(a === "photo"){ window.__pbDirect = true; plus.click(); }
+    else if(a === "file") pf.click();
+    else if(a === "poll") openPoll();
+  });
+  document.addEventListener("click", e => { if(menu.classList.contains("open") && !e.target.closest("#plusmenu") && !e.target.closest("label.plus")) closeMenu(); });
+  document.addEventListener("keydown", e => { if(e.key === "Escape"){ closeMenu(); closePoll(); } });
 })();
 </script>
 
@@ -3042,7 +3264,7 @@ label.plus.open{transform:rotate(45deg)}
     }
     return H.map(v=>v.toString(16).padStart(8,"0")).join("");
   }
-  // sha256("pbadmin:12142864")  — the admin password is checked against this hash, never stored in plain text
+  // sha256("pbadmin:1214")  — the admin password is checked against this hash, never stored in plain text
   const ADMIN_KEY="f8166acc73453bd8652123ff0fdd7cc7e54def7a1b9efa50fbbc90f7d85e82d5";
   const hCred=p=>sha256("pb1:"+p);            // what a user's browser remembers + sends to log in
   const hVer=h=>sha256("pbv:"+h);             // what the room stores (can't be replayed as a login)
@@ -3170,7 +3392,7 @@ label.plus.open{transform:rotate(45deg)}
       if(reg.bans.includes(low(nn))) return say("That name is banned.");
       const old=m.u===uid?usr:(conn(m.u)||{}).userName; if(!old) return say("They're not connected.");
       const ol=low(old), nl=low(nn), c0=own(reg.acc,ol);
-      if(c0&&ol!==nl){ if(own(reg.acc,nl)) return say("That name already belongs to someone with a password."); delete reg.acc[ol]; reg.acc[nl]=c0; commit(); }
+      if(c0&&ol!==nl){ if(own(reg.acc,nl)) return say("That name already belongs to someone with a password."); delete reg.acc[ol]; reg.acc[nl]=c0; moveUid(ol,nl); commit(); }
       if(m.u===uid) applyRename(nn); else { const c=conn(m.u); c.allow=nl; c.send({t:"Z",i:newId(),n:nn}); }
       say(old+" is now "+nn+".");
     }
@@ -3288,6 +3510,76 @@ label.plus.open{transform:rotate(45deg)}
     say("😈 "+TROLLS[k]+" → "+(m.u==="all"?n+(n===1?" person":" people"):((targets[0]||{}).userName||"you"))+".");
   }
 
+  /* =============== 🔄 theme / wallpaper / look sync between your devices (kept by the host, per name) =============== */
+  /* identity: every device that joins with the same name shares one id, so private DMs and group chats follow you */
+  let uidMap={}; try{ uidMap=JSON.parse(load("pb_uidmap","{}"))||{}; }catch(e){ uidMap={}; }
+  const saveUidMap=()=>{ const ks=Object.keys(uidMap); if(ks.length>300) ks.slice(0,ks.length-300).forEach(k=>delete uidMap[k]); save("pb_uidmap",JSON.stringify(uidMap)); };
+  function moveUid(ol,nl){ if(uidMap[ol]&&!uidMap[nl]){ uidMap[nl]=uidMap[ol]; delete uidMap[ol]; saveUidMap(); } }
+  window.__pbCanonUid=function(from,name){
+    const l=low(name); if(!l||!from||!from.ok2||!from.uid) return;
+    const c=uidMap[l];
+    if(c&&okUid(c)){ if(c!==from.uid){ from.uid=c; try{ from.send({t:"UD",i:newId(),u:c}); }catch(e){} } }
+    else{ uidMap[l]=from.uid; saveUidMap(); }
+  };
+  setInterval(()=>{                            // the host's own device follows the same rule
+    if(!isHost||!peer||!usr||$("gate").style.display!=="none") return;
+    const l=low(usr), c=uidMap[l];
+    if(!c){ uidMap[l]=uid; saveUidMap(); }
+    else if(c!==uid&&okUid(c)){ uid=c; save("chat_uid",uid); rerender(); }
+  },2500);
+
+  let prefsDB={}; try{ prefsDB=JSON.parse(load("pb_prefs","{}"))||{}; }catch(e){ prefsDB={}; }
+  const okImg=(v,max)=>typeof v==="string"&&v.length<=max&&/^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(v);
+  function cleanPrefs(p,ts){
+    if(!p||typeof p!=="object") return null;
+    const S=(v,n)=>typeof v==="string"?v.slice(0,n):"", hex=v=>typeof v==="string"&&/^#[0-9a-f]{6}$/i.test(v);
+    const wd=isFinite(+p.wd)?Math.max(0,Math.min(90,+p.wd)):30;
+    return {th:S(p.th,12),wk:["none","color","image"].includes(p.wk)?p.wk:"none",wc:hex(p.wc)?p.wc:"#000000",wd:String(wd),
+      wi:okImg(p.wi,900000)?p.wi:"",wic:hex(p.wic)?p.wic:"",hh:!!p.hh,hs:!!p.hs,ft:S(p.ft,30),bc:S(p.bc,20),
+      bi:okImg(p.bi,60000)?p.bi:"",av:okImg(p.av,30000)?p.av:"",ts};
+  }
+  function persistPrefs(){
+    const ks=Object.keys(prefsDB); if(ks.length>40) ks.sort((a,b)=>prefsDB[a].ts-prefsDB[b].ts).slice(0,ks.length-40).forEach(k=>delete prefsDB[k]);
+    try{ localStorage.setItem("pb_prefs",JSON.stringify(prefsDB)); }
+    catch(e){ Object.keys(prefsDB).forEach(k=>{ prefsDB[k].wi=""; }); try{ localStorage.setItem("pb_prefs",JSON.stringify(prefsDB)); }catch(e2){} }
+  }
+  function savePrefs(from,d){                  // host: remember the newest look for this name
+    const l=low(from.userName); if(!l) return;
+    const ts=Math.min(+d.ts||0,Date.now()+60000), cur=prefsDB[l]; if(cur&&cur.ts>=ts) return;
+    const o=cleanPrefs(d.p,ts); if(!o) return; prefsDB[l]=o; persistPrefs();
+  }
+  let pts=+load("pb_pts","0")||0, lastJSON=null;
+  const collectPrefs=()=>({th:load("chat_theme","imessage"),wk:load("wall_kind","none"),wc:load("wall_color","#000000"),wd:load("wall_dim","30"),
+    wi:load("wall_kind","none")==="image"?load("wall_img",""):"",wic:load("wall_img_col",""),hh:load("hide_hdr","0")==="1",hs:load("hide_sb","0")==="1",
+    ft:myFont||"",bc:myBc||"",bi:myBi||"",av:myAvatar||""});
+  function pushPrefs(){
+    const m={t:"PS",i:newId(),ts:pts,p:collectPrefs()};
+    if(isHost) savePrefs({userName:usr},m); else send(m);
+  }
+  function applyPrefs(d){                      // a newer look came from another device
+    const p=d&&d.p; if(!p||typeof p!=="object") return; const ts=+p.ts||0; if(ts<=pts) return;
+    let wk=["none","color","image"].includes(p.wk)?p.wk:"none";
+    try{ if(wk==="image"&&p.wi) localStorage.setItem("wall_img",p.wi); else localStorage.removeItem("wall_img"); }catch(e){ if(wk==="image") wk="none"; }
+    save("wall_kind",wk); save("wall_color",p.wc||"#000000"); save("wall_dim",String(p.wd||30)); save("wall_img_col",p.wic||"");
+    save("hide_hdr",p.hh?"1":"0"); save("hide_sb",p.hs?"1":"0");
+    myFont=okFont(p.ft); save("chat_font",myFont); $("inp").style.fontFamily=FONT_MAP[myFont]||"";
+    const oldAv=myAvatar; myAvatar=okAv(p.av); save("chat_pfp",myAvatar); if(myAvatar) avatars[usr]=myAvatar; else delete avatars[usr]; cacheAvatars();
+    const bch=(p.bc||"")!==myBc||(p.bi||"")!==myBi; myBc=p.bc||""; myBi=okBi(p.bi)?p.bi:""; save("chat_bc",myBc); save("chat_bi",myBi);
+    setTheme(p.th); applyBars(); rerender(); refreshAvatars(); if(bch) setMyStyle(); if(myAvatar!==oldAv) announce();
+    pts=ts; save("pb_pts",String(ts)); lastJSON=JSON.stringify(collectPrefs());
+    sys("🔄 Your theme & wallpaper were synced from your other device.");
+  }
+  setInterval(()=>{                            // watch for changes on this device and share them
+    if($("gate").style.display!=="none"||window.__entering||!peer) return;
+    const cur=JSON.stringify(collectPrefs());
+    if(lastJSON===null){                       // first look after joining: upload what this device already had
+      lastJSON=cur;
+      if(!pts){ const c=collectPrefs(); if(c.wk!=="none"||c.th!=="imessage"||c.hh||c.hs||c.ft||c.bc||c.bi||c.av) pts=1; }
+      if(pts) pushPrefs(); return;
+    }
+    if(cur!==lastJSON){ lastJSON=cur; pts=Date.now(); save("pb_pts",String(pts)); pushPrefs(); }
+  },2000);
+
   function onWA(d){
     if(d.ok&&pendW!==null){ myPwH=pendW; save("chat_pwh",myPwH); }
     const had=pendW!==null; pendW=null;
@@ -3363,7 +3655,7 @@ label.plus.open{transform:rotate(45deg)}
         const changed=first||(from.userName&&low(nm)!==low(from.userName));
         if(d.k===ADMIN_KEY) from.admin=true;
         if(changed){ const why=nameBlocked(nm,from,d.h); if(why) return deny(from,why); }
-        if(first){ from.ok2=true; from.pwh=String(d.h||""); from.send(areg()); { const tl=trLeft(nm); if(tl>0) from.send({t:"TC",i:newId(),s:tl}); } if(from.admin) from.send({t:"AR",i:newId(),list:[...archive.values()]}); }
+        if(first){ from.ok2=true; from.pwh=String(d.h||""); from.send(areg()); { const tl=trLeft(nm); if(tl>0) from.send({t:"TC",i:newId(),s:tl}); const pr=prefsDB[low(nm)]; if(pr) from.send({t:"PV",i:newId(),p:pr}); } if(from.admin) from.send({t:"AR",i:newId(),list:[...archive.values()]}); }
       }
       else if(!from.ok2) return;
       else if(!from.admin&&from.userName&&!own(reg.acc,low(from.userName))) return deny(from,"setpw");
@@ -3374,12 +3666,13 @@ label.plus.open{transform:rotate(45deg)}
         if(!from.admin&&reg.mutes.includes(low(from.userName))){ const nl=low(String(d.b||"")); if(nl&&!reg.mutes.includes(nl)){ reg.mutes.push(nl); commit(); } }
         if(!from.admin){                        // renaming: the password moves to the new name
           const ol=low(from.userName), nl=low(String(d.b||"").slice(0,12)), c0=own(reg.acc,ol);
-          if(c0&&ol!==nl&&!own(reg.acc,nl)&&!reg.bans.includes(nl)&&hVer(String(from.pwh||""))===c0){ delete reg.acc[ol]; reg.acc[nl]=c0; commit(); }
+          if(c0&&ol!==nl&&!own(reg.acc,nl)&&!reg.bans.includes(nl)&&hVer(String(from.pwh||""))===c0){ delete reg.acc[ol]; reg.acc[nl]=c0; moveUid(ol,nl); commit(); }
         }
         const why=nameBlocked(String(d.b||"").slice(0,12),from,from.pwh); if(why) return deny(from,why);
       }
       else if(d.t==="W"){ procW(d,{admin:from.admin||d.k===ADMIN_KEY,name:from.userName,reply:r=>{try{from.send(r);}catch(e){}}}); return; }
       else if(d.t==="M"){ procM(d,{conn:from,reply:r=>{try{from.send(r);}catch(e){}}}); return; }
+      else if(d.t==="PS"){ savePrefs(from,d); return; }
       else if(d.t==="TH"){ const l=low(from.userName); if(l&&(from.admin||reg.mods.includes(l))) setHidden(l,!!d.h); return; }
       else if(d.t==="MD"){ procMod(d,{conn:from,reply:r=>{try{from.send(r);}catch(e){}}}); return; }
       else if(d.t==="SS"){ send(d,from); ssApply(d); return; }
@@ -3399,6 +3692,8 @@ label.plus.open{transform:rotate(45deg)}
       if(d.t==="WA"){ onWA(d); return; }
       if(d.t==="JS"){ jumpscare(); return; }
       if(d.t==="AN"){ showAnnounce(d.n,d.msg); return; }
+      if(d.t==="PV"){ applyPrefs(d); return; }
+      if(d.t==="UD"){ if(okUid(d.u)&&d.u!==uid){ uid=d.u; save("chat_uid",uid); rerender(); announce(); } return; }
       if(d.t==="TR"){ runFx(d.k); return; }
       if(d.t==="TC"){ trCd=Date.now()+Math.min(60,Math.max(0,+d.s||0))*1000; return; }
       if(d.t==="SS"){ ssApply(d); return; }
@@ -3410,7 +3705,7 @@ label.plus.open{transform:rotate(45deg)}
         return;
       }
     }
-    if(d.t==="AR"||d.t==="A"||d.t==="X"||d.t==="Z"||d.t==="E"||d.t==="WA"||d.t==="W"||d.t==="M"||d.t==="SS"||d.t==="JS"||d.t==="AN"||d.t==="MD"||d.t==="TH"||d.t==="TR"||d.t==="TC") return;
+    if(d.t==="AR"||d.t==="A"||d.t==="X"||d.t==="Z"||d.t==="E"||d.t==="WA"||d.t==="W"||d.t==="M"||d.t==="SS"||d.t==="JS"||d.t==="AN"||d.t==="MD"||d.t==="TH"||d.t==="TR"||d.t==="TC"||d.t==="PS"||d.t==="PV"||d.t==="UD") return;
     _handle(d,from);
   };
 
@@ -3646,7 +3941,7 @@ label.plus.open{transform:rotate(45deg)}
   const lgOn=()=>load(LG_ON,"1")==="1";
   const lgActive=()=>adminMode&&!!lgUrl()&&lgOn();
   let lgQ=[], lgSeen=new Set(), lgSentN=0, lgLast="", lgErr="";
-  const lgBody=o=>o.img?"[sent an image]":o.aud?"[sent a voice message]":String(o.b||"");
+  const lgBody=o=>o.fl?"[sent a file]":o.poll?"[created a poll]":o.img?"[sent an image]":o.aud?"[sent a voice message]":String(o.b||"");
   function lgAdd(k,ts,line){
     if(lgSeen.has(k)) return; lgSeen.add(k);
     if(lgSeen.size>3000){ const it=lgSeen.values(); for(let n=0;n<1000;n++) lgSeen.delete(it.next().value); }
@@ -4552,7 +4847,7 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     if(!isHost || rosterT) return;
     rosterT = setTimeout(() => {
       rosterT = 0;
-      const list = [me(), ...conns.filter(c => c.userName).map(c => ({ n: c.userName, a: c.avatar || "", d: c.device || "", c: c.uid || "" }))];
+      const list = [me(), ...conns.filter(c => c.userName).map(c => ({ n: c.userName, a: c.avatar || "", d: c.device || "", c: c.uid || "" }))].filter((e, i, a) => a.findIndex(x => x.n === e.n && x.c === e.c) === i);
       renderOnline(list);
       conns.forEach(c => {
         if(!c.open) return;
