@@ -419,6 +419,14 @@
   #glist label{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:8px;cursor:pointer;font-size:14px}
   #glist label:hover{background:var(--row)}
   #glist input{width:auto}
+  #gicrow{display:flex;gap:8px;align-items:center}
+  #gicprev{width:40px;height:40px;border-radius:50%;background:#636366;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+  #gicrow input[type=text]{flex:1;min-width:0}
+  #gicrow button{padding:8px 10px;border:none;border-radius:10px;background:var(--row);color:var(--text);cursor:pointer;font-size:13px;font-weight:600;flex-shrink:0}
+  #gquick{display:flex;flex-wrap:wrap;gap:4px}
+  #gquick button{border:none;background:var(--row);border-radius:8px;width:34px;height:34px;font-size:18px;cursor:pointer;padding:0}
+  #glist .st{margin-left:auto;font-size:11px;color:var(--muted)}
+  #glist .st.on{color:#32d74b}
   #glist .pav{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
   #gmod .grow{display:flex;gap:8px}
   #gmod .grow button{flex:1;padding:10px;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;background:var(--accent);color:var(--on-accent,#fff)}
@@ -609,9 +617,11 @@
 </div>
 
 <div id="gmod"><div class="gcard">
-  <h3>New group chat</h3>
-  <div class="gsub">Only the people you pick can see it.</div>
+  <h3 id="gtitle">New group chat</h3>
+  <div class="gsub" id="gsub">Only the people you pick can see it. Offline people get it when they're back.</div>
   <input type="text" id="gname" placeholder="Group name" maxlength="30" autocomplete="off">
+  <div id="gicrow"><div id="gicprev" class="pav"></div><input type="text" id="gicon" placeholder="Emoji icon" maxlength="12" autocomplete="off"><button type="button" id="gicup" title="Use a picture as the icon">📷 Picture</button><button type="button" id="gicclr" title="Remove the icon">✕</button><input type="file" id="gicfile" accept="image/*" hidden></div>
+  <div id="gquick"></div>
   <div id="glist"></div>
   <div id="gerr2"></div>
   <div class="grow"><button id="gcancel" type="button" class="alt">Cancel</button><button id="gcreate" type="button">Create</button></div>
@@ -659,7 +669,7 @@
   <div id="hdrwrap"><div id="hdr"><button id="hdr-set" title="Settings">⚙️</button><span id="status">Not connected</span><div id="chtabs"><button type="button" data-ch="main" class="on">💬 Chat</button><button type="button" data-ch="gal">🖼️ Image Gallery</button></div><button id="dmchip" type="button" title="Unread private messages"></button><div id="online" title="See who's online"></div></div>
     <div id="onpop"></div>
     <button id="hdr-arrow" class="arrow" title="Hide / show top bar"></button></div>
-  <div id="dmbar"><span id="dmtitle"></span><button id="dmclose" type="button">← Chat</button><button id="dmmute" type="button" title="Mute notifications for this chat">🔕 Mute</button><button id="dmhide" type="button" title="Remove this chat from your list (it comes back if someone messages you)">Close chat</button><button id="dmleave" type="button" class="danger" style="display:none">Leave group</button></div>
+  <div id="dmbar"><span id="dmtitle"></span><button id="dmclose" type="button">← Chat</button><button id="dmmute" type="button" title="Mute notifications for this chat">🔕 Mute</button><button id="dmhide" type="button" title="Remove this chat from your list (it comes back if someone messages you)">Close chat</button><button id="dmedit" type="button" style="display:none" title="Rename the group or change its icon">✏️ Edit group</button><button id="dmadd" type="button" style="display:none" title="Add people to this group (online or offline)">＋ Add people</button><button id="dmleave" type="button" class="danger" style="display:none">Leave group</button></div>
   <div id="box"></div>
   <div id="typing"></div>
   <div id="replybar"><span class="rb-t"></span><button id="replyx" type="button" title="Cancel reply" aria-label="Cancel reply">✕</button></div>
@@ -706,7 +716,18 @@ function okGid(g){ return typeof g === "string" && /^g[a-z0-9]{3,30}$/.test(g); 
 function cleanGroup(g){
   if(!g || typeof g !== "object" || !okGid(g.id) || !okUid(g.o)) return null;
   const m = [...new Set((Array.isArray(g.m) ? g.m : []).filter(okUid))].slice(0, 50);
-  return { id: g.id, n: String(g.n || "").slice(0, 30) || "Group", o: g.o, m, v: +g.v || 0 };
+  return { id: g.id, n: String(g.n || "").slice(0, 30) || "Group", o: g.o, m, v: +g.v || 0, ic: okGIcon(g.ic) ? g.ic : "" };
+}
+// a group icon is either one small emoji or a small square JPEG we made ourselves (never anything else)
+function okGIcon(ic){
+  if(typeof ic !== "string" || !ic || ic.length > 30000) return false;
+  if(ic.startsWith("data:")) return /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(ic);
+  return ic.length <= 24 && /^(?:\p{Extended_Pictographic}|\p{Regional_Indicator}|[\u200d\ufe0f\u{1F3FB}-\u{1F3FF}])+$/u.test(ic);
+}
+function setGroupIcon(el, ic){
+  el.style.background = "#636366"; el.textContent = "";
+  if(ic && ic.startsWith("data:image/")){ el.style.backgroundImage = "url(" + ic + ")"; el.style.backgroundSize = "cover"; el.style.backgroundPosition = "center"; }
+  else el.textContent = ic || "👥";
 }
 const isMember = gid => !!(groups[gid] && groups[gid].m.includes(uid));
 // conversation key: "d:<uid>" for a private chat, "g:<id>" for a group (empty if it isn't ours)
@@ -1966,9 +1987,16 @@ function updateDmBar(){
   $("dmmute").textContent = muted[dmWith] ? "🔔 Unmute" : "🔕 Mute";
   const isG = dmWith[0] === "g";
   $("dmleave").style.display = isG ? "" : "none";
+  $("dmadd").style.display = isG ? "" : "none";
+  $("dmedit").style.display = isG ? "" : "none";
   if(isG){
     const g = groups[dmWith.slice(2)]; if(g) dmNm = g.n;
-    $("dmtitle").textContent = "👥 " + dmNm + " · " + (g ? g.m.length : 0) + " members";
+    const dt = $("dmtitle"), ic = (g && g.ic) || "", info = dmNm + " · " + (g ? g.m.length : 0) + " members";
+    dt.replaceChildren();
+    if(ic.startsWith("data:image/")){
+      const im = document.createElement("img"); im.src = ic; im.alt = ""; im.style.cssText = "width:20px;height:20px;border-radius:50%;object-fit:cover;vertical-align:-5px;margin-right:6px";
+      dt.append(im, document.createTextNode(info));
+    } else dt.textContent = (ic || "👥") + " " + info;
     $("inp").placeholder = "Message " + dmNm;
   } else {
     const o = lastRoster.find(e => e.c === dmWith.slice(2)); if(o) dmNm = o.n;
@@ -2004,7 +2032,7 @@ function renderDMList(){
   const chip = $("dmchip"); chip.style.display = tot ? "inline-block" : "none"; chip.textContent = "✉️ " + tot;
   const h = document.createElement("div"); h.className = "sbh";
   const ht = document.createElement("span"); ht.textContent = "Chats";
-  const nb = document.createElement("button"); nb.type = "button"; nb.textContent = "＋ Group"; nb.title = "Create a group chat"; nb.onclick = openGroupModal;
+  const nb = document.createElement("button"); nb.type = "button"; nb.textContent = "＋ Group"; nb.title = "Create a group chat"; nb.onclick = () => openGroupModal();
   h.append(ht, nb);
   if(!list.length){
     const t = document.createElement("div"); t.className = "hint"; t.textContent = "Click someone who's online to message them privately, or start a group.";
@@ -2014,7 +2042,7 @@ function renderDMList(){
     const r = document.createElement("div"); r.className = "prow" + (curCh === "dm" && dmWith === x.k ? " active" : "");
     if(!shownKeys.has(x.k)){ shownKeys.add(x.k); r.classList.add("enter"); }
     const av = document.createElement("div"); av.className = "pav";
-    if(x.k[0] === "g"){ av.textContent = "👥"; av.style.background = "#636366"; } else paintAv(av, x.n);
+    if(x.k[0] === "g"){ const gg = groups[x.k.slice(2)]; setGroupIcon(av, gg && gg.ic); } else paintAv(av, x.n);
     const mid = document.createElement("div"); mid.className = "pnm";
     const nm = document.createElement("div"); nm.textContent = x.n + (muted[x.k] ? " 🔕" : ""); nm.style.fontWeight = x.un && !muted[x.k] ? "700" : "500";
     const ls = document.createElement("span"); ls.className = "plast"; ls.textContent = x.last;
@@ -2090,9 +2118,9 @@ function handleGroup(d, from){
     if(!cur){ if(!g.m.includes(from.uid)) return; }
     else {
       if(g.v <= cur.v || g.o !== cur.o) return;
-      if(from.uid !== cur.o){                   // members can only leave; the owner can change anything
+      if(from.uid !== cur.o){                   // members can rename, change the icon, add people or leave; only the owner can remove others
         const removed = cur.m.filter(u => !g.m.includes(u)), added = g.m.filter(u => !cur.m.includes(u));
-        if(g.n !== cur.n || added.length || removed.some(u => u !== from.uid) || !cur.m.includes(from.uid)) return;
+        if(removed.some(u => u !== from.uid) || !cur.m.includes(from.uid)) return;
       }
     }
     groups[g.id] = g; saveGroups();
@@ -2103,33 +2131,105 @@ function handleGroup(d, from){
     groups[g.id] = g; saveGroups(); applyGroup(g);
   }
 }
-function openGroupModal(){
-  const list = $("glist"); list.replaceChildren();
-  const people = lastRoster.filter(e => e.c && e.c !== uid);
-  if(!people.length){ const t = document.createElement("div"); t.style.cssText = "padding:8px;font-size:13px;color:var(--muted)"; t.textContent = "Nobody else is online right now."; list.appendChild(t); }
-  people.forEach(e => {
-    const lb = document.createElement("label"), cb = document.createElement("input"); cb.type = "checkbox"; cb.value = e.c;
-    const av = document.createElement("div"); av.className = "pav"; paintAv(av, e.n);
-    const nm = document.createElement("span"); nm.textContent = e.n;
-    lb.append(cb, av, nm); list.appendChild(lb);
+let gmGid = "", gmEdit = false, gmIcon = "";
+function knownPeople(exclude){                    // everyone we know about: online now, plus anyone seen in chats before (offline)
+  const m = new Map();
+  logs.forEach(l => {
+    if(l.del) return;
+    if(l.c && l.u && l.c !== uid) m.set(l.c, { c: l.c, n: l.u, on: 0 });
+    if(l.to && l.tn && l.to !== uid && !m.has(l.to)) m.set(l.to, { c: l.to, n: l.tn, on: 0 });
   });
-  $("gname").value = ""; $("gerr2").textContent = ""; setModal(true); $("gname").focus();
+  lastRoster.forEach(e => { if(e.c && e.c !== uid) m.set(e.c, { c: e.c, n: e.n, on: 1 }); });
+  return [...m.values()].filter(p => okUid(p.c) && !(exclude || []).includes(p.c)).sort((a, b) => (b.on - a.on) || a.n.localeCompare(b.n));
+}
+function updIcPrev(){ setGroupIcon($("gicprev"), gmIcon); }
+function openGroupModal(gid, edit){
+  gmGid = (typeof gid === "string" && groups[gid] && groups[gid].m.includes(uid)) ? gid : "";
+  gmEdit = !!(edit && gmGid);
+  const g = gmGid ? groups[gmGid] : null;
+  const list = $("glist"); list.replaceChildren();
+  const people = gmEdit ? [] : knownPeople(g ? g.m : []);
+  $("gtitle").textContent = gmEdit ? "Edit group" : g ? "Add people to \u201c" + g.n + "\u201d" : "New group chat";
+  $("gsub").textContent = gmEdit ? "Everyone in the group can rename it and change the icon." : g ? "Online or offline \u2014 offline people get it when they're back. New members can see the group's earlier messages." : "Only the people you pick can see it. Offline people get it when they're back.";
+  $("gname").style.display = (g && !gmEdit) ? "none" : "";
+  $("gicrow").style.display = (!g || gmEdit) ? "flex" : "none";
+  $("gquick").style.display = (!g || gmEdit) ? "flex" : "none";
+  list.style.display = gmEdit ? "none" : "";
+  $("gcreate").textContent = gmEdit ? "Save" : g ? "Add" : "Create";
+  gmIcon = gmEdit ? (g.ic || "") : "";
+  $("gicon").value = (gmIcon && !gmIcon.startsWith("data:")) ? gmIcon : ""; updIcPrev();
+  if(!gmEdit){
+    if(!people.length){ const t = document.createElement("div"); t.style.cssText = "padding:8px;font-size:13px;color:var(--muted)"; t.textContent = g ? "Everyone we know about is already in this group." : "Nobody else to add yet."; list.appendChild(t); }
+    people.forEach(e => {
+      const lb = document.createElement("label"), cb = document.createElement("input"); cb.type = "checkbox"; cb.value = e.c;
+      const av = document.createElement("div"); av.className = "pav"; paintAv(av, e.n);
+      const nm = document.createElement("span"); nm.textContent = e.n;
+      const st = document.createElement("span"); st.className = "st" + (e.on ? " on" : ""); st.textContent = e.on ? "online" : "offline";
+      lb.append(cb, av, nm, st); list.appendChild(lb);
+    });
+  }
+  $("gname").value = gmEdit ? g.n : ""; $("gerr2").textContent = ""; setModal(true); if(!g || gmEdit) $("gname").focus();
   $("sb").classList.remove("open");
 }
+const G_QUICK = ["🔥","⭐","🎮","💬","🎉","😂","🏆","👑","💀","🐎","❤️","🍕"];
+G_QUICK.forEach(e => { const b = document.createElement("button"); b.type = "button"; b.textContent = e; b.onclick = () => { gmIcon = e; $("gicon").value = e; updIcPrev(); }; $("gquick").appendChild(b); });
+$("gicon").addEventListener("input", () => {     // keep just the first emoji they typed or pasted
+  const m = $("gicon").value.match(/(?:\p{Extended_Pictographic}(?:\ufe0f|\u200d\p{Extended_Pictographic}|[\u{1F3FB}-\u{1F3FF}])*|\p{Regional_Indicator}{2})/u);
+  gmIcon = m ? m[0] : ""; $("gicon").value = gmIcon; updIcPrev();
+});
+$("gicclr").onclick = () => { gmIcon = ""; $("gicon").value = ""; updIcPrev(); };
+$("gicup").onclick = () => $("gicfile").click();
+$("gicfile").onchange = ev => {
+  const f = ev.target.files && ev.target.files[0]; ev.target.value = "";
+  if(!f || !/^image\//.test(f.type)) return;
+  const url = URL.createObjectURL(f), im = new Image();
+  im.onload = () => {
+    const c = document.createElement("canvas"); c.width = c.height = 96; const x = c.getContext("2d");
+    x.fillStyle = "#636366"; x.fillRect(0, 0, 96, 96);
+    const side = Math.min(im.width, im.height) || 1;
+    x.drawImage(im, (im.width - side) / 2, (im.height - side) / 2, side, side, 0, 0, 96, 96);
+    URL.revokeObjectURL(url);
+    gmIcon = c.toDataURL("image/jpeg", 0.82); $("gicon").value = ""; updIcPrev();
+  };
+  im.onerror = () => { URL.revokeObjectURL(url); $("gerr2").textContent = "Couldn't read that picture."; };
+  im.src = url;
+};
 $("gcancel").onclick = () => setModal(false);
 $("gmod").addEventListener("mousedown", ev => { if(ev.target === $("gmod")) setModal(false); });
 $("gname").addEventListener("keydown", e => { if(e.key === "Enter") $("gcreate").click(); });
 $("gcreate").onclick = () => {
   const name = $("gname").value.trim().slice(0, 30);
   const picked = [...$("glist").querySelectorAll("input:checked")].map(i => i.value).filter(okUid);
+  if(gmGid && gmEdit){                             // rename / change icon
+    const g1 = groups[gmGid];
+    if(!g1 || !g1.m.includes(uid)){ setModal(false); return; }
+    if(!name){ $("gerr2").textContent = "Give the group a name."; return; }
+    const ng = { ...g1, n: name, ic: okGIcon(gmIcon) ? gmIcon : "", v: Math.max(Date.now(), (g1.v || 0) + 1) };
+    groups[ng.id] = ng; saveGroups();
+    if(isHost) shareGroup(ng, null, g1.m); else send({ t: "G", i: newId(), g: ng });
+    applyGroup(ng); setModal(false);
+    return;
+  }
+  if(gmGid){                                       // adding people to an existing group
+    const g0 = groups[gmGid];
+    if(!g0 || !g0.m.includes(uid)){ setModal(false); return; }
+    if(!picked.length){ $("gerr2").textContent = "Pick at least one person."; return; }
+    const ng = { ...g0, m: [...new Set([...g0.m, ...picked])].slice(0, 50), v: Math.max(Date.now(), (g0.v || 0) + 1) };
+    groups[ng.id] = ng; saveGroups();
+    if(isHost) shareGroup(ng, null, g0.m); else send({ t: "G", i: newId(), g: ng });
+    applyGroup(ng); setModal(false);
+    return;
+  }
   if(!name){ $("gerr2").textContent = "Give the group a name."; return; }
   if(!picked.length){ $("gerr2").textContent = "Pick at least one person."; return; }
-  const g = { id: "g" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8), n: name, o: uid, m: [uid, ...picked], v: Date.now() };
+  const g = { id: "g" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8), n: name, o: uid, m: [uid, ...picked], v: Date.now(), ic: okGIcon(gmIcon) ? gmIcon : "" };
   groups[g.id] = g; saveGroups();
   if(isHost) shareGroup(g, null, []); else send({ t: "G", i: newId(), g });
   setModal(false);
   openDM("g:" + g.id, g.n);
 };
+$("dmedit").onclick = () => { if(dmWith[0] === "g") openGroupModal(dmWith.slice(2), true); };
+$("dmadd").onclick = () => { if(dmWith[0] === "g") openGroupModal(dmWith.slice(2)); };
 $("dmleave").onclick = () => {
   if(dmWith[0] !== "g") return;
   const g = groups[dmWith.slice(2)]; if(!g) return;
@@ -4232,6 +4332,139 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     sock.onclose = () => onClosed(sock);
     sock.onerror = () => {};
   };
+})();
+</script>
+<style>
+/* ---- @mentions ---- */
+.bubble .mention{background:rgba(127,127,127,.3);border-radius:5px;padding:0 4px;font-weight:700}
+.bubble .mention.me{background:#ffd60a;color:#000}
+.msg.mentioned .bubble{box-shadow:0 0 0 2px #ffd60a}
+#men-sug{display:none;position:absolute;bottom:62px;left:60px;width:min(270px,86vw);max-height:310px;overflow-y:auto;background:var(--side);color:var(--text);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.5);padding:6px 0;z-index:30}
+#men-sug .hd{padding:6px 14px 4px;font-size:11px;letter-spacing:.8px;font-weight:600;color:var(--muted)}
+#men-sug .item{display:flex;align-items:center;gap:10px;padding:7px 14px;font-size:14px;cursor:pointer}
+#men-sug .item.sel,#men-sug .item:hover{background:var(--row)}
+#men-sug .pav{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;background-size:cover;background-position:center}
+#men-sug .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#men-sug .st{font-size:11px;color:var(--muted)}
+#men-sug .st.on{color:#32d74b}
+body.in-gal #men-sug{display:none !important}
+</style>
+<script>
+/* =============== @mentions: autocomplete, highlight, and a ping when you're mentioned =============== */
+(function(){
+  const inp=$("inp"); if(!inp) return;
+  const esc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+  const lc=s=>String(s||"").toLowerCase();
+
+  /* ---------- autocomplete popup ---------- */
+  const box=document.createElement("div"); box.id="men-sug";
+  $("emo-sug").parentNode.appendChild(box);
+  let menList=[], menIdx=0;
+  function hideMen(){ box.style.display="none"; menList=[]; }
+  function hlMen(){ [...box.querySelectorAll(".item")].forEach((d,n)=>{ d.classList.toggle("sel",n===menIdx); if(n===menIdx) d.scrollIntoView({block:"nearest"}); }); }
+  function pickMen(n){
+    const pos=inp.selectionStart, before=inp.value.slice(0,pos), after=inp.value.slice(pos);
+    const nb=before.replace(/(^|\s)@[^\s@]*$/,(m,a)=>a+"@"+n+" ");
+    inp.value=nb+after; inp.setSelectionRange(nb.length,nb.length); inp.focus(); hideMen(); try{ updateSendBtn(); }catch(e){}
+  }
+  function showMen(){
+    const m=inp.value.slice(0,inp.selectionStart).match(/(?:^|\s)@([^\s@]{0,12})$/);
+    if(!m){ hideMen(); return; }
+    const q=lc(m[1]), me=lc(usr);
+    const online=new Map(), other=new Map();
+    (lastRoster||[]).forEach(e=>{ if(e&&e.n&&lc(e.n)!==me) online.set(lc(e.n),e.n); });
+    (logs||[]).slice(-500).forEach(l=>{ if(l&&l.u&&!l.del&&!l.to&&!l.g){ const k=lc(l.u); if(k!==me&&!online.has(k)) other.set(k,l.u); } });
+    let all=[...online.values()].map(n=>({n,on:1})).concat([...other.values()].map(n=>({n,on:0})));
+    const starts=all.filter(x=>lc(x.n).startsWith(q)), has=all.filter(x=>!lc(x.n).startsWith(q)&&lc(x.n).includes(q));
+    menList=starts.concat(has).slice(0,8).map(x=>x);
+    menIdx=0;
+    if(!menList.length){ hideMen(); return; }
+    box.replaceChildren();
+    const hd=document.createElement("div"); hd.className="hd"; hd.textContent="MENTION SOMEONE"; box.appendChild(hd);
+    menList.forEach(x=>{
+      const d=document.createElement("div"); d.className="item";
+      const av=document.createElement("div"); av.className="pav"; try{ paintAv(av,x.n); }catch(e){ av.textContent=x.n.slice(0,1).toUpperCase(); }
+      const nm=document.createElement("span"); nm.className="nm"; nm.textContent=x.n;
+      const st=document.createElement("span"); st.className="st"+(x.on?" on":""); st.textContent=x.on?"online":"offline";
+      d.append(av,nm,st);
+      d.onmousedown=ev=>{ ev.preventDefault(); pickMen(x.n); };
+      box.appendChild(d);
+    });
+    menList=menList.map(x=>x.n);
+    box.style.display="block"; hlMen();
+  }
+  inp.addEventListener("input",showMen);
+  inp.addEventListener("click",showMen);
+  inp.addEventListener("keyup",e=>{ if(e.key==="ArrowLeft"||e.key==="ArrowRight"||e.key==="Home"||e.key==="End") showMen(); });
+  inp.addEventListener("blur",()=>setTimeout(hideMen,120));
+  window.addEventListener("keydown",e=>{               // capture phase: runs before the chat's own Enter / Escape handlers
+    if(!menList.length||e.target!==inp||e.isComposing) return;
+    if(e.key==="ArrowDown"){ e.preventDefault(); e.stopImmediatePropagation(); menIdx=(menIdx+1)%menList.length; hlMen(); }
+    else if(e.key==="ArrowUp"){ e.preventDefault(); e.stopImmediatePropagation(); menIdx=(menIdx-1+menList.length)%menList.length; hlMen(); }
+    else if(e.key==="Enter"||e.key==="Tab"){ e.preventDefault(); e.stopImmediatePropagation(); pickMen(menList[menIdx]); }
+    else if(e.key==="Escape"){ e.preventDefault(); e.stopImmediatePropagation(); hideMen(); }
+  },true);
+
+  /* ---------- highlighting @Name inside messages ---------- */
+  let reKey="", re=null, namesAt=0, names=new Map();
+  function getRe(){
+    const now=Date.now();
+    if(now-namesAt>1500){
+      namesAt=now; names=new Map();
+      (lastRoster||[]).forEach(e=>{ if(e&&e.n) names.set(lc(e.n),e.n); });
+      (logs||[]).forEach(l=>{ if(l&&l.u&&!l.del) names.set(lc(l.u),l.u); });
+      if(usr) names.set(lc(usr),usr);
+    }
+    const list=[...names.values()].filter(Boolean).sort((a,b)=>b.length-a.length);
+    const key=list.join("\n");
+    if(key!==reKey){ reKey=key; re=list.length?new RegExp("(^|[^\\p{L}\\p{N}_@])@("+list.map(esc).join("|")+")(?![\\p{L}\\p{N}_])","giu"):null; }
+    return re;
+  }
+  let ac=null;
+  function ping(){
+    try{
+      ac=ac||new (window.AudioContext||window.webkitAudioContext)(); if(ac.state==="suspended") ac.resume();
+      const t=ac.currentTime;
+      [[880,0],[1318,.13]].forEach(([f,d])=>{
+        const o=ac.createOscillator(), g=ac.createGain(); o.type="sine"; o.frequency.value=f;
+        g.gain.setValueAtTime(.0001,t+d); g.gain.exponentialRampToValueAtTime(.18,t+d+.02); g.gain.exponentialRampToValueAtTime(.0001,t+d+.15);
+        o.connect(g); g.connect(ac.destination); o.start(t+d); o.stop(t+d+.17);
+      });
+    }catch(e){}
+  }
+  function processBubble(b){
+    const t=b.textContent;
+    if(b.dataset.mnt===t) return;
+    b.dataset.mnt=t;
+    if(t.indexOf("@")<0) return;
+    const r=getRe(); if(!r) return;
+    r.lastIndex=0;
+    const frag=document.createDocumentFragment(); let last=0, found=false, hitMe=false, m;
+    while((m=r.exec(t))){
+      const start=m.index+m[1].length;
+      frag.appendChild(document.createTextNode(t.slice(last,start)));
+      const sp=document.createElement("span"); sp.className="mention"; sp.textContent="@"+m[2];
+      if(lc(m[2])===lc(usr)){ sp.classList.add("me"); hitMe=true; }
+      frag.appendChild(sp); last=start+1+m[2].length; found=true;
+    }
+    if(!found) return;
+    frag.appendChild(document.createTextNode(t.slice(last)));
+    b.replaceChildren(frag);
+    const w=b.closest(".msg");
+    if(hitMe&&w){
+      w.classList.add("mentioned");
+      if(w.classList.contains("peer")&&w.classList.contains("pop")&&!w.dataset.mnPing){ w.dataset.mnPing="1"; ping(); }   // only brand-new messages from others make a sound
+    }
+  }
+  const SEL=".bubble[data-bubble]";
+  function scan(root){ if(!root||root.nodeType!==1) return; if(root.matches&&root.matches(SEL)) processBubble(root); root.querySelectorAll&&root.querySelectorAll(SEL).forEach(processBubble); }
+  new MutationObserver(ms=>{
+    ms.forEach(m=>{
+      m.addedNodes.forEach(scan);
+      const b=m.target&&m.target.closest?m.target.closest(SEL):null; if(b) processBubble(b);
+    });
+  }).observe($("box"),{childList:true,subtree:true});
+  scan($("box"));
 })();
 </script>
 </body>
