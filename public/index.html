@@ -600,7 +600,7 @@
     <button id="g-go">Join chat</button>
     <a class="goback" href="https://docs.google.com/document/d/1oa90mU-jYczqySulirTvHqqNWTSaNwPGnnArgBdVGrs/edit?tab=t.pqncc0vmsgzp" rel="noopener">← Go back</a>
   </div>
-  <div id="gver">Version 14</div>
+  <div id="gver">Version 15</div>
 </div>
 
 <div id="sb">
@@ -3217,6 +3217,35 @@ label.plus.open{transform:rotate(45deg)}
   });
   document.addEventListener("click", e => { if(menu.classList.contains("open") && !e.target.closest("#plusmenu") && !e.target.closest("label.plus")) closeMenu(); });
   document.addEventListener("keydown", e => { if(e.key === "Escape"){ closeMenu(); closePoll(); } });
+
+  /* ---------- new version on the server: everyone gets kicked to a "please refresh" screen ---------- */
+  (function(){
+    if(!/^https?:$/.test(location.protocol)) return;                        // opened from a file: nothing to check
+    const own = (($$("gver") || {}).textContent || "").match(/\d+/);
+    let base = null, shown = false;
+    const hash = t => { let h = 5381; for(let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return t.length + ":" + h; };
+    function showUpdate(){
+      if(shown) return; shown = true;
+      try{ if(window.__leave) window.__leave("New update is out, please refresh the page."); }catch(e){}
+      try{ if(peer) peer.destroy(); }catch(e){}
+      const ov = document.createElement("div");
+      ov.style.cssText = "position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.92);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center;font-family:system-ui,-apple-system,sans-serif";
+      ov.innerHTML = '<div style="font-size:46px">🔄</div><div style="font-size:22px;font-weight:800">New update is out</div><div style="font-size:15px;opacity:.8;max-width:320px">Please refresh the page to keep chatting.</div><button type="button" style="border:none;border-radius:999px;padding:12px 28px;font-size:16px;font-weight:700;background:#0a84ff;color:#fff;cursor:pointer">Refresh</button>';
+      ov.querySelector("button").onclick = () => { const u = new URL(location.href); u.searchParams.set("v", Date.now()); location.replace(u.toString()); };
+      document.body.appendChild(ov);
+    }
+    async function check(){
+      if(shown) return;
+      try{
+        const r = await fetch(location.pathname + "?_=" + Date.now(), { cache: "no-store" }); if(!r.ok) return;
+        const t = await r.text(), v = t.match(/id="gver">Version (\d+)</);
+        if(own && v && v[1] !== own[0]) return showUpdate();                // version number changed
+        const h = hash(t); if(base === null) base = h; else if(h !== base) showUpdate();   // or the file itself changed
+      }catch(e){}
+    }
+    check(); setInterval(check, 30000);
+    document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible") check(); });
+  })();
 })();
 </script>
 
