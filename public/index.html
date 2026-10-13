@@ -239,6 +239,8 @@
   /* Channels: gallery posts only show in the gallery, chat posts only in chat */
   body:not(.in-gal) .msg[data-ch="gal"]{display:none}
   body.in-gal .msg:not([data-ch="gal"]){display:none}
+  body:not(.in-shame) .msg[data-ch="shame"]{display:none}
+  body.in-shame .msg:not([data-ch="shame"]){display:none}
   body.in-gal #box{flex-direction:row;flex-wrap:wrap;align-content:flex-start;gap:16px}
   body.in-gal .msg,body.in-gal .msg.me{align-self:flex-start;max-width:none;flex-direction:row}
   body.in-gal .me .col{align-items:flex-start}
@@ -604,6 +606,7 @@
   <div>
     <div class="hdr-sb">Messages</div>
     <div class="row-ch active" id="ch-main"><div class="av-sb lp"></div><div><b style="font-size:15px">Los Purebreds</b><br><span id="chname" class="csub">iMessage Channel</span></div></div>
+    <div class="row-ch" id="ch-shame"><div class="av-sb" style="font-size:18px">🚨</div><div><b style="font-size:15px">Hall of Shame</b><br><span class="csub">Mods &amp; admins post · admins delete</span></div></div>
     <div class="row-ch" id="ch-gal"><div class="av-sb" style="font-size:18px">🖼️</div><div><b style="font-size:15px">Image Gallery</b><br><span class="csub">Photos only</span></div></div>
     <div id="sbroster"></div>
     <div id="sbdm"></div>
@@ -666,7 +669,7 @@
 </div></div>
 <button id="sb-arrow" class="arrow" title="Hide / show messages bar"></button>
 <div id="main">
-  <div id="hdrwrap"><div id="hdr"><button id="hdr-set" title="Settings">⚙️</button><span id="status">Not connected</span><div id="chtabs"><button type="button" data-ch="main" class="on">💬 Chat</button><button type="button" data-ch="gal">🖼️ Image Gallery</button></div><button id="dmchip" type="button" title="Unread private messages"></button><div id="online" title="See who's online"></div></div>
+  <div id="hdrwrap"><div id="hdr"><button id="hdr-set" title="Settings">⚙️</button><span id="status">Not connected</span><div id="chtabs"><button type="button" data-ch="main" class="on">💬 Chat</button><button type="button" data-ch="gal">🖼️ Image Gallery</button><button type="button" data-ch="shame">🚨 Hall of Shame</button></div><button id="dmchip" type="button" title="Unread private messages"></button><div id="online" title="See who's online"></div></div>
     <div id="onpop"></div>
     <button id="hdr-arrow" class="arrow" title="Hide / show top bar"></button></div>
   <div id="dmbar"><span id="dmtitle"></span><button id="dmclose" type="button">← Chat</button><button id="dmmute" type="button" title="Mute notifications for this chat">🔕 Mute</button><button id="dmhide" type="button" title="Remove this chat from your list (it comes back if someone messages you)">Close chat</button><button id="dmedit" type="button" style="display:none" title="Rename the group or change its icon">✏️ Edit group</button><button id="dmadd" type="button" style="display:none" title="Add people to this group (online or offline)">＋ Add people</button><button id="dmleave" type="button" class="danger" style="display:none">Leave group</button></div>
@@ -890,7 +893,7 @@ function refreshAvatars(){
   paintPfp();
 }
 function cacheAvatars(){ save("chat_avatars", JSON.stringify(avatars)); }
-function me(){ return { n: usr, a: myAvatar, d: myDevice, c: uid, x: window.__pbAdm ? window.__pbAdm() : 0, ht: window.__pbHide ? window.__pbHide() : 0 }; }
+function me(){ return { n: usr, a: myAvatar, d: myDevice, c: uid }; }
 function announce(){ if(isHost) pushRoster(); else send({ t: "P", u: usr, a: myAvatar, d: myDevice, c: uid, i: newId() }); }
 
 /* ---------- who's online ---------- */
@@ -933,7 +936,7 @@ function renderOnline(list){
 }
 function pushRoster(){
   if(!isHost) return;
-  const list = [me(), ...conns.filter(c => c.userName).map(c => ({ n: c.userName, a: c.avatar || "", d: c.device || "", c: c.uid || "", x: c.admin ? 1 : 0, ht: c.ht ? 1 : 0 }))];
+  const list = [me(), ...conns.filter(c => c.userName).map(c => ({ n: c.userName, a: c.avatar || "", d: c.device || "", c: c.uid || "" }))];
   renderOnline(list); send({ t: "R", i: newId(), list });
 }
 
@@ -1257,7 +1260,7 @@ function handle(d, from){
   if(d.t === "P"){
     if(okUid(d.c)) from.uid = d.c;
     if(isHost && typeof d.u === "string"){
-      from.userName = d.u.slice(0, 12); from.avatar = okAv(d.a); from.device = okDev(d.d); from.ht = d.ht ? 1 : 0;
+      from.userName = d.u.slice(0, 12); from.avatar = okAv(d.a); from.device = okDev(d.d);
       if(!from.sentS && from.uid){
         from.sentS = 1;
         Object.values(groups).forEach(g => { if(g.m.includes(from.uid)) from.send({ t: "G", i: newId(), g }); });
@@ -1268,7 +1271,7 @@ function handle(d, from){
     }
     return;
   }
-  if(d.t === "R"){ if(!isHost && Array.isArray(d.list)) renderOnline(d.list.slice(0, 50).filter(x => x && typeof x.n === "string").map(x => ({ n: x.n.slice(0, 12), a: okAv(x.a), d: okDev(x.d), c: okUid(x.c) ? x.c : "", x: x.x ? 1 : 0, ht: x.ht ? 1 : 0 }))); return; }
+  if(d.t === "R"){ if(!isHost && Array.isArray(d.list)) renderOnline(d.list.slice(0, 50).filter(x => x && typeof x.n === "string").map(x => ({ n: x.n.slice(0, 12), a: okAv(x.a), d: okDev(x.d), c: okUid(x.c) ? x.c : "" }))); return; }
   if(d.t === "G"){ handleGroup(d, from); return; }
   if(d.t === "S"){ answerSummary(d, from); return; }
   if(d.t === "Y"){
@@ -1346,7 +1349,7 @@ function cleanEntry(e){
     if(!okGid(e.g) || !o.c) return null;
     o.g = e.g; o.ch = "grp";
   } else if(e.ch === "gal" && o.img) o.ch = "gal";   // gallery only accepts images
-  else if(e.ch === "hos" && !o.img && !o.aud) o.ch = "hos";   // hall of shame is text only
+  else if(e.ch === "shame" && !o.aud) o.ch = "shame";   // hall of shame: text or photos
   if(e.edited) o.edited = true;
   if(e.r && typeof e.r === "object" && validId(e.r.i)){      // reply: id + name + short preview of the original
     o.r = { i: e.r.i, u: String(e.r.u || "").slice(0, 12), t: String(e.r.t || "").slice(0, 80), m: e.r.m ? 1 : 0 };
@@ -1606,9 +1609,11 @@ function setChannel(c){
   if(c !== "dm"){ dmWith = ""; dmNm = ""; }
   curCh = c;
   document.body.classList.toggle("in-gal", c === "gal");
+  document.body.classList.toggle("in-shame", c === "shame");
   document.body.classList.toggle("in-dm", c === "dm");
   $("ch-main").classList.toggle("active", c === "main");
   $("ch-gal").classList.toggle("active", c === "gal");
+  $("ch-shame").classList.toggle("active", c === "shame");
   document.querySelectorAll("#chtabs button").forEach(b => b.classList.toggle("on", b.dataset.ch === c));
   $("emo-panel").style.display = "none"; hideSug();
   clearReply();
@@ -1621,15 +1626,16 @@ function setChannel(c){
 }
 $("ch-main").onclick = () => setChannel("main");
 $("ch-gal").onclick = () => setChannel("gal");
+$("ch-shame").onclick = () => setChannel("shame");
 document.querySelectorAll("#chtabs button").forEach(b => b.onclick = () => setChannel(b.dataset.ch));
 
 function postMsg(b, img, aud){
   const now = Date.now(), o = { i: newId(), u: usr, c: uid, b, ts: now, v: now, d: myDevice };
   if(img){ o.img = 1; if(curCh === "gal") o.ch = "gal"; } else if(aud){ o.aud = 1; } else o.f = myFont;
+  if(curCh === "shame" && !aud) o.ch = "shame";
   if(curCh === "dm" && dmWith){
     if(dmWith[0] === "g"){ o.g = dmWith.slice(2); o.ch = "grp"; } else { o.to = dmWith.slice(2); o.tn = dmNm; o.ch = "dm"; }
   }
-  if(curCh === "hos" && !o.img && !o.aud) o.ch = "hos";
   if(replyTo && curCh !== "gal"){ o.r = replyTo; clearReply(); }
   logs.push(o); persist(); renderRow(o, true);
   sendEntry(o); renderDMList();
@@ -1825,7 +1831,7 @@ function renderRow(m, animate){
   if(animate && Date.now() - (m.ts || 0) < 15000) w.classList.add("pop");   // only brand-new messages animate
   const av = document.createElement("div"); av.className = "av"; paintAv(av, m.u);
   const col = document.createElement("div"); col.className = "col";
-  const lbl = document.createElement("span"); lbl.className = "lbl"; lbl.textContent = m.u; lbl.style.setProperty("--uc", colorFor(m.u));
+  const lbl = document.createElement("span"); lbl.className = "lbl"; lbl.textContent = m.u; lbl.dataset.nm = m.u; lbl.style.setProperty("--uc", colorFor(m.u));
   const dv = DEVS[m.d];
   if(dv){ const t = document.createElement("span"); t.className = "dev"; t.textContent = dv[0] + " " + dv[1]; lbl.appendChild(t); }
   col.appendChild(lbl);
@@ -1850,8 +1856,8 @@ function renderRow(m, animate){
   const act = document.createElement("div"); act.className = "act";
   if(m.ch !== "gal") act.appendChild(iconBtn("rep", "Reply", ICON_REPLY, () => startReply(m.i)));
   act.appendChild(iconBtn("rct", "React with any emoji", ICON_REACT, () => startReact(m.i)));
-  if(!m.img && !m.aud && (!(m.to || m.g) || mine) && (m.ch !== "hos" || (window.__pbAdm && window.__pbAdm()))) act.appendChild(iconBtn("edt", "Edit message", ICON_EDIT, () => startEdit(m.i)));
-  if(mine && (m.ch !== "hos" || (window.__pbAdm && window.__pbAdm()))) act.appendChild(iconBtn("del", "Delete message", ICON_DEL, () => deleteMsg(m.i)));
+  if(!m.img && !m.aud && (!(m.to || m.g) || mine)) act.appendChild(iconBtn("edt", "Edit message", ICON_EDIT, () => startEdit(m.i)));
+  if(mine && !(m.ch === "shame" && !(window.__pbAdm && window.__pbAdm()))) act.appendChild(iconBtn("del", "Delete message", ICON_DEL, () => deleteMsg(m.i)));   // hall of shame: only admins delete
   if(act.children.length) wrap.appendChild(act);
   col.appendChild(wrap);
   w.append(av, col);
@@ -1903,7 +1909,7 @@ function regroup(){
     if(!e.classList.contains("msg")) return false;
     e.classList.remove("first", "last", "lastmine");
     if(e.classList.contains("sys")) return true;
-    const show = curCh === "dm" ? ((e.dataset.ch === "dm" || e.dataset.ch === "grp") && e.dataset.dm === dmWith) : curCh === "gal" ? e.dataset.ch === "gal" : curCh === "hos" ? e.dataset.ch === "hos" : !e.dataset.ch;
+    const show = curCh === "dm" ? ((e.dataset.ch === "dm" || e.dataset.ch === "grp") && e.dataset.dm === dmWith) : curCh === "gal" ? e.dataset.ch === "gal" : curCh === "shame" ? e.dataset.ch === "shame" : !e.dataset.ch;
     e.classList.toggle("off", !show);
     return show;
   });
@@ -3000,7 +3006,6 @@ label.plus.open{transform:rotate(45deg)}
   }
   // sha256("pbadmin:1214")  — the admin password is checked against this hash, never stored in plain text
   const ADMIN_KEY="f8166acc73453bd8652123ff0fdd7cc7e54def7a1b9efa50fbbc90f7d85e82d5";
-  const AUTO=["justin"];                       // names that are admins automatically, no password needed
   const hCred=p=>sha256("pb1:"+p);            // what a user's browser remembers + sends to log in
   const hVer=h=>sha256("pbv:"+h);             // what the room stores (can't be replayed as a login)
   const HEX=/^[0-9a-f]{64}$/;
@@ -3008,40 +3013,42 @@ label.plus.open{transform:rotate(45deg)}
 
   /* =============== shared registry: protected names, bans, last chat-clear =============== */
   function cleanReg(r){
-    const o={acc:{},bans:[],mutes:[],mods:[],mt:true,clr:0,clg:0,muteAll:false,v:0}; if(!r||typeof r!=="object") return o;
+    const o={acc:{},bans:[],mutes:[],mods:[],adms:[],hid:[],mto:false,cls:0,clr:0,clg:0,muteAll:false,v:0}; if(!r||typeof r!=="object") return o;
     if(r.acc&&typeof r.acc==="object") Object.keys(r.acc).slice(0,500).forEach(k=>{ if(k&&k.length<=12&&k!=="__proto__"&&HEX.test(String(r.acc[k]))) o.acc[k]=r.acc[k]; });
     if(Array.isArray(r.bans)) o.bans=[...new Set(r.bans.map(x=>String(x).slice(0,12).toLowerCase()).filter(Boolean))].slice(0,500);
     if(Array.isArray(r.mutes)) o.mutes=[...new Set(r.mutes.map(x=>String(x).slice(0,12).toLowerCase()).filter(Boolean))].slice(0,500);
     if(Array.isArray(r.mods)) o.mods=[...new Set(r.mods.map(x=>String(x).slice(0,12).toLowerCase()).filter(Boolean))].slice(0,50);
-    o.mt=r.mt!==false; o.clr=+r.clr||0; o.clg=+r.clg||0; o.muteAll=!!r.muteAll; o.v=+r.v||0; return o;
+    if(Array.isArray(r.adms)) o.adms=[...new Set(r.adms.map(x=>String(x).slice(0,12).toLowerCase()).filter(Boolean))].slice(0,50);
+    if(Array.isArray(r.hid)) o.hid=[...new Set(r.hid.map(x=>String(x).slice(0,12).toLowerCase()).filter(Boolean))].slice(0,100);
+    o.mto=!!r.mto;
+    o.cls=+r.cls||0; o.clr=+r.clr||0; o.clg=+r.clg||0; o.muteAll=!!r.muteAll; o.v=+r.v||0; return o;
   }
   let reg=cleanReg((()=>{try{return JSON.parse(load("pb_reg","{}"));}catch(e){return {};}})());
   const saveReg=()=>save("pb_reg",JSON.stringify(reg));
-  const areg=()=>({t:"A",i:newId(),acc:reg.acc,bans:reg.bans,mutes:reg.mutes,mods:reg.mods,mt:reg.mt,clr:reg.clr,clg:reg.clg,muteAll:reg.muteAll,v:reg.v});
+  const areg=()=>({t:"A",i:newId(),acc:reg.acc,bans:reg.bans,mutes:reg.mutes,mods:reg.mods,adms:adminNames(),hid:reg.hid,mto:reg.mto,cls:reg.cls,clr:reg.clr,clg:reg.clg,muteAll:reg.muteAll,v:reg.v});
+  function adminNames(){ const a=conns.filter(c=>c.ok2&&c.admin&&c.userName).map(c=>low(c.userName)); if(adminMode&&usr) a.push(low(usr)); return [...new Set(a)]; }
   reg.muteAll=false;
-  let myPwH="", adminMode=false, keyAdmin=false, pendW=null;
-  let myHide=load("pb_hidetag","0")==="1";
-  window.__pbAdm=()=>adminMode?1:0; window.__pbStaff=()=>!!(adminMode||reg.mods.includes(low(usr))); window.__pbHide=()=>myHide?1:0;
-  function syncAdm(){ adminMode=keyAdmin||AUTO.includes(low(usr)); const b=$("admbtn"); if(b&&$("gate").style.display==="none") b.style.display=adminMode?"":"none"; if(window.__retag) window.__retag(); }
+  let myPwH="", adminMode=false, pendW=null;
   const low=n=>String(n||"").trim().slice(0,12).toLowerCase();
   const amMod=()=>!adminMode&&reg.mods.includes(low(usr));        // approved by an admin as a moderator
   window.__pbMuted=(n,conn)=>{ if(conn?conn.admin:adminMode) return false; return reg.muteAll||reg.mutes.includes(low(n)); };   // lets the drawing board respect admin mutes
 
+  const clT=l=>l.ch==="gal"?reg.clg:l.ch==="shame"?reg.cls:reg.clr, clMin=()=>Math.min(reg.clr,reg.clg,reg.cls);
   function commit(){ reg.v=Math.max(Date.now(),reg.v+1); saveReg(); if(isHost) send(areg()); refreshUI(); }
   function applyClear(){
     // main chat and image gallery are cleared separately; private chats are never touched
-    logs=logs.filter(l=>l.to||l.g||l.ch==="hos"||(l.ts||0)>(l.del?Math.min(reg.clr,reg.clg):l.ch==="gal"?reg.clg:reg.clr));
+    logs=logs.filter(l=>l.to||l.g||(l.ts||0)>(l.del?clMin():clT(l)));
     persist(); rerender();
   }
   const _cleanEntry=cleanEntry;
-  cleanEntry=function(e){ const o=_cleanEntry(e); if(o&&!o.to&&!o.g&&o.ch!=="hos"&&(o.ts||0)<=(o.del?Math.min(reg.clr,reg.clg):o.ch==="gal"?reg.clg:reg.clr)) return null; return o; };
+  cleanEntry=function(e){ const o=_cleanEntry(e); if(o&&!o.to&&!o.g&&(o.ts||0)<=(o.del?clMin():clT(o))) return null; return o; };
   window.addEventListener("load",()=>{ if(reg.clr||reg.clg) applyClear(); refreshUI(); });
 
   /* =============== sending my login (hash + admin key) with every "P" message =============== */
   const _addConn=addConn;
   addConn=function(c){
     const os=c.send.bind(c);
-    c.send=function(d){ if(d&&d.t==="P"){ d.h=myPwH; if(keyAdmin) d.k=ADMIN_KEY; d.ht=myHide?1:0; } return os(d); };
+    c.send=function(d){ if(d&&d.t==="P"){ d.h=myPwH; if(adminMode) d.k=ADMIN_KEY; } return os(d); };
     _addConn(c);
   };
 
@@ -3109,8 +3116,8 @@ label.plus.open{transform:rotate(45deg)}
       conns.filter(c=>c.ok2&&low(c.userName)===l).forEach(c=>{ try{ c.send({t:"E",i:newId(),msg:"You were unmuted."}); }catch(e){} }); }
     else if(m.a==="unban"){ const l=low(m.name); reg.bans=reg.bans.filter(x=>x!==l); commit(); say('Unbanned "'+l+'".'); }
     else if(m.a==="clear"){
-      const g=m.ch==="gal"; if(g) reg.clg=Date.now(); else reg.clr=Date.now();
-      applyClear(); commit(); say(g?"Image gallery cleared for everyone.":"Main chat cleared for everyone.");
+      if(m.ch==="gal") reg.clg=Date.now(); else if(m.ch==="shame") reg.cls=Date.now(); else reg.clr=Date.now();
+      applyClear(); commit(); say(m.ch==="gal"?"Image gallery cleared for everyone.":m.ch==="shame"?"Hall of Shame cleared for everyone.":"Main chat cleared for everyone.");
     }
     else if(m.a==="muteall"||m.a==="unmuteall"){
       reg.muteAll=m.a==="muteall"; commit();
@@ -3162,8 +3169,11 @@ label.plus.open{transform:rotate(45deg)}
         try{ c.send({t:"JS",i:newId()}); say("👻 Jumpscared "+(c.userName||"user")+"."); }catch(e){ say("Couldn't reach them."); }
       }
     }
-    else if(m.a==="troll") doTroll(m,f,true);
-    else if(m.a==="modtroll"){ reg.mt=!!m.on; commit(); say(reg.mt?"😈 Mods can troll again.":"🚫 Mod trolls are now off."); }
+    else if(m.a==="troll") runTroll(m,f,true,say,f.conn?f.conn.userName:usr);
+    else if(m.a==="modtroll"){
+      reg.mto=!!m.off; commit();
+      say(reg.mto?"⛔ Mod trolls are OFF. Mods can't use trolls.":"✅ Mod trolls are ON (30-second cooldown for mods).");
+    }
     else if(m.a==="setpw"){
       procW({n:m.name,v:m.v},{admin:true,reply:r=>say(r.ok?("Password "+(m.v===""?"removed":"set")+" for "+m.name+"."):r.msg)});
     }
@@ -3185,7 +3195,54 @@ label.plus.open{transform:rotate(45deg)}
       showAnnounce(by,text);
       say("📢 Announcement sent to everyone.");
     }
-    else if(m.a==="troll") doTroll(m,f,false);
+    else if(m.a==="troll") runTroll(m,f,false,say,name);
+  }
+
+  /* =============== 😈 trolls (admins: no cooldown · mods: 30s cooldown, enforced here on the host) =============== */
+  const TROLLS={fall:"UI falls",flip:"Screen flip",shake:"Screen shake",rainbow:"Rainbow colors",spin:"Screen spin",blur:"Blurry vision"};
+  const TR_CD=30000, trAt={}; let trCd=0, fxT=0;     // trAt: when each mod last trolled (host memory) · trCd: my own cooldown end (mods)
+  const trLeft=n=>Math.max(0,Math.ceil(((trAt[low(n)]||0)+TR_CD-Date.now())/1000));
+  function runFx(k){
+    if(!TROLLS[k]) return;
+    const b=document.body; Object.keys(TROLLS).forEach(x=>b.classList.remove("tr-"+x));
+    clearTimeout(fxT);
+    sys("😈 You got trolled: "+TROLLS[k]);
+    if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches) return;   // message only
+    void b.offsetWidth; b.classList.add("tr-"+k); document.documentElement.classList.add("tr-on");
+    fxT=setTimeout(()=>{ Object.keys(TROLLS).forEach(x=>b.classList.remove("tr-"+x)); document.documentElement.classList.remove("tr-on"); },8000);
+  }
+  function runTroll(m,f,isAdm,say,name){
+    const k=String(m.k||""); if(!TROLLS[k]) return say("Unknown troll.");
+    const l=low(name);
+    if(!isAdm){
+      if(reg.mto) return say("Admins have turned mod trolls off");
+      const left=trLeft(name);
+      if(left>0){ if(f.conn) try{ f.conn.send({t:"TC",i:newId(),s:left}); }catch(e){} else trCd=Date.now()+left*1000; return say("Cooldown: wait "+left+"s before the next troll."); }
+    }
+    const targets=[]; let hitSelf=false;
+    const mayHit=(n,isAd)=>{ if(isAd) return false; return isAdm||!reg.mods.includes(low(n)); };   // "Everyone" skips admins (and other mods, for mods)
+    if(m.u==="all"){
+      conns.forEach(c=>{ if(c.ok2&&c.userName&&c!==f.conn&&!c.admin&&mayHit(c.userName,false)) targets.push(c); });
+      if(f.conn&&!adminMode&&mayHit(usr,false)) hitSelf=true;       // the host's own screen, when a guest is trolling
+    } else if(m.u===uid){
+      if(!f.conn) return say("You can't troll yourself.");
+      if(!isAdm&&(adminMode||reg.mods.includes(low(usr)))) return say("Mods can't troll admins or other mods.");
+      hitSelf=true;
+    } else {
+      const c=conns.find(x=>x.uid===m.u&&x.ok2); if(!c) return say("They're not connected.");
+      if(c===f.conn) return say("You can't troll yourself.");
+      if(!isAdm&&(c.admin||reg.mods.includes(low(c.userName)))) return say("Mods can't troll admins or other mods.");
+      targets.push(c);
+    }
+    if(!targets.length&&!hitSelf) return say("Nobody to troll.");
+    targets.forEach(c=>{ try{ c.send({t:"TR",i:newId(),k}); }catch(e){} });
+    if(hitSelf) runFx(k);
+    if(!isAdm){
+      trAt[l]=Date.now();
+      if(f.conn) try{ f.conn.send({t:"TC",i:newId(),s:TR_CD/1000}); }catch(e){} else trCd=Date.now()+TR_CD;
+    }
+    const n=targets.length+(hitSelf?1:0);
+    say("😈 "+TROLLS[k]+" → "+(m.u==="all"?n+(n===1?" person":" people"):((targets[0]||{}).userName||"you"))+".");
   }
 
   function onWA(d){
@@ -3198,7 +3255,7 @@ label.plus.open{transform:rotate(45deg)}
   }
 
   function applyRename(n){
-    const old=usr; usr=String(n).slice(0,12); save("chat_usr",usr); updateYou(); syncAdm();
+    const old=usr; usr=String(n).slice(0,12); save("chat_usr",usr); updateYou();
     if(myAvatar) avatars[usr]=myAvatar; $("hi").value=usr;
     rerender(); refreshAvatars();
     sys("An admin changed your name to "+usr+".");
@@ -3246,22 +3303,24 @@ label.plus.open{transform:rotate(45deg)}
     if(!d||typeof d!=="object"||!validId(d.i)) return;
     if(isHost){
       if(from.denied) return;
-      if(d.t==="Y"&&Array.isArray(d.e)&&from.ok2&&!from.admin){      // hall of shame: mods can post, only admins can edit or delete
-        const staff=reg.mods.includes(low(from.userName)); let bl=false;
-        d.e=d.e.filter(e=>{ if(!e) return true; const cur=logs.find(l=>l.i===e.i); if(cur&&cur.ch==="hos"){ bl=true; return false; } if(e.ch==="hos"&&!e.del&&!staff){ bl=true; return false; } return true; });
-        if(bl){ try{ from.send({t:"E",i:newId(),msg:"Hall of Shame: only admins and mods can write there, and only admins can edit or delete."}); }catch(e){} }
-      }
       if(d.t==="Y"&&Array.isArray(d.e)&&from.ok2&&!from.admin){      // only admins and mods may delete other people's public messages
-        const isMod=reg.mods.includes(low(from.userName)); let blocked=false;
+        const isMod=reg.mods.includes(low(from.userName)); let blocked=false, shameBlocked=false;
+        d.e=d.e.filter(e=>{                      // Hall of Shame: mods post, admins delete
+          if(!e) return true; const cur=logs.find(l=>l.i===e.i);
+          if(!(e.ch==="shame"||(cur&&cur.ch==="shame"))) return true;
+          let ok; if(e.del) ok=false; else if(!cur) ok=isMod; else if(typeof e.b==="string"&&e.b!==cur.b) ok=isMod&&cur.c===from.uid; else ok=true;
+          if(!ok) shameBlocked=true; return ok;
+        });
+        if(shameBlocked){ try{ from.send({t:"E",i:newId(),msg:"Hall of Shame: only mods and admins can post there, and only admins can delete."}); }catch(e){} }
         d.e=d.e.filter(e=>{ if(!e||!e.del||e.to||e.g) return true; const cur=logs.find(l=>l.i===e.i); if(!cur||!cur.c||cur.c===from.uid||isMod) return true; blocked=true; return false; });
         if(blocked){ try{ from.send({t:"E",i:newId(),msg:"Only mods and admins can delete other people's messages."}); }catch(e){} }
       }
       if(d.t==="P"){
         const nm=String(d.u||"").slice(0,12), first=!from.ok2;
         const changed=first||(from.userName&&low(nm)!==low(from.userName));
-        if(d.k===ADMIN_KEY) from.keyAdm=true; from.autoAdm=AUTO.includes(low(nm)); from.admin=!!(from.keyAdm||from.autoAdm);
+        if(d.k===ADMIN_KEY) from.admin=true;
         if(changed){ const why=nameBlocked(nm,from,d.h); if(why) return deny(from,why); }
-        if(first){ from.ok2=true; from.pwh=String(d.h||""); from.send(areg()); if(from.admin) from.send({t:"AR",i:newId(),list:[...archive.values()]}); }
+        if(first){ from.ok2=true; from.pwh=String(d.h||""); from.send(areg()); { const tl=trLeft(nm); if(tl>0) from.send({t:"TC",i:newId(),s:tl}); } if(from.admin) from.send({t:"AR",i:newId(),list:[...archive.values()]}); }
       }
       else if(!from.ok2) return;
       else if(!from.admin&&from.userName&&!own(reg.acc,low(from.userName))) return deny(from,"setpw");
@@ -3269,7 +3328,6 @@ label.plus.open{transform:rotate(45deg)}
         try{ from.send({t:"E",i:newId(),msg:"You're muted by an admin."}); }catch(e){} return;
       }
       else if(d.t==="N"){
-        from.autoAdm=AUTO.includes(low(String(d.b||"").slice(0,12))); from.admin=!!(from.keyAdm||from.autoAdm);
         if(!from.admin&&reg.mutes.includes(low(from.userName))){ const nl=low(String(d.b||"")); if(nl&&!reg.mutes.includes(nl)){ reg.mutes.push(nl); commit(); } }
         if(!from.admin){                        // renaming: the password moves to the new name
           const ol=low(from.userName), nl=low(String(d.b||"").slice(0,12)), c0=own(reg.acc,ol);
@@ -3278,7 +3336,8 @@ label.plus.open{transform:rotate(45deg)}
         const why=nameBlocked(String(d.b||"").slice(0,12),from,from.pwh); if(why) return deny(from,why);
       }
       else if(d.t==="W"){ procW(d,{admin:from.admin||d.k===ADMIN_KEY,name:from.userName,reply:r=>{try{from.send(r);}catch(e){}}}); return; }
-      else if(d.t==="M"){ procM(d,{reply:r=>{try{from.send(r);}catch(e){}}}); return; }
+      else if(d.t==="M"){ procM(d,{conn:from,reply:r=>{try{from.send(r);}catch(e){}}}); return; }
+      else if(d.t==="TH"){ const l=low(from.userName); if(l&&(from.admin||reg.mods.includes(l))) setHidden(l,!!d.h); return; }
       else if(d.t==="MD"){ procMod(d,{conn:from,reply:r=>{try{from.send(r);}catch(e){}}}); return; }
       else if(d.t==="SS"){ send(d,from); ssApply(d); return; }
     }
@@ -3286,7 +3345,7 @@ label.plus.open{transform:rotate(45deg)}
       if(d.t==="A"){
         const n=cleanReg(d);
         if(window.revealChat) window.revealChat();       // the host accepted us: now show the chat
-        const grew=n.clr>reg.clr||n.clg>reg.clg; reg=n; saveReg(); if(grew) applyClear(); refreshUI(); return;
+        const grew=n.clr>reg.clr||n.clg>reg.clg||n.cls>reg.cls; reg=n; saveReg(); if(grew) applyClear(); refreshUI(); return;
       }
       if(d.t==="X"){
         const why=d.why; if(why==="password"){ myPwH=""; save("chat_pwh",""); }
@@ -3296,8 +3355,9 @@ label.plus.open{transform:rotate(45deg)}
       if(d.t==="E"){ note(String(d.msg||"").slice(0,200)); sys(String(d.msg||"").slice(0,200)); return; }
       if(d.t==="WA"){ onWA(d); return; }
       if(d.t==="JS"){ jumpscare(); return; }
-      if(d.t==="TR"){ runTroll(d.fx); return; }
       if(d.t==="AN"){ showAnnounce(d.n,d.msg); return; }
+      if(d.t==="TR"){ runFx(d.k); return; }
+      if(d.t==="TC"){ trCd=Date.now()+Math.min(60,Math.max(0,+d.s||0))*1000; return; }
       if(d.t==="SS"){ ssApply(d); return; }
       if(d.t==="AR"){
         if(adminMode&&Array.isArray(d.list)) d.list.slice(0,400).forEach(raw=>{
@@ -3307,7 +3367,7 @@ label.plus.open{transform:rotate(45deg)}
         return;
       }
     }
-    if(d.t==="AR"||d.t==="A"||d.t==="X"||d.t==="Z"||d.t==="E"||d.t==="WA"||d.t==="W"||d.t==="M"||d.t==="SS"||d.t==="JS"||d.t==="AN"||d.t==="MD"||d.t==="TR") return;
+    if(d.t==="AR"||d.t==="A"||d.t==="X"||d.t==="Z"||d.t==="E"||d.t==="WA"||d.t==="W"||d.t==="M"||d.t==="SS"||d.t==="JS"||d.t==="AN"||d.t==="MD"||d.t==="TH"||d.t==="TR"||d.t==="TC") return;
     _handle(d,from);
   };
 
@@ -3322,10 +3382,10 @@ label.plus.open{transform:rotate(45deg)}
   const _mergeEntry=mergeEntry;
   mergeEntry=function(o){ if(o&&o.del&&!o.to&&!o.g){ const c=logs.find(l=>l.i===o.i); if(c&&!c.del) keepCopy(c); } return _mergeEntry(o); };
   const _deleteMsg=deleteMsg;
-  deleteMsg=function(id){ const l=logs.find(x=>x.i===id); if(l&&!l.del) keepCopy(l); return _deleteMsg(id); };
+  deleteMsg=function(id){ const l=logs.find(x=>x.i===id); if(l&&l.ch==="shame"&&!adminMode){ sys("Only admins can delete things from the Hall of Shame."); return; } if(l&&!l.del) keepCopy(l); return _deleteMsg(id); };
   function ghost(id){
     if(!adminMode) return; const a=archive.get(id); if(!a) return;
-    if((a.ts||0)<=(a.ch==="gal"?reg.clg:reg.clr)) return;
+    if((a.ts||0)<=clT(a)) return;
     let e=$(id);
     if(!e){ renderRow(Object.assign({},a),false); e=$(id); }
     if(!e||e.classList.contains("ghost")) return;
@@ -3350,12 +3410,12 @@ label.plus.open{transform:rotate(45deg)}
   box.innerHTML='<input id="gadmpw" type="password" placeholder="Admin password" autocomplete="off"><button type="button" id="gadmok">Unlock</button><div class="gm" id="gadmm"></div>';
   $("gate").append(adm,box);
   adm.onclick=()=>{
-    if(keyAdmin){ keyAdmin=false; syncAdm(); adm.classList.remove("on"); $("gadmm").textContent="Admin mode off."; return; }
+    if(adminMode){ adminMode=false; adm.classList.remove("on"); $("gadmm").textContent="Admin mode off."; return; }
     box.classList.toggle("open"); $("gadmpw").focus();
   };
   function tryAdmin(){
     if(sha256("pbadmin:"+$("gadmpw").value)===ADMIN_KEY){
-      keyAdmin=true; adminMode=true; adm.classList.add("on"); $("gadmpw").value=""; box.classList.remove("open");
+      adminMode=true; adm.classList.add("on"); $("gadmpw").value=""; box.classList.remove("open");
       $("gerr").style.color="#ffd60a"; $("gerr").textContent="🛡 Admin mode on — join as usual."; setTimeout(()=>{$("gerr").style.color="";},4000);
     } else { $("gadmm").textContent="Wrong password."; $("gadmpw").select(); }
   }
@@ -3366,7 +3426,6 @@ label.plus.open{transform:rotate(45deg)}
   const origGo=$("g-go").onclick;
   $("g-go").onclick=()=>{
     if($("g-code").value.trim().toLowerCase()!==ROOM_CODE){ origGo(); return; }
-    adminMode=keyAdmin||AUTO.includes(low($("g-name").value.trim()||usr));
     const typed=$("g-pw").value;
     // The host is the only one who knows the current passwords/bans, so it decides.
     // (Checking against this browser's cached copy rejected correct passwords after a reset.)
@@ -3411,7 +3470,7 @@ label.plus.open{transform:rotate(45deg)}
       if(reg.bans.includes(l)){ $("stgerr").textContent="That name is banned."; return; }
       const v=own(reg.acc,l); if(v&&hVer(myPwH)!==v){ $("stgerr").textContent="That name belongs to someone with a password."; return; }
     }
-    origSave(); syncAdm();
+    origSave();
     if(usr!==old&&own(reg.acc,low(old))){
       const m={t:"W",i:newId(),n:usr,mv:old,a:myPwH};
       if(isHost) procW(m,{admin:adminMode,name:usr}); else send(m);
@@ -3471,7 +3530,7 @@ label.plus.open{transform:rotate(45deg)}
   const ab=document.createElement("button"); ab.id="admbtn"; ab.className="stg-btn"; ab.type="button"; ab.textContent="🛡 Admin panel"; ab.style.display="none";
   document.querySelector(".stg-sb").insertBefore(ab,$("stg-toggle"));
   const am=document.createElement("div"); am.id="amod";
-  am.innerHTML='<div class="acard"><div class="ah"><b>🛡 Admin panel</b><button type="button" id="amx" title="Close">✕</button></div><div id="amsg"></div><div id="amb"><div><h4>Public announcement</h4><div class="aform"><textarea id="amant" rows="2" maxlength="300" placeholder="Message to show everyone…"></textarea><button class="abtn" type="button" id="amanb">📢 Announce</button></div></div><div><h4>Quick actions</h4><button class="abtn scare" type="button" id="amscall">👻 Jumpscare everyone</button> <button class="abtn" type="button" id="amscpv">Preview</button> <button class="abtn red" type="button" id="ammall">🔇 Mute everyone (except admins)</button></div><div><h4>Chat log → Google Doc</h4><div class="aform"><input id="amlgu" type="text" placeholder="Paste your Apps Script web app URL (ends in /exec)" autocomplete="off"><button class="abtn" type="button" id="amlgsv">Save</button></div><div class="aform" style="margin-top:6px"><button class="abtn" type="button" id="amlgt">Send test line</button><button class="abtn" type="button" id="amlgo">⏸ Pause logging</button></div><div class="none" id="amlgst"></div></div><div><h4>Moderators</h4><div class="aform"><input id="ammodn" type="text" maxlength="12" placeholder="Name to make a mod" autocomplete="off"><button class="abtn" type="button" id="ammodb">➕ Add mod</button></div><div class="none">Mods can delete other people’s messages and make announcements. Names are protected by their owner’s password (🔒), so only that person can be the mod.</div><div id="ammods" style="margin-top:6px"></div></div><div><h4>Online now</h4><div id="amon"></div></div><div><h4>Muted names</h4><div id="ammu"></div></div><div><h4>Banned names</h4><div id="ambn"></div><div class="aform" style="margin-top:6px"><input id="amban" type="text" maxlength="12" placeholder="Name to ban"><button class="abtn red" type="button" id="ambanb">Ban name</button></div></div><div><h4>Set or reset a password for any name</h4><div class="aform"><input id="ampn" type="text" maxlength="12" placeholder="Name"><input id="ampp" type="text" placeholder="New password (min 4 characters)" autocomplete="off"><button class="abtn" type="button" id="ampb">Apply</button></div></div><div><h4>Clear a channel for everyone</h4><div class="aform"><select id="amch"><option value="main">💬 Main chat</option><option value="gal">🖼️ Image gallery</option><option value="draw">🎨 Drawing board</option></select><button class="abtn red" type="button" id="amclr">🗑 Clear this channel</button></div><div class="none">Only the selected channel is cleared. Private chats are never touched.</div></div></div></div>';
+  am.innerHTML='<div class="acard"><div class="ah"><b>🛡 Admin panel</b><button type="button" id="amx" title="Close">✕</button></div><div id="amsg"></div><div id="amb"><div><h4>Public announcement</h4><div class="aform"><textarea id="amant" rows="2" maxlength="300" placeholder="Message to show everyone…"></textarea><button class="abtn" type="button" id="amanb">📢 Announce</button></div></div><div><h4>Quick actions</h4><button class="abtn scare" type="button" id="amscall">👻 Jumpscare everyone</button> <button class="abtn" type="button" id="amscpv">Preview</button> <button class="abtn red" type="button" id="ammall">🔇 Mute everyone (except admins)</button></div><div><h4>Chat log → Google Doc</h4><div class="aform"><input id="amlgu" type="text" placeholder="Paste your Apps Script web app URL (ends in /exec)" autocomplete="off"><button class="abtn" type="button" id="amlgsv">Save</button></div><div class="aform" style="margin-top:6px"><button class="abtn" type="button" id="amlgt">Send test line</button><button class="abtn" type="button" id="amlgo">⏸ Pause logging</button></div><div class="none" id="amlgst"></div></div><div><h4>Moderators</h4><div class="aform"><input id="ammodn" type="text" maxlength="12" placeholder="Name to make a mod" autocomplete="off"><button class="abtn" type="button" id="ammodb">➕ Add mod</button></div><div class="none">Mods can delete other people’s messages and make announcements. Names are protected by their owner’s password (🔒), so only that person can be the mod.</div><div id="ammods" style="margin-top:6px"></div></div><div><h4>😈 Trolls</h4><div id=\"amtr\"></div></div><div><h4>Online now</h4><div id="amon"></div></div><div><h4>Muted names</h4><div id="ammu"></div></div><div><h4>Banned names</h4><div id="ambn"></div><div class="aform" style="margin-top:6px"><input id="amban" type="text" maxlength="12" placeholder="Name to ban"><button class="abtn red" type="button" id="ambanb">Ban name</button></div></div><div><h4>Set or reset a password for any name</h4><div class="aform"><input id="ampn" type="text" maxlength="12" placeholder="Name"><input id="ampp" type="text" placeholder="New password (min 4 characters)" autocomplete="off"><button class="abtn" type="button" id="ampb">Apply</button></div></div><div><h4>Clear a channel for everyone</h4><div class="aform"><select id="amch"><option value="main">💬 Main chat</option><option value="gal">🖼️ Image gallery</option><option value="shame">🚨 Hall of Shame</option><option value="draw">🎨 Drawing board</option></select><button class="abtn red" type="button" id="amclr">🗑 Clear this channel</button></div><div class="none">Only the selected channel is cleared. Private chats are never touched.</div></div></div></div>';
   document.body.appendChild(am);
   function note(t){ const e=$("amsg"); if(e) e.textContent=t; const m=$("mmsg"); if(m) m.textContent=t; }
   function adminDo(m){
@@ -3506,7 +3565,7 @@ label.plus.open{transform:rotate(45deg)}
     if(!reg.bans.length) bn.appendChild(mk("div","none","No banned names."));
     reg.bans.forEach(n=>{ const r=mk("div","arow"); r.append(mk("span","an",n)); const b=mk("button","","Unban"); b.onclick=()=>adminDo({a:"unban",name:n}); r.appendChild(b); bn.appendChild(r); });
   }
-  ab.onclick=()=>{ am.classList.add("open"); note(""); $("amch").value=curCh==="gal"?"gal":curCh==="draw"?"draw":"main"; renderAdminLists(); };
+  ab.onclick=()=>{ am.classList.add("open"); note(""); $("amch").value=curCh==="gal"?"gal":curCh==="shame"?"shame":curCh==="draw"?"draw":"main"; renderAdminLists(); };
   $("amx").onclick=()=>am.classList.remove("open");
   am.addEventListener("mousedown",e=>{ if(e.target===am) am.classList.remove("open"); });
   $("ambanb").onclick=()=>{ const n=$("amban").value.trim(); if(n){ adminDo({a:"ban",name:n}); $("amban").value=""; } };
@@ -3517,7 +3576,7 @@ label.plus.open{transform:rotate(45deg)}
     adminDo({a:"setpw",name:n,v:hVer(hCred(p))}); $("ampp").value="";
   };
   $("amclr").onclick=()=>{
-    const ch=$("amch").value, nm=ch==="gal"?"the image gallery":ch==="draw"?"the drawing board":"the main chat";
+    const ch=$("amch").value, nm=ch==="gal"?"the image gallery":ch==="shame"?"the Hall of Shame":ch==="draw"?"the drawing board":"the main chat";
     if(!confirm("Clear "+nm+" for everyone? Other channels and private chats aren't touched.")) return;
     if(ch==="draw"){ if(window.__pbBoardClear){ window.__pbBoardClear(); note("Drawing board cleared."); } }
     else adminDo({a:"clear",ch});
@@ -3544,10 +3603,10 @@ label.plus.open{transform:rotate(45deg)}
     const now=Date.now();
     if(o.del){
       if(now-(o.v||0)>120000) return;
-      const a=archive.get(o.i); if(!a||a.ch==="gal"||a.to||a.g) return;
+      const a=archive.get(o.i); if(!a||a.ch==="gal"||a.ch==="shame"||a.to||a.g) return;
       lgAdd(o.i+":d",o.v||now,"🗑 "+a.u+"'s message was deleted: "+lgBody(a)); return;
     }
-    if(o.ch==="gal"||typeof o.b!=="string"||!o.u) return;
+    if(o.ch==="gal"||o.ch==="shame"||typeof o.b!=="string"||!o.u) return;
     if(o.edited){ if(now-(o.v||0)>120000) return; lgAdd(o.i+":e:"+(o.v||0),o.v||now,o.u+" (edited): "+lgBody(o)); return; }
     if(now-(o.ts||0)>120000) return;            // skip old history that is re-synced when someone joins
     lgAdd(o.i+":n",o.ts||now,o.u+": "+lgBody(o));
@@ -3601,7 +3660,7 @@ label.plus.open{transform:rotate(45deg)}
   $("ammodn").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); addModNow(); } });
 
   const mm=document.createElement("div"); mm.id="mmod";
-  mm.innerHTML='<div class="acard"><div class="ah"><b>🛡 Mod panel</b><button type="button" id="mmx" title="Close">✕</button></div><div id="mmsg"></div><div id="mmb"><div><h4>Public announcement</h4><div class="aform"><textarea id="mmant" rows="2" maxlength="300" placeholder="Message to show everyone…"></textarea><button class="abtn" type="button" id="mmanb">📢 Announce</button></div></div><div><h4>Deleting messages</h4><div class="none">Hover over any message (or tap it on a phone) and press the 🗑 button to delete it for everyone.</div></div></div></div>';
+  mm.innerHTML='<div class="acard"><div class="ah"><b>🛡 Mod panel</b><button type="button" id="mmx" title="Close">✕</button></div><div id="mmsg"></div><div id="mmb"><div><h4>Public announcement</h4><div class="aform"><textarea id="mmant" rows="2" maxlength="300" placeholder="Message to show everyone…"></textarea><button class="abtn" type="button" id="mmanb">📢 Announce</button></div></div><div><h4>😈 Trolls</h4><div id=\"mmtr\"></div></div><div><h4>Deleting messages</h4><div class="none">Hover over any message (or tap it on a phone) and press the 🗑 button to delete it for everyone.</div></div></div></div>';
   document.body.appendChild(mm);
   function modDo(m){
     if(isHost) procMod(m,{reply:r=>note(r.msg)});
@@ -3619,196 +3678,132 @@ label.plus.open{transform:rotate(45deg)}
     if(!amMod()) mm.classList.remove("open");
   },800);
 
-
-  /* =============== 🏷 role tags (ADMIN / MOD) + hide-tag setting =============== */
+  /* =============== ADMIN / MOD tags (+ hide in settings) =============== */
   (function(){
-    const st=document.createElement("style");
-    st.textContent=".rtag{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.5px;padding:1px 6px;border-radius:999px;margin-left:6px;vertical-align:middle;line-height:1.5;text-transform:uppercase}.rtag.admin{background:#ffd60a;color:#000}.rtag.mod{background:#30d158;color:#04210d}";
-    document.head.appendChild(st);
-  })();
-  const admNames=new Set(), tagHide=new Map();
-  try{ const c=JSON.parse(load("pb_taghide","{}")); Object.keys(c).slice(0,300).forEach(k=>{ if(k!=="__proto__") tagHide.set(k,!!c[k]); }); }catch(e){}
-  const roleOf=n=>{ const l=low(n); if(!l||tagHide.get(l)) return ""; if(AUTO.includes(l)||admNames.has(l)) return "admin"; if(reg.mods.includes(l)) return "mod"; return ""; };
-  const mkTag=r=>{ const t=document.createElement("span"); t.className="rtag "+r; t.dataset.r=r; t.textContent=r==="admin"?"ADMIN":"MOD"; return t; };
-  function retagOne(w){
-    if(!w||!w.classList||!w.classList.contains("msg")||w.classList.contains("sys")) return;
-    const lbl=w.querySelector(".lbl"); if(!lbl) return;
-    const r=roleOf(w.dataset.user), cur=lbl.querySelector(".rtag");
-    if(cur){ if(cur.dataset.r===r) return; cur.remove(); }
-    if(r) lbl.insertBefore(mkTag(r),lbl.querySelector(".dev")||null);
-  }
-  function retag(){ document.querySelectorAll("#box .msg[data-user]").forEach(retagOne); }
-  window.__retag=retag;
-  new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(retagOne))).observe($("box"),{childList:true});
-  setInterval(retag,1500);
-  const _ro=renderOnline;
-  renderOnline=function(list){
-    list.forEach(e=>{ const l=low(e.n); if(!l||l==="__proto__") return; if(e.x) admNames.add(l); else admNames.delete(l); tagHide.set(l,!!e.ht); });
-    try{ const o={}; [...tagHide].slice(-300).forEach(([k,v])=>{ o[k]=v; }); save("pb_taghide",JSON.stringify(o)); }catch(e){}
-    _ro(list); retag();
-  };
-  const _fr=fillRoster;
-  fillRoster=function(p){
-    _fr(p);
-    const rows=p.querySelectorAll(".prow");
-    lastRoster.forEach((e,i)=>{ const nm=rows[i]&&rows[i].querySelector(".pnm"), r=roleOf(e.n); if(nm&&r) nm.appendChild(mkTag(r)); });
-  };
-  const rc=document.createElement("div"); rc.className="stg-card"; rc.id="rolecard"; rc.style.display="none";
-  rc.innerHTML='<h3>🏷 Role tag</h3><label class="chk"><input type="checkbox" id="hidetag">Hide my Admin / Mod tag</label><div class="stg-note">You keep all your powers. People just won\'t see the tag next to your name.</div>';
-  document.querySelector(".stg-scroll").appendChild(rc);
-  $("hidetag").checked=myHide;
-  $("hidetag").onchange=e=>{ myHide=e.target.checked; save("pb_hidetag",myHide?"1":"0"); tagHide.set(low(usr),myHide); retag(); announce(); };
-  setInterval(()=>{ rc.style.display=(adminMode||reg.mods.includes(low(usr)))?"":"none"; },800);
-
-
-  /* =============== 😈 troll section (admins + mods) =============== */
-  const TFX={fall:["🫠","UI falls"],rainbow:["🌈","Rainbow screen"],boom:["💥","Explosive clicks"],shake:["🫨","Shake"],flip:["🙃","Flip upside down"],rain:["🐸","Emoji rain"]};
-  const trOn=new Set();
-  function trCss(){
-    if($("trcss")) return;
-    const s=document.createElement("style"); s.id="trcss";
-    s.textContent="@keyframes trHue{to{filter:hue-rotate(360deg)}}html.tr-rb{animation:trHue 5s linear infinite}"+
-    "@keyframes trSlide{to{background-position:-200% 0}}#trrb{position:fixed;inset:0;z-index:2147483000;pointer-events:none;background:linear-gradient(90deg,red,orange,yellow,lime,cyan,blue,magenta,red);background-size:200% 100%;mix-blend-mode:color;opacity:.55;animation:trSlide 4s linear infinite}"+
-    "@keyframes trShake{0%,100%{transform:translate(0,0) rotate(0)}25%{transform:translate(-7px,4px) rotate(-.6deg)}50%{transform:translate(6px,-5px) rotate(.6deg)}75%{transform:translate(-5px,-4px) rotate(-.4deg)}}html.tr-shake body{animation:trShake .18s linear infinite}"+
-    "html.tr-flipw body{transition:transform 1s cubic-bezier(.2,.9,.3,1)}html.tr-flip body{transform:rotate(180deg)}"+
-    "@keyframes trRain{to{transform:translateY(115vh) rotate(360deg)}}.trr{position:fixed;top:-60px;pointer-events:none;z-index:2147483001;animation:trRain linear forwards}"+
-    "@keyframes trPop{0%{transform:translate(-50%,-50%) scale(.2);opacity:1}100%{transform:translate(-50%,-50%) scale(2.4);opacity:0}}.trx{position:fixed;z-index:2147483001;pointer-events:none;font-size:46px;transform:translate(-50%,-50%);animation:trPop .6s ease-out forwards}"+
-    "@keyframes trFly{to{transform:translate(var(--dx),var(--dy));opacity:0}}.trp{position:fixed;z-index:2147483001;pointer-events:none;width:8px;height:8px;border-radius:50%;animation:trFly .7s ease-out forwards}"+
-    ".trgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}.trbtn{border:1px solid var(--line);background:var(--input);color:var(--text);border-radius:999px;padding:8px 10px;font-size:13px;font-weight:600;cursor:pointer}.trbtn:disabled{opacity:.4;cursor:not-allowed}"+
-    ".trsel{width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--text);font-size:14px;margin-bottom:6px}.trnote{font-size:12px;color:var(--muted);margin:4px 0 8px;min-height:15px}.trh{margin:0 0 6px;font-size:12px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}";
-    document.head.appendChild(s);
-  }
-  function runTroll(fx){
-    if(!TFX[fx]||trOn.has(fx)) return;
-    trCss(); trOn.add(fx);
-    const R=document.documentElement, done=ms=>setTimeout(()=>trOn.delete(fx),ms);
-    if(fx==="fall"){
-      const els=[...document.querySelectorAll(".msg,.row-ch,#hdr,#tray,.hdr-sb,#sbroster .prow,#sbdm .prow,#chtabs,.stg-sb,.tsep,#dtools")].filter(e=>{ const r=e.getBoundingClientRect(); return r.width&&r.bottom>0&&r.top<innerHeight; }).slice(0,90);
-      const saved=els.map(e=>[e,e.style.transform,e.style.transition]);
-      els.forEach(e=>{
-        const d=(Math.random()*1.2).toFixed(2), t=(1+Math.random()*1.2).toFixed(2), rot=(Math.random()*80-40).toFixed(0);
-        e.style.transition="transform "+t+"s cubic-bezier(.55,0,1,.45) "+d+"s";
-        e.style.transform="translateY("+(innerHeight+200)+"px) rotate("+rot+"deg)";
+    const css=document.createElement("style");
+    css.textContent=".rtag{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.4px;padding:1px 5px;margin-left:6px;border-radius:4px;vertical-align:middle;line-height:1.3;color:#fff}"
+      +".rtag.admin{background:#ff453a}.rtag.mod{background:#30d158;color:#06260f}";
+    document.head.appendChild(css);
+    const isAdminName=n=>{ const l=low(n); if(!l) return false; if(adminMode&&l===low(usr)) return true;
+      return isHost?conns.some(c=>c.ok2&&c.admin&&low(c.userName)===l):reg.adms.includes(l); };
+    window.__pbIsAdmin=isAdminName;
+    const roleOf=n=>{ const l=low(n); if(reg.hid.includes(l)) return ""; return isAdminName(n)?"admin":(reg.mods.includes(l)?"mod":""); };
+    function tagAll(){
+      document.querySelectorAll("#box .lbl[data-nm]").forEach(lb=>{
+        const r=roleOf(lb.dataset.nm); if((lb.dataset.tg||"")===r) return;
+        lb.dataset.tg=r; const old=lb.querySelector(".rtag"); if(old) old.remove();
+        if(r){ const t=document.createElement("span"); t.className="rtag "+r; t.textContent=r==="admin"?"ADMIN":"MOD"; lb.appendChild(t); }
       });
-      setTimeout(()=>{
-        saved.forEach(([e,tf])=>{ e.style.transition="transform .8s cubic-bezier(.2,.9,.3,1)"; e.style.transform=tf; });
-        setTimeout(()=>saved.forEach(([e,tf,tr])=>{ e.style.transition=tr; }),900);
-      },6000);
-      done(7500);
     }
-    else if(fx==="rainbow"){
-      const o=document.createElement("div"); o.id="trrb"; document.body.appendChild(o); R.classList.add("tr-rb");
-      setTimeout(()=>{ R.classList.remove("tr-rb"); o.remove(); },10000); done(10500);
+    new MutationObserver(tagAll).observe($("box"),{childList:true,subtree:true});
+    const _pr=pushRoster; pushRoster=function(){ _pr.apply(this,arguments); if(isHost) try{ send(areg()); }catch(e){} };
+
+    window.setHidden=function(l,h){
+      const has=reg.hid.includes(l);
+      if(h&&!has){ if(reg.hid.length>=100) return; reg.hid.push(l); }
+      else if(!h&&has) reg.hid=reg.hid.filter(x=>x!==l);
+      else return;
+      commit();
+    };
+    const hc=document.createElement("div"); hc.className="stg-card"; hc.style.display="none";
+    hc.innerHTML='<h3>Role tag</h3><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="hidetag" style="width:auto;margin:0"> Hide my ADMIN / MOD tag</label><div class="stg-note">Everyone else stops seeing the tag next to your name. You keep all your powers.</div>';
+    document.querySelector(".stg-scroll").appendChild(hc);
+    $("hidetag").checked=load("pb_hidetag","0")==="1";
+    let lastTH=0;
+    $("hidetag").onchange=()=>{ save("pb_hidetag",$("hidetag").checked?"1":"0"); lastTH=0; syncTag(); };
+    function syncTag(){
+      const role=adminMode||amMod(), inRoom=!!peer&&$("gate").style.display==="none";
+      hc.style.display=role?"":"none";
+      if(!role||!inRoom) return;
+      const want=load("pb_hidetag","0")==="1", l=low(usr);
+      if(want===reg.hid.includes(l)) return;
+      if(isHost) setHidden(l,want);
+      else if(Date.now()-lastTH>3000){ lastTH=Date.now(); send({t:"TH",i:newId(),h:want}); }
     }
-    else if(fx==="boom"){
-      const h=e=>{
-        const x=e.clientX, y=e.clientY, b=document.createElement("div");
-        b.className="trx"; b.textContent="💥"; b.style.left=x+"px"; b.style.top=y+"px"; document.body.appendChild(b); setTimeout(()=>b.remove(),650);
-        for(let i=0;i<14;i++){
-          const p=document.createElement("div"), a=Math.random()*6.283, d=50+Math.random()*90;
-          p.className="trp"; p.style.left=x+"px"; p.style.top=y+"px";
-          p.style.background="hsl("+Math.floor(Math.random()*60)+",100%,"+Math.floor(45+Math.random()*20)+"%)";
-          p.style.setProperty("--dx",(Math.cos(a)*d).toFixed(0)+"px"); p.style.setProperty("--dy",(Math.sin(a)*d).toFixed(0)+"px");
-          document.body.appendChild(p); setTimeout(()=>p.remove(),800);
+    setInterval(()=>{ syncTag(); tagAll(); },800);
+  })();
+
+  /* =============== Hall of Shame: typing is for mods + admins only =============== */
+  (function(){
+    window.__pbAdm=()=>adminMode;
+    const canPost=()=>adminMode||amMod();
+    function updShame(){
+      const inp=$("inp"); if(!inp) return;
+      if(curCh==="shame"){
+        const ok=canPost(); inp.disabled=!ok; inp.dataset.shl="1";
+        inp.placeholder=ok?"Post in the Hall of Shame…":"🔒 Only mods and admins can post here";
+      } else if(inp.dataset.shl){ inp.disabled=false; delete inp.dataset.shl; }
+    }
+    const _sc=setChannel; setChannel=function(){ const r=_sc.apply(this,arguments); updShame(); return r; };
+    const _pm=postMsg;
+    postMsg=function(b,img,aud){
+      if(curCh==="shame"){
+        if(!canPost()){ sys("Only mods and admins can post in the Hall of Shame."); return; }
+        if(aud){ sys("Voice messages can't be posted in the Hall of Shame."); return; }
+      }
+      return _pm.apply(this,arguments);
+    };
+    setInterval(updShame,800);
+  })();
+
+  /* =============== 😈 troll buttons (admin panel + mod panel) =============== */
+  (function(){
+    const css=document.createElement("style");
+    css.textContent="@keyframes trfall{0%,8%{transform:none}38%,76%{transform:translateY(125vh) rotate(var(--r,12deg))}100%{transform:none}}"
+      +"@keyframes trflip{0%{transform:none}10%,90%{transform:rotate(180deg)}100%{transform:none}}"
+      +"@keyframes trspin{0%{transform:none}100%{transform:rotate(720deg)}}"
+      +"@keyframes trshake{0%,100%{transform:translate(0,0)}25%{transform:translate(-7px,3px) rotate(-.4deg)}50%{transform:translate(6px,-4px) rotate(.4deg)}75%{transform:translate(-5px,-3px)}}"
+      +"@keyframes trrb{to{filter:hue-rotate(360deg)}}"
+      +"html.tr-on{overflow:hidden}"
+      +"body.tr-fall>*:not(script):not(style):not(link){animation:trfall 8s ease-in both}"
+      +"body.tr-fall>*:nth-child(3n){--r:-38deg}body.tr-fall>*:nth-child(3n+1){--r:27deg}"
+      +"body.tr-flip{animation:trflip 8s ease-in-out both}body.tr-spin{animation:trspin 8s ease-in-out both}"
+      +"body.tr-shake{animation:trshake .14s linear infinite}body.tr-rainbow{animation:trrb 3s linear infinite}"
+      +"body.tr-blur{filter:blur(3.5px)}"
+      +".trsel{width:100%;margin-bottom:6px}.trrow{display:flex;flex-wrap:wrap;gap:6px}"
+      +".trrow .abtn[disabled]{opacity:.4;cursor:not-allowed}.trsw{margin-bottom:8px}";
+    document.head.appendChild(css);
+    const ICON={fall:"⬇️",flip:"🙃",shake:"📳",rainbow:"🌈",spin:"🌀",blur:"🫥"};
+    const isAdn=n=>!!(window.__pbIsAdmin&&window.__pbIsAdmin(n));
+    function build(host,isAdm){
+      const sw=document.createElement("button"); sw.type="button"; sw.className="abtn trsw";
+      if(isAdm){ sw.onclick=()=>adminDo({a:"modtroll",off:!reg.mto}); host.appendChild(sw); }
+      const sel=document.createElement("select"); sel.className="trsel"; host.appendChild(sel);
+      const row=document.createElement("div"); row.className="trrow"; host.appendChild(row);
+      const st=document.createElement("div"); st.className="none"; st.style.marginTop="6px"; host.appendChild(st);
+      const bs={};
+      Object.keys(TROLLS).forEach(k=>{
+        const b=document.createElement("button"); b.type="button"; b.className="abtn"; b.dataset.k=k;
+        b.onclick=()=>{ const m={a:"troll",k,u:sel.value}; if(isAdm) adminDo(m); else modDo(m); };
+        row.appendChild(b); bs[k]=b;
+      });
+      function refresh(){
+        const opts=[["all","👥 Everyone"]];
+        (lastRoster||[]).forEach(e=>{
+          if(!e.c||e.c===uid) return;
+          const ad=isAdn(e.n), md=reg.mods.includes(low(e.n));
+          if(!isAdm&&(ad||md)) return;                         // mods can't pick admins or other mods
+          opts.push([e.c,e.n+(ad?" (admin)":md?" (mod)":"")]);
+        });
+        const key=JSON.stringify(opts);
+        if(sel.dataset.key!==key){
+          const keep=sel.value; sel.replaceChildren(...opts.map(o=>new Option(o[1],o[0]))); sel.dataset.key=key;
+          sel.value=opts.some(o=>o[0]===keep)?keep:"all";
         }
-      };
-      document.addEventListener("pointerdown",h,true);
-      setTimeout(()=>document.removeEventListener("pointerdown",h,true),15000); done(15500);
-    }
-    else if(fx==="shake"){ R.classList.add("tr-shake"); setTimeout(()=>R.classList.remove("tr-shake"),5000); done(5500); }
-    else if(fx==="flip"){
-      R.classList.add("tr-flipw","tr-flip");
-      setTimeout(()=>{ R.classList.remove("tr-flip"); setTimeout(()=>R.classList.remove("tr-flipw"),1100); },8000); done(9500);
-    }
-    else if(fx==="rain"){
-      const em=["🐸","🍕","💩","🦆","🔥","🤡","🍌","👻"], made=[];
-      for(let i=0;i<60;i++){
-        const s=document.createElement("div"); s.className="trr"; s.textContent=em[Math.floor(Math.random()*em.length)];
-        s.style.left=(Math.random()*100)+"vw"; s.style.fontSize=(24+Math.random()*30).toFixed(0)+"px";
-        s.style.animationDuration=(3+Math.random()*3).toFixed(1)+"s"; s.style.animationDelay=(Math.random()*4).toFixed(1)+"s";
-        document.body.appendChild(s); made.push(s);
+        let lock=false, msg="";
+        if(isAdm){
+          sw.textContent=reg.mto?"✅ Turn mod trolls ON":"⛔ Turn mod trolls OFF";
+          msg=reg.mto?"Mod trolls are off — mods see “Admins have turned mod trolls off”.":"“Everyone” skips other admins. No cooldown for you.";
+        } else if(reg.mto){ lock=true; msg="Admins have turned mod trolls off"; }
+        else msg="“Everyone” skips admins and other mods. 30-second cooldown.";
+        const left=isAdm?0:Math.max(0,Math.ceil((trCd-Date.now())/1000));
+        Object.keys(bs).forEach(k=>{ bs[k].textContent=ICON[k]+" "+TROLLS[k]+(left>0?" ("+left+"s)":""); bs[k].disabled=lock||left>0; });
+        st.textContent=msg;
       }
-      setTimeout(()=>made.forEach(s=>s.remove()),10000); done(10500);
+      refresh(); setInterval(refresh,500);
     }
-    try{ sys("😈 You got trolled: "+TFX[fx][1]); }catch(e){}
-  }
-
-  /* host decides who gets hit: admins never get hit by "everyone"; mods can't hit admins or other mods; mods have a 30s cooldown */
-  function doTroll(m,f,isAdmin){
-    const say=t=>f.reply&&f.reply({t:"E",i:newId(),msg:t});
-    if(!TFX[m.fx]) return say("Unknown troll.");
-    if(!isAdmin&&!reg.mt) return say("Admins have turned mod trolls off.");
-    const isModTarget=c=>c.admin||reg.mods.includes(low(c.userName));
-    let targets=[], hostHit=false;
-    if(m.u==="all"){
-      targets=conns.filter(c=>c.ok2&&c!==f.conn&&!c.admin&&(isAdmin||!reg.mods.includes(low(c.userName))));
-      hostHit=!!f.conn&&!adminMode&&(isAdmin||!amMod());
-    } else if(m.u===uid){
-      if(!isAdmin&&(adminMode||amMod())) return say("Mods can't troll admins or other mods.");
-      hostHit=true;
-    } else {
-      const c=conns.find(x=>x.uid===m.u&&x.ok2); if(!c) return say("They're not connected.");
-      if(!isAdmin&&isModTarget(c)) return say("Mods can't troll admins or other mods.");
-      targets=[c];
-    }
-    if(!targets.length&&!hostHit) return say("Nobody to troll right now.");
-    if(!isAdmin){
-      const h=f.conn||modSelf, now=Date.now(), left=30000-(now-(h.trAt||0));
-      if(left>0) return say("Troll cooldown: "+Math.ceil(left/1000)+"s left.");
-      h.trAt=now;
-    }
-    const msg={t:"TR",i:newId(),fx:m.fx}; let n=0;
-    targets.forEach(c=>{ try{ c.send(msg); n++; }catch(e){} });
-    if(hostHit){ runTroll(m.fx); n++; }
-    say("😈 "+TFX[m.fx][1]+" → "+n+(n===1?" person.":" people."));
-  }
-
-  /* ---- the section inside the Admin panel and the Mod panel ---- */
-  const trUIs=[]; let modLast=0;
-  function buildTroll(who,panel,parent){
-    trCss();
-    const sec=document.createElement("div");
-    sec.innerHTML='<h4 class="trh">😈 Troll</h4>'+(who==="admin"?'<button type="button" class="trbtn" data-mt style="width:100%;margin-bottom:8px"></button>':'')+'<select class="trsel" data-tg></select><div class="trnote" data-tn></div><div class="trgrid" data-gr></div>';
-    parent.appendChild(sec);
-    const u={who,panel,sel:sec.querySelector("[data-tg]"),note:sec.querySelector("[data-tn]"),mt:sec.querySelector("[data-mt]"),btns:[],key:""};
-    Object.keys(TFX).forEach(fx=>{
-      const b=document.createElement("button"); b.type="button"; b.className="trbtn"; b.textContent=TFX[fx][0]+" "+TFX[fx][1];
-      b.onclick=()=>{
-        const tg=u.sel.value||"all";
-        if(who==="admin") adminDo({a:"troll",fx,u:tg});
-        else { if(!reg.mt||Date.now()-modLast<30000) return; modLast=Date.now(); modDo({a:"troll",fx,u:tg}); refreshTroll(); }
-      };
-      sec.querySelector("[data-gr]").appendChild(b); u.btns.push(b);
-    });
-    if(u.mt) u.mt.onclick=()=>adminDo({a:"modtroll",on:!reg.mt});
-    trUIs.push(u);
-  }
-  function refreshTroll(){
-    const left=Math.max(0,30000-(Date.now()-modLast));
-    trUIs.forEach(u=>{
-      if(!u.panel.classList.contains("open")) return;
-      const ppl=lastRoster.filter(e=>e.c&&(u.who==="admin"||(e.c!==uid&&!e.x&&!reg.mods.includes(low(e.n)))));
-      const key=ppl.map(e=>e.c+"|"+e.n).join(",")+"#"+u.who;
-      if(key!==u.key){
-        u.key=key; const cur=u.sel.value||"all"; u.sel.replaceChildren();
-        const all=document.createElement("option"); all.value="all"; all.textContent="Everyone (not admins"+(u.who==="mod"?" or mods":"")+")"; u.sel.appendChild(all);
-        ppl.forEach(e=>{ const o=document.createElement("option"); o.value=e.c; o.textContent=e.n+(e.c===uid?" (you)":""); u.sel.appendChild(o); });
-        u.sel.value=[...u.sel.options].some(o=>o.value===cur)?cur:"all";
-      }
-      if(u.who==="admin"){
-        u.mt.textContent=reg.mt?"🚫 Turn OFF mod trolls (currently on)":"✅ Turn ON mod trolls (currently off)";
-        u.note.textContent="Admins have no cooldown. Mods have a 30 second cooldown.";
-        u.btns.forEach(b=>{ b.disabled=false; });
-      } else {
-        const off=!reg.mt;
-        u.note.textContent=off?"Admins have turned mod trolls off.":left>0?"Cooldown: "+Math.ceil(left/1000)+"s":"Ready. 30 second cooldown after each troll.";
-        u.btns.forEach(b=>{ b.disabled=off||left>0; });
-      }
-    });
-  }
-  buildTroll("admin",am,$("amb"));
-  buildTroll("mod",mm,$("mmb"));
-  setInterval(refreshTroll,500);
+    build($("amtr"),true); build($("mmtr"),false);
+  })();
 
   /* =============== one-click "Mute all" in the top bar (admins only) =============== */
   const hm=document.createElement("button"); hm.id="hmute"; hm.type="button"; hm.style.display="none";
@@ -3833,7 +3828,7 @@ label.plus.open{transform:rotate(45deg)}
     let act=wrap.querySelector(":scope > .act");
     if(!act){ act=document.createElement("div"); act.className="act"; wrap.appendChild(act); }
     const mkb=(txt,title,fn)=>{ const b=document.createElement("button"); b.type="button"; b.className="adm"; b.title=title; b.setAttribute("aria-label",title); b.textContent=txt; b.style.fontSize="13px"; b.onclick=ev=>{ ev.stopPropagation(); fn(); }; return b; };
-    if(!w.dataset.dm&&(w.dataset.ch!=="hos"||adminMode)) act.appendChild(mkb("🗑","Delete this message from "+name+" (admin)",()=>{ if(confirm("Delete this message from "+name+" for everyone?")) deleteMsg(w.id); }));
+    if(!w.dataset.dm&&!(w.dataset.ch==="shame"&&!adminMode)) act.appendChild(mkb("🗑","Delete this message from "+name+" (admin)",()=>{ if(confirm("Delete this message from "+name+" for everyone?")) deleteMsg(w.id); }));
     if(!u||!adminMode){ return; }
     act.appendChild(mkb("🦵","Kick "+name+" (they can rejoin)",()=>{ if(confirm("Kick "+name+"? They can rejoin.")) adminDo({a:"kick",u}); }));
     act.appendChild(mkb("🔇","Mute / unmute "+name,()=>adminDo({a:reg.mutes.includes(low(name))?"unmute":"mute",name})));
@@ -4453,14 +4448,14 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     if(!isHost || rosterT) return;
     rosterT = setTimeout(() => {
       rosterT = 0;
-      const list = [me(), ...conns.filter(c => c.userName).map(c => ({ n: c.userName, a: c.avatar || "", d: c.device || "", c: c.uid || "", x: c.admin ? 1 : 0, ht: c.ht ? 1 : 0 }))];
+      const list = [me(), ...conns.filter(c => c.userName).map(c => ({ n: c.userName, a: c.avatar || "", d: c.device || "", c: c.uid || "" }))];
       renderOnline(list);
       conns.forEach(c => {
         if(!c.open) return;
         c.avSent = c.avSent || {};
         const slim = list.map(e => {
           const k = (e.c || "") + "|" + e.n;
-          if(c.avSent[k] === e.a) return { n: e.n, d: e.d, c: e.c, x: e.x, ht: e.ht };
+          if(c.avSent[k] === e.a) return { n: e.n, d: e.d, c: e.c };
           c.avSent[k] = e.a; return e;
         });
         c.send({ t: "R", i: newId(), list: slim });
@@ -4599,15 +4594,14 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     }
   }
 
-  function onClosed(sock, ev){
+  function onClosed(sock){
     if(sock !== ws) return;
-    const why = " (" + (sock.__opened ? "connected, then closed" : "never connected") + ", code " + ((ev && ev.code) || "none") + ((ev && ev.reason) ? ": " + String(ev.reason).slice(0, 60) : "") + " · " + (HUB_URL.split("/")[2] || "") + ")";
     clearInterval(pingT);
     const wasHost = hostMode, hc = [...hostConns.values()], cc = clientConn;
     ws = null; hostMode = false; clientConn = null; hostConns = new Map();
     if(wasHost) hc.forEach(c => { if(c.open){ c.open = false; c.emit("close"); } });
     if(cc && cc.open){ cc.open = false; cc.emit("close"); return; }   // the page's own close handler starts the reconnect
-    if(window.__leave) window.__leave(window.__entering ? "Couldn't connect to the room. Try again." + why : "Disconnected from the room. Rejoin to continue." + why);
+    if(window.__leave) window.__leave(window.__entering ? "Couldn't connect to the room. Try again." : "Disconnected from the room. Rejoin to continue.");
   }
 
   connect = function(){
@@ -4621,9 +4615,9 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     mp.destroy = function(){ closeHubQuiet(); return d0(); };
     peer = mp;
     const sock = new WebSocket(HUB_URL); ws = sock;
-    sock.onopen = () => { sock.__opened = true; pingT = setInterval(() => { try { if(sock.readyState === 1) sock.send("ping"); } catch(e){} }, 25000); };
+    sock.onopen = () => { pingT = setInterval(() => { try { if(sock.readyState === 1) sock.send("ping"); } catch(e){} }, 25000); };
     sock.onmessage = ev => { if(typeof ev.data === "string") onFrame(sock, ev.data); };
-    sock.onclose = ev => onClosed(sock, ev);
+    sock.onclose = () => onClosed(sock);
     sock.onerror = () => {};
   };
 })();
@@ -4759,42 +4753,6 @@ body.in-gal #men-sug{display:none !important}
     });
   }).observe($("box"),{childList:true,subtree:true});
   scan($("box"));
-})();
-</script>
-
-<style id="hos-css">
-body:not(.in-hos) .msg[data-ch="hos"]{display:none}
-body.in-hos .msg:not([data-ch="hos"]){display:none}
-body.in-hos .plus,body.in-hos #vbtn,body.in-hos #attach{display:none !important}
-#hosbar{display:none;padding:8px 20px;font-size:13px;font-weight:600;border-bottom:1px solid var(--line);background:var(--bar,var(--side));color:var(--bar-text,var(--text))}
-body.in-hos #hosbar{display:block}
-body.in-draw #hosbar{display:none !important}
-</style>
-<script id="hos-js">
-(function(){
-  const $$=id=>document.getElementById(id);
-  const row=document.createElement("div"); row.className="row-ch"; row.id="ch-hos";
-  row.innerHTML='<div class="av-sb" style="font-size:18px">🏛️</div><div><b style="font-size:15px">Hall of Shame</b><br><span class="csub">Staff post, everyone reads</span></div>';
-  ($$("ch-draw")||$$("ch-gal")).after(row); row.onclick=()=>setChannel("hos");
-  const tab=document.createElement("button"); tab.type="button"; tab.dataset.ch="hos"; tab.textContent="🏛️ Shame"; tab.onclick=()=>setChannel("hos");
-  $$("chtabs").appendChild(tab);
-  const bar=document.createElement("div"); bar.id="hosbar"; $$("box").before(bar);
-  const staff=()=>!!(window.__pbStaff&&window.__pbStaff()), adm=()=>!!(window.__pbAdm&&window.__pbAdm());
-  function sync(){
-    if(curCh!=="hos") return;
-    const ok=staff(), inp=$$("inp");
-    inp.disabled=!ok;
-    inp.placeholder=ok?"Write in the Hall of Shame":"🔒 Only admins and mods can write here";
-    bar.textContent=adm()?"🏛️ Hall of Shame · you can write, edit and delete here":ok?"🏛️ Hall of Shame · you can write here, but only admins can edit or delete":"🏛️ Hall of Shame · only admins and mods can write here";
-  }
-  const _sc=setChannel;
-  setChannel=function(c){
-    _sc(c);
-    document.body.classList.toggle("in-hos",c==="hos");
-    $$("ch-hos").classList.toggle("active",c==="hos");
-    if(c==="hos") sync(); else if(peer) $$("inp").disabled=false;
-  };
-  setInterval(sync,800);
 })();
 </script>
 </body>
