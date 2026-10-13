@@ -3410,15 +3410,17 @@ label.plus.open{transform:rotate(45deg)}
   box.innerHTML='<input id="gadmpw" type="password" placeholder="Admin password" autocomplete="off"><button type="button" id="gadmok">Unlock</button><div class="gm" id="gadmm"></div>';
   $("gate").append(adm,box);
   adm.onclick=()=>{
-    if(adminMode){ adminMode=false; adm.classList.remove("on"); $("gadmm").textContent="Admin mode off."; return; }
+    if(adminMode){ adminMode=false; adm.classList.remove("on"); save("pb_admin",""); $("gadmm").textContent="Admin mode off (logged out on this device)."; return; }
     box.classList.toggle("open"); $("gadmpw").focus();
   };
   function tryAdmin(){
     if(sha256("pbadmin:"+$("gadmpw").value)===ADMIN_KEY){
-      adminMode=true; adm.classList.add("on"); $("gadmpw").value=""; box.classList.remove("open");
+      adminMode=true; adm.classList.add("on"); save("pb_admin",ADMIN_KEY); $("gadmpw").value=""; box.classList.remove("open");
       $("gerr").style.color="#ffd60a"; $("gerr").textContent="🛡 Admin mode on — join as usual."; setTimeout(()=>{$("gerr").style.color="";},4000);
     } else { $("gadmm").textContent="Wrong password."; $("gadmpw").select(); }
   }
+  // stay logged in as admin on this device until you tap the 🛡 again to turn it off
+  if(load("pb_admin","")===ADMIN_KEY){ adminMode=true; adm.classList.add("on"); $("gadmm").textContent="Admin mode on (remembered on this device)."; }
   $("gadmok").onclick=tryAdmin;
   $("gadmpw").addEventListener("keydown",e=>{ if(e.key==="Enter") tryAdmin(); });
 
