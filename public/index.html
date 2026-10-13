@@ -595,7 +595,7 @@
     <p class="sub">Enter the room to start chatting</p>
     <label class="fld"><span>Room code</span><input id="g-code" type="password" placeholder="Enter code" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
     <label class="fld"><span>Your name</span><input id="g-name" type="text" placeholder="Pick a name" maxlength="12" autocomplete="off"></label>
-    <label class="fld"><span>Theme</span><select id="g-theme"><option value="imessage">iMessage</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option></select></label>
+    <label class="fld"><span>Theme</span><select id="g-theme"><option value="imessage">iMessage</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option><option value="material">Material You (Android)</option><option value="terminal">Terminal</option></select></label>
     <div id="gerr"></div>
     <button id="g-go">Join chat</button>
     <a class="goback" href="https://docs.google.com/document/d/1oa90mU-jYczqySulirTvHqqNWTSaNwPGnnArgBdVGrs/edit?tab=t.pqncc0vmsgzp" rel="noopener">← Go back</a>
@@ -648,7 +648,7 @@
       </div>
       <div class="stg-card"><h3>🎨 Appearance</h3>
         <label>Theme</label>
-        <select id="theme"><option value="imessage">iMessage</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option></select>
+        <select id="theme"><option value="imessage">iMessage</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option><option value="material">Material You (Android)</option><option value="terminal">Terminal</option></select>
         <label>Wallpaper &amp; accent color (also tints top bar, message bar &amp; left bar)</label><input type="color" id="wcol" value="#000000">
         <label>Wallpaper image (syncs to your other devices)</label>
         <div class="stg-row"><button id="wimg" type="button" class="btn">Choose image</button><button id="wreset" type="button" class="btn alt">Reset wallpaper</button><input type="file" id="wfile" accept="image/*" style="display:none"></div>
@@ -710,9 +710,9 @@ let usr = "User", peer = null, conns = [], isHost = false, logs = [];
 /* private DM state */
 let dmWith = "", dmNm = "", chipT = null;
 let seen = {}; try { seen = JSON.parse(load("dm_seen", "{}")) || {}; } catch(e){ seen = {}; }
-const PH = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage"};
-const THEMES = ["imessage","discord","whatsapp","tiktok","roblox","instagram","twitter"];
-const CHNAME = {discord:"# purebred-chat",whatsapp:"WhatsApp Group",tiktok:"TikTok Inbox",roblox:"Roblox Chat",instagram:"Instagram Direct",twitter:"Twitter Messages",imessage:"iMessage Channel"};
+const PH = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage",material:"Chat message",terminal:"enter message…"};
+const THEMES = ["imessage","discord","whatsapp","tiktok","roblox","instagram","twitter","material","terminal"];
+const CHNAME = {discord:"# purebred-chat",whatsapp:"WhatsApp Group",tiktok:"TikTok Inbox",roblox:"Roblox Chat",instagram:"Instagram Direct",twitter:"Twitter Messages",imessage:"iMessage Channel",material:"Messages",terminal:"/dev/purebred"};
 let draft = null, stgOpen = false, pvLoaded = false, pvq = 0;
 const shownKeys = new Set();
 let groups = {};
@@ -772,11 +772,11 @@ const myDevice = detectDevice();
 
 /* ---------- theme ---------- */
 function setTheme(t){
-  if(!["imessage","discord","whatsapp","tiktok","roblox","instagram","twitter"].includes(t)) t = "imessage";
+  if(!["imessage","discord","whatsapp","tiktok","roblox","instagram","twitter","material","terminal"].includes(t)) t = "imessage";
   document.body.dataset.theme = t;
   $("theme").value = t; $("g-theme").value = t;
-  $("chname").textContent = {discord:"# purebred-chat",whatsapp:"WhatsApp Group",tiktok:"TikTok Inbox",roblox:"Roblox Chat",instagram:"Instagram Direct",twitter:"Twitter Messages",imessage:"iMessage Channel"}[t];
-  $("inp").placeholder = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage"}[t];
+  $("chname").textContent = {discord:"# purebred-chat",whatsapp:"WhatsApp Group",tiktok:"TikTok Inbox",roblox:"Roblox Chat",instagram:"Instagram Direct",twitter:"Twitter Messages",imessage:"iMessage Channel",material:"Messages",terminal:"/dev/purebred"}[t];
+  $("inp").placeholder = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage",material:"Chat message",terminal:"enter message…"}[t];
   save("chat_theme", t); if(curCh === "dm") updateDmBar();
   applyWall();
   restyleAll();
@@ -3396,6 +3396,7 @@ label.plus.open{transform:rotate(45deg)}
   const own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k)?o[k]:"";
 
   /* =============== shared registry: protected names, bans, last chat-clear =============== */
+  const okTImg=x=>typeof x==="string"&&x.length<=40000&&/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+\/=]+$/.test(x);   // room icons: small png/jpeg/webp pictures only
   function cleanReg(r){
     const o={acc:{},bans:[],mutes:[],mods:[],adms:[],hid:[],mto:false,tn:{},cls:0,clr:0,clg:0,muteAll:false,v:0}; if(!r||typeof r!=="object") return o;
     if(r.acc&&typeof r.acc==="object") Object.keys(r.acc).slice(0,500).forEach(k=>{ if(k&&k.length<=12&&k!=="__proto__"&&HEX.test(String(r.acc[k]))) o.acc[k]=r.acc[k]; });
@@ -3405,7 +3406,17 @@ label.plus.open{transform:rotate(45deg)}
     if(Array.isArray(r.adms)) o.adms=[...new Set(r.adms.map(x=>String(x).slice(0,12).toLowerCase()).filter(Boolean))].slice(0,50);
     if(Array.isArray(r.hid)) o.hid=[...new Set(r.hid.map(x=>String(x).slice(0,12).toLowerCase()).filter(Boolean))].slice(0,100);
     o.mto=!!r.mto;
-    if(r.tn&&typeof r.tn==="object") ["app","main","gal","shame","draw"].forEach(k=>{ const x=r.tn[k]; if(x&&typeof x==="object"){ const n=String(x.n||"").trim().slice(0,24), i=String(x.i||"").trim().slice(0,8); if(n||i) o.tn[k]={n,i}; } });
+    if(r.tn&&typeof r.tn==="object"){
+      let tot=0;
+      ["app","main","gal","shame","draw"].forEach(k=>{
+        const x=r.tn[k];
+        if(x&&typeof x==="object"){
+          const n=String(x.n||"").trim().slice(0,24), i=String(x.i||"").trim().slice(0,8);
+          let im=okTImg(x.im)?x.im:""; if(im&&tot+im.length>160000) im=""; tot+=im.length;
+          if(n||i||im) o.tn[k]={n,i,im};
+        }
+      });
+    }
     o.cls=+r.cls||0; o.clr=+r.clr||0; o.clg=+r.clg||0; o.muteAll=!!r.muteAll; o.v=+r.v||0; return o;
   }
   let reg=cleanReg((()=>{try{return JSON.parse(load("pb_reg","{}"));}catch(e){return {};}})());
@@ -4222,30 +4233,67 @@ label.plus.open{transform:rotate(45deg)}
   /* =============== 🏷 admin-editable tab names + icons (synced to everyone) =============== */
   (function(){
     const TD={app:{i:"",n:"Los Purebreds"},main:{i:"💬",n:"Chat"},gal:{i:"🖼️",n:"Image Gallery"},shame:{i:"🚨",n:"Hall of Shame"},draw:{i:"🎨",n:"Draw"}};
-    const LBL={app:"App name",main:"Chat tab",gal:"Gallery",shame:"Hall of Shame",draw:"Drawing board"};
+    const LBL={app:"App name + logo",main:"Chat tab",gal:"Gallery",shame:"Hall of Shame",draw:"Drawing board"};
     const set=(el,t)=>{ if(el&&el.textContent!==t) el.textContent=t; };
+    const avImg=(el,im,t)=>{
+      if(!el) return;
+      if(im){ if(el.dataset.im!==im){ el.dataset.im=im; el.style.setProperty("background","url("+im+") center/cover no-repeat","important"); } el.classList.add("hasimg"); if(el.textContent) el.textContent=""; }
+      else { if(el.dataset.im){ delete el.dataset.im; el.style.removeProperty("background"); } el.classList.remove("hasimg"); if(t!==undefined) set(el,t); }
+    };
     window.__pbTabs=function(){
       const tn=reg.tn||{};
       ["main","gal","shame","draw"].forEach(k=>{
-        const o=tn[k]||{}, d=TD[k], n=o.n||d.n, i=o.i||d.i;
-        set(document.querySelector('#chtabs button[data-ch="'+k+'"]'),i+" "+n);
+        const o=tn[k]||{}, d=TD[k], n=o.n||d.n, i=o.i||d.i, im=o.im||"";
+        const b=document.querySelector('#chtabs button[data-ch="'+k+'"]');
+        if(b){
+          const sig=im+"|"+i+"|"+n, want=im?n:i+" "+n;
+          if(b.dataset.sig!==sig||b.textContent!==want){
+            b.dataset.sig=sig; b.replaceChildren();
+            if(im){ const g=new Image(); g.className="tabimg"; g.alt=""; g.src=im; b.append(g,document.createTextNode(n)); } else b.textContent=want;
+          }
+        }
         if(k==="main") return;
         const row=$("ch-"+k); if(!row) return;
-        set(row.querySelector("b"),o.n||(k==="draw"?"Drawing Board":d.n)); set(row.querySelector(".av-sb"),i);
+        set(row.querySelector("b"),o.n||(k==="draw"?"Drawing Board":d.n)); avImg(row.querySelector(".av-sb"),im,i);
       });
       const an=(tn.app&&tn.app.n)||TD.app.n;
       set(document.querySelector("#gate h1"),an); set(document.querySelector("#ch-main b"),an);
+      avImg(document.querySelector("#ch-main .av-sb"),(tn.app&&tn.app.im)||"");
       window.__pbTitle=(tn.app&&tn.app.n)||null;
     };
     setInterval(window.__pbTabs,1500); window.__pbTabs();
 
-    const host=$("amtn"), inp={};
+    const host=$("amtn"), inp={}, imgs={};
+    function showImg(k){ const d=imgs[k]||""; const p=inp[k]&&inp[k].pv; if(!p) return; if(d){ p.src=d; p.style.display=""; inp[k].xb.style.display=""; } else { p.removeAttribute("src"); p.style.display="none"; inp[k].xb.style.display="none"; } }
+    function tabImgFrom(f,cb){                       // crop to a small square, keep transparency, stay under the size limit
+      const url=URL.createObjectURL(f), im=new Image();
+      im.onload=()=>{
+        URL.revokeObjectURL(url);
+        const side=Math.min(im.width,im.height)||1, sx=(im.width-side)/2, sy=(im.height-side)/2;
+        for(const size of [96,72,56,40]){
+          const c=document.createElement("canvas"); c.width=c.height=size; c.getContext("2d").drawImage(im,sx,sy,side,side,0,0,size,size);
+          let d=c.toDataURL("image/webp",0.9); if(!d.startsWith("data:image/webp")) d=c.toDataURL("image/png");
+          if(okTImg(d)&&d.length<=36000){ cb(d); return; }
+        }
+        cb("");
+      };
+      im.onerror=()=>{ URL.revokeObjectURL(url); cb(""); };
+      im.src=url;
+    }
     Object.keys(TD).forEach(k=>{
       const r=document.createElement("div"); r.className="aform"; r.style.marginBottom="6px";
       const l=document.createElement("span"); l.className="none"; l.style.cssText="width:96px;align-self:center"; l.textContent=LBL[k];
       r.appendChild(l); inp[k]={};
       if(k!=="app"){ const i=document.createElement("input"); i.type="text"; i.maxLength=8; i.placeholder="icon"; i.style.cssText="flex:none;min-width:0;width:60px;text-align:center"; r.appendChild(i); inp[k].i=i; }
       const n=document.createElement("input"); n.type="text"; n.maxLength=24; n.placeholder="name"; r.appendChild(n); inp[k].n=n;
+      const pv=document.createElement("img"); pv.className="tabimg big"; pv.alt=""; pv.style.display="none"; pv.title="Current image";
+      const ib=document.createElement("button"); ib.type="button"; ib.className="abtn"; ib.textContent="🖼 Image"; ib.title="Use a picture (PNG, JPG or WebP) as this icon";
+      const xb=document.createElement("button"); xb.type="button"; xb.className="abtn"; xb.textContent="✕"; xb.title="Remove the image"; xb.style.display="none";
+      const fi=document.createElement("input"); fi.type="file"; fi.accept="image/png,image/jpeg,image/webp,image/gif,image/*"; fi.hidden=true;
+      ib.onclick=()=>fi.click();
+      xb.onclick=()=>{ imgs[k]=""; showImg(k); };
+      fi.onchange=()=>{ const f=fi.files&&fi.files[0]; fi.value=""; if(f) tabImgFrom(f,d=>{ if(d){ imgs[k]=d; showImg(k); } else note("Couldn't use that picture — try a different one."); }); };
+      r.append(pv,ib,xb,fi); inp[k].pv=pv; inp[k].xb=xb;
       host.appendChild(r);
     });
     const btns=document.createElement("div"); btns.className="aform";
@@ -4253,14 +4301,14 @@ label.plus.open{transform:rotate(45deg)}
     const rs=document.createElement("button"); rs.type="button"; rs.className="abtn red"; rs.textContent="Reset to default";
     btns.append(sv,rs); host.appendChild(btns);
     function fill(){
-      Object.keys(TD).forEach(k=>{ const o=(reg.tn||{})[k]||{}; inp[k].n.value=o.n||TD[k].n; if(inp[k].i) inp[k].i.value=o.i||TD[k].i; });
+      Object.keys(TD).forEach(k=>{ const o=(reg.tn||{})[k]||{}; inp[k].n.value=o.n||TD[k].n; if(inp[k].i) inp[k].i.value=o.i||TD[k].i; imgs[k]=o.im||""; showImg(k); });
     }
     sv.onclick=()=>{
       const tn={};
       Object.keys(TD).forEach(k=>{
         const n=inp[k].n.value.trim(), i=inp[k].i?inp[k].i.value.trim():"";
         const nn=n===TD[k].n?"":n, ii=i===TD[k].i?"":i;
-        if(nn||ii) tn[k]={n:nn,i:ii};
+        if(nn||ii||imgs[k]) tn[k]={n:nn,i:ii,im:imgs[k]||""};
       });
       adminDo({a:"tabs",tn});
     };
@@ -5411,5 +5459,315 @@ body.in-gal #men-sug{display:none !important}
   scan($("box"));
 })();
 </script>
+<style>
+/* ---- room images + personal tab order ---- */
+.tabimg{width:16px;height:16px;border-radius:4px;object-fit:cover;vertical-align:-3px;margin-right:5px}
+.tabimg.big{width:34px;height:34px;border-radius:8px;margin:0;vertical-align:middle;flex:none}
+.av-sb.hasimg{color:transparent}
+.av-sb.lp.hasimg::after{display:none}
+body.tab-dragging,body.tab-dragging *{user-select:none !important;-webkit-user-select:none !important;cursor:grabbing !important}
+.tab-drag{position:relative;z-index:60;opacity:.92;box-shadow:0 8px 22px rgba(0,0,0,.45);transition:none !important;pointer-events:none}
+#chtabs button.tdb-h{box-shadow:inset 3px 0 0 var(--accent)}
+#chtabs button.tda-h{box-shadow:inset -3px 0 0 var(--accent)}
+.row-ch.tdb-v{box-shadow:inset 0 3px 0 var(--accent)}
+.row-ch.tda-v{box-shadow:inset 0 -3px 0 var(--accent)}
+#chtabs{flex-wrap:nowrap}
+</style>
+<script>
+/* =============== ↕ drag to reorder your tabs (header tabs + sidebar rooms) — saved on this device only =============== */
+(function(){
+  const KEYS=["main","shame","gal","draw"], LS="pb_taborder", DEF=["main","shame","gal","draw"];
+  let order=[];
+  try{ const a=JSON.parse(localStorage.getItem(LS)||"[]"); if(Array.isArray(a)) order=a.filter(k=>KEYS.includes(k)); }catch(e){}
+  const full=()=>{ const o=order.filter((k,i,a)=>KEYS.includes(k)&&a.indexOf(k)===i); DEF.forEach(k=>{ if(!o.includes(k)) o.push(k); }); return o; };
+  const tabEl=k=>document.querySelector('#chtabs button[data-ch="'+k+'"]');
+  const rowEl=k=>document.getElementById("ch-"+k);
+  const rows=()=>DEF.map(rowEl).filter(Boolean);
+  const tabs=()=>DEF.map(tabEl).filter(Boolean);
+
+  function apply(){
+    if(!order.length) return;
+    const o=full();
+    o.forEach((k,i)=>{ const b=tabEl(k); if(b&&b.style.order!==String(i)) b.style.order=String(i); });
+    const anchor=document.getElementById("sbroster"); if(!anchor||!anchor.parentNode) return;
+    const present=o.map(rowEl).filter(Boolean), cur=[...anchor.parentNode.children].filter(x=>present.includes(x));
+    if(present.some((r,i)=>r!==cur[i])) present.forEach(r=>anchor.parentNode.insertBefore(r,anchor));
+  }
+  function tip(){
+    tabs().forEach(b=>{ if(!b.title) b.title="Drag to move this tab (only you see the new order)"; });
+    rows().forEach(r=>{ if(!r.title) r.title="Drag to move this room (only you see the new order)"; });
+  }
+  setInterval(()=>{ apply(); tip(); },1000); apply(); tip();
+
+  function reset(){
+    order=[]; try{ localStorage.removeItem(LS); }catch(e){}
+    tabs().forEach(b=>{ b.style.order=""; });
+    const anchor=document.getElementById("sbroster"); if(anchor&&anchor.parentNode) rows().forEach(r=>anchor.parentNode.insertBefore(r,anchor));
+  }
+  const sb=document.querySelector(".stg-sb");
+  if(sb){
+    const rb=document.createElement("button"); rb.type="button"; rb.className="stg-btn"; rb.textContent="↕ Reset my tab order";
+    rb.title="Put the tabs back in their normal order"; rb.onclick=reset;
+    const t=document.getElementById("stg-toggle"); if(t&&t.parentNode===sb) sb.insertBefore(rb,t); else sb.appendChild(rb);
+  }
+
+  /* ---- dragging (mouse: drag; touch: press and hold, then drag) ---- */
+  let drag=null, noClickUntil=0, noClickEl=null;
+  const items=side=>{ const l=side?rows():tabs(); return l.sort((a,b)=>{ const A=a.getBoundingClientRect(), B=b.getBoundingClientRect(); return side?A.top-B.top:A.left-B.left; }); };
+  function clearMarks(){ document.querySelectorAll(".tdb-h,.tda-h,.tdb-v,.tda-v").forEach(x=>x.classList.remove("tdb-h","tda-h","tdb-v","tda-v")); }
+  function begin(){
+    if(!drag||drag.on) return; drag.on=true;
+    drag.el.classList.add("tab-drag"); document.body.classList.add("tab-dragging");
+    try{ if(navigator.vibrate) navigator.vibrate(12); }catch(e){}
+  }
+  function target(e){
+    const side=drag.side, sibs=items(side).filter(x=>x!==drag.el), p=side?e.clientY:e.clientX;
+    let idx=0; sibs.forEach(x=>{ const r=x.getBoundingClientRect(), mid=side?r.top+r.height/2:r.left+r.width/2; if(p>mid) idx++; });
+    return {sibs,idx};
+  }
+  function finish(e,commit){
+    if(!drag) return; clearTimeout(drag.timer);
+    const d=drag; drag=null;
+    if(!d.on) return;
+    clearMarks(); d.el.classList.remove("tab-drag"); d.el.style.transform=""; document.body.classList.remove("tab-dragging");
+    noClickUntil=Date.now()+350; noClickEl=d.el;
+    if(!commit) return;
+    drag=d; const {sibs,idx}=target(e); drag=null;
+    const keyOf=x=>d.side?x.id.slice(3):x.dataset.ch, seq=sibs.map(keyOf); seq.splice(idx,0,d.key);
+    order=seq; try{ localStorage.setItem(LS,JSON.stringify(order)); }catch(err){}
+    apply();
+  }
+  document.addEventListener("pointerdown",e=>{
+    if(e.button>0||drag) return;
+    const el=e.target.closest&&e.target.closest('#chtabs button[data-ch], .row-ch[id^="ch-"]'); if(!el) return;
+    const side=el.classList.contains("row-ch"), key=side?el.id.slice(3):el.dataset.ch; if(!KEYS.includes(key)) return;
+    drag={el,side,key,x:e.clientX,y:e.clientY,id:e.pointerId,on:false,touch:e.pointerType==="touch"||e.pointerType==="pen",timer:0};
+    if(drag.touch) drag.timer=setTimeout(begin,380);
+  },true);
+  document.addEventListener("pointermove",e=>{
+    if(!drag||e.pointerId!==drag.id) return;
+    const dx=e.clientX-drag.x, dy=e.clientY-drag.y;
+    if(!drag.on){
+      if(drag.touch){ if(Math.hypot(dx,dy)>10){ clearTimeout(drag.timer); drag=null; } return; }   // moved before the hold finished = a scroll
+      if(Math.hypot(dx,dy)<7) return; begin();
+    }
+    drag.el.style.transform=drag.side?"translateY("+dy+"px)":"translateX("+dx+"px)";
+    clearMarks();
+    const {sibs,idx}=target(e), v=drag.side?"v":"h";
+    if(!sibs.length) return;
+    if(idx<sibs.length) sibs[idx].classList.add("tdb-"+v); else sibs[sibs.length-1].classList.add("tda-"+v);
+  },true);
+  document.addEventListener("pointerup",e=>{ if(drag&&e.pointerId===drag.id) finish(e,true); },true);
+  document.addEventListener("pointercancel",e=>{ if(drag&&e.pointerId===drag.id) finish(e,false); },true);
+  document.addEventListener("touchmove",e=>{ if(drag&&drag.on&&e.cancelable) e.preventDefault(); },{passive:false});
+  document.addEventListener("contextmenu",e=>{ if(drag&&drag.on) e.preventDefault(); },true);
+  document.addEventListener("click",e=>{ if(Date.now()<noClickUntil&&noClickEl&&noClickEl.contains(e.target)){ e.stopImmediatePropagation(); e.preventDefault(); } },true);
+})();
+</script>
+<style id="material-css">
+/* =====================================================================
+   Material You — Android 13 → 17 look (Material 3 / 3 Expressive)
+   tonal surfaces, big rounded shapes, pill navigation, follows the phone's light / dark setting
+   ===================================================================== */
+body[data-theme="material"]{
+  color-scheme:dark;
+  --m-pri:#D0BCFF; --m-on-pri:#381E72; --m-pri-c:#4F378B; --m-on-pri-c:#EADDFF;
+  --m-sec-c:#4A4458; --m-on-sec-c:#E8DEF8; --m-ter-c:#633B48; --m-on-ter-c:#FFD8E4;
+  --m-surf:#141218; --m-s1:#1D1B20; --m-s2:#211F26; --m-s3:#2B2930; --m-s4:#36343B;
+  --m-on-surf:#E6E0E9; --m-on-var:#CAC4D0; --m-outline:#49454F;
+  --bg:var(--m-surf); --side:var(--m-s2); --row:var(--m-s3); --input:var(--m-s4); --line:var(--m-outline);
+  --text:var(--m-on-surf); --muted:var(--m-on-var); --accent:var(--m-pri); --me:var(--m-pri-c); --peer:var(--m-s3);
+  --m-on-me:var(--m-on-pri-c); --r:28px; --r-sm:16px; --m-ease:cubic-bezier(.2,0,0,1);
+  font-family:"Google Sans","Google Sans Text","Product Sans",Roboto,"Segoe UI",system-ui,sans-serif,"Noto Color Emoji","Apple Color Emoji";
+}
+@media (prefers-color-scheme:light){
+  body[data-theme="material"]{
+    color-scheme:light;
+    --m-pri:#6750A4; --m-on-pri:#FFFFFF; --m-pri-c:#EADDFF; --m-on-pri-c:#21005D;
+    --m-sec-c:#E8DEF8; --m-on-sec-c:#1D192B; --m-ter-c:#FFD8E4; --m-on-ter-c:#31111D;
+    --m-surf:#FEF7FF; --m-s1:#F7F2FA; --m-s2:#F3EDF7; --m-s3:#ECE6F0; --m-s4:#E6E0E9;
+    --m-on-surf:#1D1B20; --m-on-var:#49454F; --m-outline:#CAC4D0;
+  }
+}
+
+/* navigation drawer */
+body[data-theme="material"] #sb{border-right:none;border-radius:0 28px 28px 0;padding-top:6px}
+body[data-theme="material"] .hdr-sb{font-size:22px;font-weight:500;letter-spacing:0;border-bottom:none;padding:20px 24px 12px}
+body[data-theme="material"] .row-ch{margin:2px 12px;padding:10px 16px;border-radius:999px;border-left:none !important;transition:background .2s var(--m-ease)}
+body[data-theme="material"] .row-ch:hover{background:color-mix(in srgb,var(--text) 8%,transparent)}
+body[data-theme="material"] .row-ch.active{background:var(--m-sec-c);color:var(--m-on-sec-c)}
+body[data-theme="material"] .row-ch.active .csub{color:inherit;opacity:.75}
+body[data-theme="material"] .av-sb{border-radius:16px;background:var(--m-pri-c);color:var(--m-on-pri-c)}
+body[data-theme="material"] .av-sb.lp{border-radius:16px;color:#fff}
+body[data-theme="material"] .stg-sb{border-top:none;padding:10px 20px 16px}
+body[data-theme="material"] .stg-btn{font-weight:500}
+body[data-theme="material"] .goback{border-radius:999px;background:var(--m-sec-c);color:var(--m-on-sec-c)}
+body[data-theme="material"] #sbdm .prow:hover,body[data-theme="material"] #sbroster .prow:hover{background:color-mix(in srgb,var(--text) 8%,transparent)}
+
+/* top app bar + segmented tabs */
+body[data-theme="material"] #hdr{min-height:64px;border-bottom:none;background:var(--bar,var(--bg))}
+body[data-theme="material"] #chtabs{background:var(--m-s3);padding:4px;gap:2px;border-radius:999px}
+body[data-theme="material"] #chtabs button{padding:7px 16px;font-weight:500;font-size:13px;letter-spacing:.1px;transition:background .25s var(--m-ease),color .25s var(--m-ease)}
+body[data-theme="material"] #chtabs button.on{background:var(--accent);color:var(--on-accent,var(--m-on-pri))}
+body[data-theme="material"] #onpop{background:var(--m-s3);border-radius:20px}
+
+/* messages */
+body[data-theme="material"] #box{gap:6px;padding:12px 16px}
+body[data-theme="material"] .msg{max-width:80%}
+body[data-theme="material"] .lbl{font-size:12px;font-weight:500;margin:0 6px 2px;color:var(--m-on-var)}
+body[data-theme="material"] .bubble{border-radius:22px;padding:9px 16px;font-size:15px;line-height:1.4;letter-spacing:.1px}
+body[data-theme="material"] .me .bubble{background:var(--me);color:var(--on-accent,var(--m-on-me));border-bottom-right-radius:6px}
+body[data-theme="material"] .peer .bubble{background:var(--peer);color:var(--text);border-bottom-left-radius:6px}
+body[data-theme="material"] .img{border-radius:20px}
+body[data-theme="material"] .quote{border-radius:12px;background:color-mix(in srgb,var(--text) 8%,transparent)}
+body[data-theme="material"] .rx .chip{border-radius:10px;background:var(--m-s3);border-color:var(--m-outline)}
+body[data-theme="material"] .rx .chip.mine{background:var(--m-sec-c);border-color:transparent;color:var(--m-on-sec-c)}
+body[data-theme="material"] .act{background:var(--m-s4);border:none;box-shadow:0 1px 3px rgba(0,0,0,.3),0 4px 8px 3px rgba(0,0,0,.15)}
+body[data-theme="material"] .msg.sys{color:var(--m-on-var)}
+
+/* message bar */
+body[data-theme="material"] #tray{padding:8px 14px 14px;border-top:none;background:var(--bar,var(--bg));gap:8px}
+body[data-theme="material"] .pill{background:var(--m-s4);border:none;border-radius:999px;padding:4px 8px 4px 18px;min-height:46px}
+body[data-theme="material"] .plus{background:var(--m-sec-c);color:var(--m-on-sec-c);width:42px;height:42px;border-radius:16px}
+body[data-theme="material"] #emo-btn,body[data-theme="material"] #vbtn{width:42px;height:42px}
+body[data-theme="material"] #sendbtn{width:38px;height:38px;border-radius:14px;background:var(--accent);color:var(--on-accent,var(--m-on-pri));margin-left:6px}
+body[data-theme="material"] #sendbtn svg{width:18px;height:18px}
+body[data-theme="material"] #replybar{border-top:none;background:var(--m-s3);margin:0 14px;border-radius:20px 20px 0 0}
+body[data-theme="material"] #typing:not(:empty){background:var(--bar,var(--bg))}
+
+/* dialogs, settings, DM bar */
+body[data-theme="material"] #dmbar button{background:var(--m-sec-c);color:var(--m-on-sec-c);border:none}
+body[data-theme="material"] #dmbar #callbtn{background:var(--accent) !important;color:var(--on-accent,var(--m-on-pri)) !important}
+body[data-theme="material"] .stg-card,body[data-theme="material"] #gate .card,body[data-theme="material"] #gmod .gcard,body[data-theme="material"] #amod .acard{background:var(--m-s2);border:none}
+body[data-theme="material"] .stg-box{background:var(--m-s3);border-radius:20px}
+body[data-theme="material"] .stg-box button,body[data-theme="material"] #stg .btn{border-radius:999px;color:var(--on-accent,var(--m-on-pri))}
+body[data-theme="material"] .seg button.on{color:var(--on-accent,var(--m-on-pri))}
+body[data-theme="material"] #gate{background:var(--m-surf)}
+body[data-theme="material"] #emo-panel{box-shadow:0 1px 3px rgba(0,0,0,.3),0 4px 8px 3px rgba(0,0,0,.15)}
+body[data-theme="material"] .pill{min-width:0}
+body[data-theme="material"] #inp{width:100%}
+
+/* phones: tabs scroll sideways instead of running off the screen, tighter message bar */
+@media (max-width:640px){
+  body[data-theme="material"] #chtabs{max-width:100%;overflow-x:auto;scrollbar-width:none}
+  body[data-theme="material"] #chtabs::-webkit-scrollbar{display:none}
+  body[data-theme="material"] #chtabs button{padding:7px 12px}
+  body[data-theme="material"] #tray{gap:4px;padding:8px 10px 12px}
+  body[data-theme="material"] .plus,body[data-theme="material"] #emo-btn,body[data-theme="material"] #vbtn{width:38px;height:38px}
+  body[data-theme="material"] .pill{padding:3px 6px 3px 14px}
+}
+</style>
+<style id="terminal-css">
+/* =====================================================================
+   Terminal — phosphor-green CRT: monospace, prompts, square corners, scanlines + glow
+   ===================================================================== */
+body[data-theme="terminal"]{
+  --bg:#030a05; --side:#050f08; --row:#0a1d10; --input:#07140b; --line:#134d27;
+  --text:#8affb0; --muted:#43b86d; --accent:#39ff7a; --me:transparent; --peer:transparent;
+  --t-me:#7df9ff; --t-on:#02130a; --r:2px; --r-sm:2px;
+  color-scheme:dark;
+  font-family:"JetBrains Mono","Fira Code","Roboto Mono","Cascadia Mono",ui-monospace,Consolas,"Courier New",monospace,"Noto Color Emoji","Apple Color Emoji";
+  font-size:14px;
+  text-shadow:0 0 6px color-mix(in srgb,var(--accent) 38%,transparent);
+  scrollbar-color:var(--accent) transparent;
+}
+body[data-theme="terminal"] :is(button,input,select,textarea){font-family:inherit}
+body[data-theme="terminal"] ::selection{background:var(--accent);color:var(--t-on);text-shadow:none}
+body[data-theme="terminal"] *{scrollbar-color:var(--accent) transparent}
+
+/* CRT overlay: scanlines + soft vignette (never blocks taps) */
+body[data-theme="terminal"]::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:11;
+  background:repeating-linear-gradient(to bottom,rgba(0,0,0,0) 0,rgba(0,0,0,0) 2px,rgba(0,0,0,.16) 3px),
+             radial-gradient(ellipse at center,rgba(0,0,0,0) 62%,rgba(0,0,0,.42) 100%);
+  animation:t-flick 7s linear infinite;
+}
+@keyframes t-flick{0%,100%{opacity:1}47%{opacity:.96}50%{opacity:.88}53%{opacity:.97}}
+@keyframes t-blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+
+/* sidebar */
+body[data-theme="terminal"] #sb{border-right:1px solid var(--accent);background:var(--bar,var(--side))}
+body[data-theme="terminal"] .hdr-sb{font-size:0 !important;border-bottom:1px dashed var(--line);padding:18px 16px 12px}
+body[data-theme="terminal"] .hdr-sb::before{content:"$ ls ~/rooms";font-size:14px;font-weight:700;color:var(--accent)}
+body[data-theme="terminal"] .hdr-sb::after{content:"█";font-size:14px;color:var(--accent);margin-left:3px;animation:t-blink 1s steps(1) infinite}
+body[data-theme="terminal"] .row-ch{margin:2px 0;padding:10px 14px;border-radius:0;border-left-style:solid !important;border-left-width:3px !important;border-left-color:transparent !important}
+body[data-theme="terminal"] .row-ch:hover{background:color-mix(in srgb,var(--accent) 8%,transparent)}
+body[data-theme="terminal"] .row-ch.active{background:color-mix(in srgb,var(--accent) 14%,transparent);border-left-color:var(--accent) !important;color:var(--accent)}
+body[data-theme="terminal"] .row-ch.active b::before{content:"> "}
+body[data-theme="terminal"] .row-ch .csub{color:var(--muted)}
+body[data-theme="terminal"] .av-sb{border-radius:0;background:transparent;border:1px solid var(--accent);color:var(--accent);box-shadow:0 0 8px color-mix(in srgb,var(--accent) 35%,transparent)}
+body[data-theme="terminal"] .av-sb.lp{border-radius:0;color:#fff}
+body[data-theme="terminal"] .stg-sb{border-top:1px dashed var(--line)}
+body[data-theme="terminal"] .goback{border-radius:0;border:1px solid var(--line);background:transparent;color:var(--accent)}
+body[data-theme="terminal"] #youare{color:var(--muted)}
+
+/* top bar: [ status ] and [ tabs ] */
+body[data-theme="terminal"] #hdr{border-bottom:1px solid var(--accent);background:var(--bar,var(--bg))}
+body[data-theme="terminal"] #status::before{content:"[ "}
+body[data-theme="terminal"] #status::after{content:" ]"}
+body[data-theme="terminal"] #chtabs{background:transparent;border-radius:0;padding:0;gap:6px}
+body[data-theme="terminal"] #chtabs button{border-radius:0;border:1px solid var(--line);padding:5px 10px;font-weight:600;color:var(--text)}
+body[data-theme="terminal"] #chtabs button::before{content:"[ ";opacity:.6}
+body[data-theme="terminal"] #chtabs button::after{content:" ]";opacity:.6}
+body[data-theme="terminal"] #chtabs button.on{background:var(--accent);color:var(--on-accent,var(--t-on));border-color:var(--accent);text-shadow:none}
+body[data-theme="terminal"] #onpop{border-radius:0;border:1px solid var(--accent);background:var(--side)}
+
+/* messages = lines of a log */
+body[data-theme="terminal"] #box{gap:3px;padding:14px 18px}
+body[data-theme="terminal"] .msg,body[data-theme="terminal"] .msg.me{align-self:stretch;max-width:100%;flex-direction:row}
+body[data-theme="terminal"] .av{display:none !important}
+body[data-theme="terminal"] .col,body[data-theme="terminal"] .me .col{align-items:flex-start;max-width:calc(100% - 24px)}
+body[data-theme="terminal"] .me .bwrap{flex-direction:row}
+body[data-theme="terminal"] .me .rx{justify-content:flex-start}
+body[data-theme="terminal"] .lbl{margin:6px 0 0;font-size:12px;font-weight:700;color:var(--accent)}
+body[data-theme="terminal"] .lbl::before{content:"["}
+body[data-theme="terminal"] .lbl::after{content:"]"}
+body[data-theme="terminal"] .bubble{padding:0 !important;border-radius:0;background:transparent;font-size:14px;line-height:1.5}
+body[data-theme="terminal"] .bubble::before{content:"> ";color:var(--accent);opacity:.7}
+body[data-theme="terminal"] .me .bubble{background:transparent;color:var(--t-me)}
+body[data-theme="terminal"] .me .bubble::before{content:"$ ";color:var(--t-me)}
+body[data-theme="terminal"] .peer .bubble{background:transparent;color:var(--text)}
+body[data-theme="terminal"] .bubble.voice::before{content:none}
+body[data-theme="terminal"] .msg.sys{align-self:flex-start;text-align:left;color:var(--muted);font-size:12px}
+body[data-theme="terminal"] .msg.sys::before{content:"# ";color:var(--muted)}
+body[data-theme="terminal"] .img{border-radius:0;border:1px solid var(--accent);margin-top:4px}
+body[data-theme="terminal"] .quote{border-radius:0;border-left:2px solid var(--accent);background:color-mix(in srgb,var(--accent) 7%,transparent)}
+body[data-theme="terminal"] .rx .chip{border-radius:0;border:1px solid var(--line);background:transparent}
+body[data-theme="terminal"] .rx .chip.mine{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent)}
+body[data-theme="terminal"] .act,body[data-theme="terminal"] .me .act,body[data-theme="terminal"] .peer .act{left:calc(100% + 8px);right:auto;border-radius:0;background:var(--side);border:1px solid var(--accent);box-shadow:none}
+body[data-theme="terminal"] .me .act::before{left:auto;right:100%}
+body[data-theme="terminal"] .act button{border-radius:0}
+
+/* message bar = a shell prompt */
+body[data-theme="terminal"] #tray{border-top:1px solid var(--accent);background:var(--bar,var(--bg));gap:8px}
+body[data-theme="terminal"] .pill{background:var(--input);border:1px solid var(--line);border-radius:0;padding:6px 10px;min-width:0}
+body[data-theme="terminal"] .pill:focus-within{border-color:var(--accent);box-shadow:0 0 10px color-mix(in srgb,var(--accent) 35%,transparent)}
+body[data-theme="terminal"] .pill::before{content:"$";color:var(--accent);font-weight:700;margin-right:8px}
+body[data-theme="terminal"] #inp{caret-color:var(--accent);caret-shape:block;color:var(--text);width:100%}
+body[data-theme="terminal"] #inp::placeholder{color:var(--muted);opacity:.8}
+body[data-theme="terminal"] .plus{border-radius:0;background:transparent;border:1px solid var(--line);color:var(--accent)}
+body[data-theme="terminal"] #emo-btn,body[data-theme="terminal"] #vbtn{border-radius:0}
+body[data-theme="terminal"] #sendbtn{border-radius:0;background:var(--accent);color:var(--on-accent,var(--t-on));text-shadow:none}
+body[data-theme="terminal"] #replybar{border-top:1px dashed var(--line);background:var(--side)}
+body[data-theme="terminal"] #typing:not(:empty){background:var(--bar,var(--bg));color:var(--muted)}
+
+/* dialogs, settings, join screen */
+body[data-theme="terminal"] #gate{background:var(--bg)}
+body[data-theme="terminal"] #gate h1::before{content:"> "}
+body[data-theme="terminal"] #gate h1::after{content:"_";animation:t-blink 1s steps(1) infinite}
+body[data-theme="terminal"] .stg-card,body[data-theme="terminal"] #gate .card,body[data-theme="terminal"] #gmod .gcard,body[data-theme="terminal"] #amod .acard,body[data-theme="terminal"] #mmod .acard{background:var(--side);border:1px solid var(--accent);border-radius:2px;box-shadow:0 0 18px color-mix(in srgb,var(--accent) 25%,transparent)}
+body[data-theme="terminal"] .stg-box{background:var(--row);border-radius:0}
+body[data-theme="terminal"] .stg-box button,body[data-theme="terminal"] #stg .btn{border-radius:0;color:var(--on-accent,var(--t-on));text-shadow:none}
+body[data-theme="terminal"] .seg button.on{color:var(--on-accent,var(--t-on));text-shadow:none}
+body[data-theme="terminal"] #dmbar button{border-radius:0;background:transparent;border:1px solid var(--line);color:var(--accent)}
+body[data-theme="terminal"] #dmbar #callbtn{background:var(--accent) !important;color:var(--t-on) !important}
+body[data-theme="terminal"] #emo-panel{box-shadow:0 0 14px color-mix(in srgb,var(--accent) 30%,transparent);text-shadow:none}
+@media (max-width:640px){
+  body[data-theme="terminal"] #chtabs{max-width:100%;overflow-x:auto;scrollbar-width:none}
+  body[data-theme="terminal"] #chtabs::-webkit-scrollbar{display:none}
+  body[data-theme="terminal"] #chtabs button{padding:5px 8px;font-size:12px}
+  body[data-theme="terminal"] #tray{gap:5px;padding:8px 10px}
+}
+</style>
 </body>
 </html>
