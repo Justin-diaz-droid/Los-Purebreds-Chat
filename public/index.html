@@ -600,7 +600,7 @@
     <button id="g-go">Join chat</button>
     <a class="goback" href="https://docs.google.com/document/d/1oa90mU-jYczqySulirTvHqqNWTSaNwPGnnArgBdVGrs/edit?tab=t.pqncc0vmsgzp" rel="noopener">← Go back</a>
   </div>
-  <div id="gver">Version 15</div>
+  <div id="gver">Version 16</div>
 </div>
 
 <div id="sb">
@@ -3234,13 +3234,31 @@ label.plus.open{transform:rotate(45deg)}
       ov.querySelector("button").onclick = () => { const u = new URL(location.href); u.searchParams.set("v", Date.now()); location.replace(u.toString()); };
       document.body.appendChild(ov);
     }
+    let sigBase = null, pending = 0, tick = 0;
+    async function sigOf(url){                                              // cheap "has the file changed?" fingerprint (headers only)
+      try{
+        const r = await fetch(url, { method: "HEAD", cache: "no-store" }); if(!r.ok) return null;
+        const s = ["etag", "last-modified", "content-length"].map(k => r.headers.get(k) || "").join("|");
+        return s === "||" ? "" : s;
+      }catch(e){ return null; }
+    }
     async function check(){
       if(shown) return;
       try{
-        const r = await fetch(location.pathname + "?_=" + Date.now(), { cache: "no-store" }); if(!r.ok) return;
+        const url = location.pathname + "?_=" + Date.now();
+        const sg = await sigOf(url);
+        if(sg === null) return;                                             // server not answering: conclude nothing
+        tick++;
+        if(sg && sigBase !== null && base !== null && sg === sigBase) return;   // identical headers: nothing to download
+        if(!sg && base !== null && tick % 5 !== 1) return;                  // no usable headers: full check only every few polls
+        const r = await fetch(url, { cache: "no-store" }); if(!r.ok) return;
         const t = await r.text(), v = t.match(/id="gver">Version (\d+)</);
-        if(own && v && v[1] !== own[0]) return showUpdate();                // version number changed
-        const h = hash(t); if(base === null) base = h; else if(h !== base) showUpdate();   // or the file itself changed
+        if(!v) return;                                                      // not our page (error / placeholder page): ignore it
+        if(own && v[1] !== own[0]) return showUpdate();                     // version number changed
+        const h = hash(t);
+        if(base === null){ base = h; sigBase = sg; pending = 0; }
+        else if(h !== base){ if(++pending >= 2) showUpdate(); }             // same version, different file: must be seen twice in a row
+        else { pending = 0; sigBase = sg; }
       }catch(e){}
     }
     check(); setInterval(check, 30000);
@@ -5034,14 +5052,39 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
 /* Chat transport: a WebSocket relay (the Cloudflare Worker in /src) replaces PeerJS data connections.
    Nobody has to be reachable on their own wifi any more. The first browser to connect is the host
    (the host logic above keeps running there); if it leaves, everyone auto-reconnects and the first
-   one back becomes the new host. PeerJS is now used only for voice / video calls. */
+   one back becomes the new host. PeerJS is now used only for voice / video calls.
+
+   Dead-host protection (v16):
+   The relay only knows a host is gone once that host's socket closes. A host whose device slept, lost
+   signal or froze keeps its seat for a long time ("ghost host"), so everybody else connects to someone
+   who never answers and the room looks down. To get around that:
+     - a client that connects but hears nothing from the host within GHOST_MS gives up on that room and
+       moves on to the next standby room (room-r2, room-r3, ...);
+     - a connected client pings the host when it has been quiet; no answer = host is dead -> reconnect;
+     - before anyone takes the host seat in a room they first look for a live room further along, so the
+       group always converges on one room even after the ghost finally disappears. */
 (function(){
   const FALLBACK = "wss://purebred-chat.226739.workers.dev/ws";   // used when this page isn't served by the worker itself
   const here = /^https?:$/.test(location.protocol) && (/\.workers\.dev$/.test(location.hostname) || /^(localhost|127\.0\.0\.1)$/.test(location.hostname));
-  const HUB_URL = (here ? (location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws" : FALLBACK) + "?room=" + encodeURIComponent(ROOM_ID);
+  const BASE = here ? (location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws" : FALLBACK;
+  const SLOTS = 6;                                  // room 0 is the normal room; 1..5 are standbys
+  const slotRoom = k => k ? ROOM_ID + "-r" + (k + 1) : ROOM_ID;
+  const hubUrl = k => BASE + "?room=" + encodeURIComponent(slotRoom(k));
   const MAX_FRAME = 900000;
+  const GHOST_MS = 10000;      // connected, but the host never said a word
+  const HELLO_MS = 15000;      // relay accepted nothing at all
+  const PROBE_MS = 5000;       // looking for a live room next door
+  const DEAD_MS = 180000;      // remember "this room's host is a ghost" for a while
+  const QUIET_MS = 40000;      // client: ping the host after this much silence
+  const PONG_MS = 20000;       // client: host must answer a ping within this long
   let ws = null, hostMode = false, clientConn = null, hostConns = new Map(), pingT = 0;
+  let slot = 0, tries = 0, helloSeen = false, ghostT = 0, openT = 0, wdT = 0, lastRx = 0, pingAt = 0;
+  let tentative = false, early = [], pendingC = null;
+  const dead = {};                                  // slot -> timestamp until which we skip it
+  const isDead = k => (dead[k] || 0) > Date.now();
+  const nextSlot = from => { for(let k = from; k < SLOTS; k++) if(!isDead(k)) return k; return -1; };
   window.__hubUp = () => !!ws && ws.readyState === 1;
+  window.__hubSlot = () => slot;
 
   function makeConn(sendRaw, closeRaw){
     const h = {};
@@ -5061,28 +5104,112 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
   }
 
   function closeHubQuiet(){
-    clearInterval(pingT);
+    clearInterval(pingT); clearInterval(wdT); clearTimeout(ghostT); clearTimeout(openT);
     const w = ws; ws = null; hostMode = false; clientConn = null; hostConns = new Map();
+    tentative = false; early = []; pendingC = null;
     if(w){ w.onopen = w.onmessage = w.onclose = w.onerror = null; try { w.close(); } catch(e){} }
   }
 
   function parse(s){ try { return JSON.parse(s); } catch(e){ return null; } }
 
+  /* ---- look at another room without joining it: "live" (a host answered), "free" (nobody there),
+          "ghost" (a host is seated but silent) or "fail" ---- */
+  function probe(j){
+    return new Promise(res => {
+      let s, done = false, hello = null, t = 0;
+      const fin = r => {
+        if(done) return; done = true; clearTimeout(t);
+        if(r === "ghost") dead[j] = Date.now() + DEAD_MS;
+        try { s.onopen = s.onmessage = s.onclose = s.onerror = null; s.close(); } catch(e){}
+        res(r);
+      };
+      try { s = new WebSocket(hubUrl(j)); } catch(e){ res("fail"); return; }
+      t = setTimeout(() => fin(hello === false ? "ghost" : "fail"), PROBE_MS);
+      s.onmessage = ev => {
+        const f = typeof ev.data === "string" ? ev.data : ""; if(!f) return;
+        if(f[0] === "c"){ const m = parse(f.slice(1)); if(m && m.k === "hello"){ hello = !!m.host; if(m.host) fin("free"); } }
+        else if(f[0] === "d" && hello === false) fin("live");
+      };
+      s.onclose = s.onerror = () => fin("fail");
+    });
+  }
+  function scanHigher(k){
+    const cand = []; for(let j = k + 1; j < SLOTS; j++) if(!isDead(j)) cand.push(j);
+    if(!cand.length) return Promise.resolve(-1);
+    return Promise.all(cand.map(probe)).then(rs => { for(let i = 0; i < cand.length; i++) if(rs[i] === "live") return cand[i]; return -1; });
+  }
+
+  function commitHost(sock){
+    isHost = true; ready(); if(window.revealChat) window.revealChat();
+    setStatus(slot ? "Online (hosting, backup room " + (slot + 1) + ") — waiting for friends" : "Online (hosting) — waiting for friends");
+    sys("You opened the room. Friends can join with the code.");
+    const q = early; early = [];
+    q.forEach(f => onFrame(sock, f));            // anyone who knocked while we were checking next door
+  }
+
+  function ghost(){                              // joined a room whose host never answered
+    const k = slot; dead[k] = Date.now() + DEAD_MS;
+    console.info("[hub] room " + k + " host is silent - moving on");
+    closeHubQuiet();
+    const nk = ++tries >= SLOTS ? -1 : nextSlot(k + 1);
+    if(nk < 0){
+      Object.keys(dead).forEach(x => delete dead[x]);
+      if(window.__leave) window.__leave(window.__entering ? "The room isn't responding right now. Try again in a minute." : "Disconnected from the room. Rejoin to continue.");
+      return;
+    }
+    setStatus("Room not responding — switching…");
+    openSlot(nk);
+  }
+
+  function hostSilent(){                         // we were connected, then the host stopped answering
+    const cc = clientConn; dead[slot] = Date.now() + DEAD_MS;
+    console.info("[hub] host stopped answering - reconnecting");
+    clearInterval(wdT);
+    if(cc && cc.open){ cc.open = false; cc.emit("close"); }      // the page's own close handler starts the reconnect
+    else closeHubQuiet();
+  }
+  function startWatchdog(){
+    clearInterval(wdT); lastRx = Date.now(); pingAt = 0;
+    wdT = setInterval(() => {
+      const cc = clientConn;
+      if(!ws || hostMode || !cc || !cc.open) return;
+      const now = Date.now();
+      if(pingAt && lastRx >= pingAt) pingAt = 0;                 // it answered
+      if(pingAt){ if(now - pingAt > PONG_MS) hostSilent(); return; }
+      if(now - lastRx > QUIET_MS){ pingAt = now; try { ws.send(JSON.stringify({ t: "PG", i: "pg" })); } catch(e){} }
+    }, 10000);
+  }
+  function wake(){                                // tab / phone woke up: check right away instead of waiting
+    if(hostMode || !ws || !clientConn || !clientConn.open || pingAt) return;
+    pingAt = Date.now(); try { ws.send(JSON.stringify({ t: "PG", i: "pg" })); } catch(e){}
+  }
+  document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible") wake(); });
+  window.addEventListener("online", wake); window.addEventListener("pageshow", wake);
+
   function onFrame(sock, f){
     if(sock !== ws || !f) return;
     const tag = f[0], rest = f.slice(1);
     if(tag === "c"){
-      const m = parse(rest); if(!m || m.k !== "hello") return;
-      hostMode = !!m.host;
-      if(hostMode){
-        isHost = true; ready(); if(window.revealChat) window.revealChat();
-        setStatus("Online (hosting) — waiting for friends");
-        sys("You opened the room. Friends can join with the code.");
+      const m = parse(rest); if(!m || m.k !== "hello" || helloSeen) return;
+      helloSeen = true; clearTimeout(openT);
+      if(m.host){
+        // we'd be the host - but first make sure a live room isn't already running further along
+        hostMode = true; tentative = true; early = [];
+        scanHigher(slot).then(found => {
+          if(sock !== ws || !tentative) return;
+          if(found >= 0){ console.info("[hub] found a live room at " + found); closeHubQuiet(); openSlot(found); return; }
+          tentative = false; commitHost(sock);
+        });
       } else {
+        hostMode = false;
         const c = makeConn(s => sock.send(s), () => closeHubQuiet());
-        clientConn = c; addConn(c); c.open = true; c.emit("open");
+        pendingC = c; addConn(c);                // handlers only - it opens when the host first speaks
+        clearTimeout(ghostT); ghostT = setTimeout(() => { if(sock === ws && pendingC === c && !c.open) ghost(); }, GHOST_MS);
       }
-    } else if(tag === "o" && hostMode){
+      return;
+    }
+    if(tentative){ early.push(f); return; }
+    if(tag === "o" && hostMode){
       const cid = rest; if(hostConns.has(cid)) return;
       const c = makeConn(s => sock.send("d" + cid + "\n" + s), () => { hostConns.delete(cid); sock.send("k" + cid); });
       hostConns.set(cid, c); addConn(c); c.open = true; c.emit("open");
@@ -5092,26 +5219,53 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
       if(hostMode){
         const nl = rest.indexOf("\n"); if(nl < 0) return;
         const c = hostConns.get(rest.slice(0, nl)), d = parse(rest.slice(nl + 1));
+        if(d && d.t === "PG"){ if(c && c.open) c.send({ t: "PO", i: "po" }); return; }    // "are you alive?" - answered right here
         if(c && c.open && d) c.emit("data", d);
-      } else if(clientConn && clientConn.open){
-        const d = parse(rest); if(d) clientConn.emit("data", d);
+      } else {
+        lastRx = Date.now();
+        const d = parse(rest); if(!d) return;
+        if(pendingC && !pendingC.open){              // first word from the host: now we're really connected
+          clearTimeout(ghostT); tries = 0;
+          clientConn = pendingC; pendingC = null; clientConn.open = true;
+          startWatchdog(); clientConn.emit("open");
+        }
+        if(d.t === "PO") return;
+        if(clientConn && clientConn.open) clientConn.emit("data", d);
       }
     }
   }
 
   function onClosed(sock){
     if(sock !== ws) return;
-    clearInterval(pingT);
-    const wasHost = hostMode, hc = [...hostConns.values()], cc = clientConn;
-    ws = null; hostMode = false; clientConn = null; hostConns = new Map();
+    const wasHost = hostMode && !tentative, hc = [...hostConns.values()], cc = clientConn, hello = helloSeen;
+    closeHubQuiet();
     if(wasHost) hc.forEach(c => { if(c.open){ c.open = false; c.emit("close"); } });
     if(cc && cc.open){ cc.open = false; cc.emit("close"); return; }   // the page's own close handler starts the reconnect
-    if(window.__leave) window.__leave(window.__entering ? "Couldn't connect to the room. Try again." : "Disconnected from the room. Rejoin to continue.");
+    if(window.__leave) window.__leave(window.__entering
+      ? (hello ? "Couldn't connect to the room. Try again." : "Can't reach the chat server — it may be down. Try again in a minute.")
+      : "Disconnected from the room. Rejoin to continue.");
+  }
+
+  function openSlot(k){
+    slot = k; helloSeen = false; lastRx = 0; pingAt = 0; tentative = false; early = []; pendingC = null;
+    clearInterval(pingT); clearInterval(wdT); clearTimeout(ghostT); clearTimeout(openT);
+    let sock;
+    try { sock = new WebSocket(hubUrl(k)); } catch(e){ ws = {}; onClosed(ws); return; }
+    ws = sock;
+    sock.onopen = () => { pingT = setInterval(() => { try { if(sock.readyState === 1) sock.send("ping"); } catch(e){} }, 25000); };
+    sock.onmessage = ev => { if(typeof ev.data === "string") onFrame(sock, ev.data); };
+    sock.onclose = () => onClosed(sock);
+    sock.onerror = () => {};
+    openT = setTimeout(() => { if(sock === ws && !helloSeen){ try { sock.close(); } catch(e){} } }, HELLO_MS);   // relay never greeted us
   }
 
   connect = function(){
     setStatus("Connecting..."); renderOnline([me()]);
-    closeHubQuiet();
+    closeHubQuiet(); tries = 0;
+    if(window.__entering){                        // walking through a couple of dead rooms can take a while
+      clearTimeout(window.__enterT);
+      window.__enterT = setTimeout(() => { if(window.__entering && window.__leave) window.__leave("Couldn't connect to the room. Try again."); }, 60000);
+    }
     // PeerJS only carries voice / video calls now
     let mp;
     try { mp = new Peer(undefined, PEER_OPTS); mp.on("error", e => console.warn("call peer:", e && e.type)); }
@@ -5119,11 +5273,8 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     const d0 = mp.destroy ? mp.destroy.bind(mp) : () => {};
     mp.destroy = function(){ closeHubQuiet(); return d0(); };
     peer = mp;
-    const sock = new WebSocket(HUB_URL); ws = sock;
-    sock.onopen = () => { pingT = setInterval(() => { try { if(sock.readyState === 1) sock.send("ping"); } catch(e){} }, 25000); };
-    sock.onmessage = ev => { if(typeof ev.data === "string") onFrame(sock, ev.data); };
-    sock.onclose = () => onClosed(sock);
-    sock.onerror = () => {};
+    const k = nextSlot(0);
+    openSlot(k < 0 ? 0 : k);
   };
 })();
 </script>
