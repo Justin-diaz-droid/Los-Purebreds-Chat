@@ -600,7 +600,7 @@
     <button id="g-go">Join chat</button>
     <a class="goback" href="https://docs.google.com/document/d/1oa90mU-jYczqySulirTvHqqNWTSaNwPGnnArgBdVGrs/edit?tab=t.pqncc0vmsgzp" rel="noopener">← Go back</a>
   </div>
-  <div id="gver">Version 11</div>
+  <div id="gver">Version 12</div>
 </div>
 
 <div id="sb">
@@ -3113,6 +3113,19 @@ label.plus.open{transform:rotate(45deg)}
     }
   };
 
+  /* ---------- "Upload photos": straight to the Files app, no preview panel ---------- */
+  const pp = document.createElement("input"); pp.type = "file"; pp.multiple = true; pp.style.display = "none";
+  pp.accept = ".jpg,.jpeg,.png,.gif,.webp,.heic,.heif,.bmp,.avif";
+  document.body.appendChild(pp);
+  pp.onchange = async () => {
+    const fs = [...pp.files].filter(f => f.type.startsWith("image/") || /\.(jpe?g|png|gif|webp|heic|heif|bmp|avif)$/i.test(f.name)); pp.value = "";
+    for(const f of fs.slice(0, 10)){
+      if(f.size > 10 * 1024 * 1024){ sys("Image too big (10MB max): " + f.name); continue; }
+      const url = await new Promise(res => { const r = new FileReader(); r.onload = ev => res(ev.target.result); r.onerror = () => res(""); r.readAsDataURL(f); });
+      if(url) await new Promise(res => shrinkImage(url, d => { postMsg(d, 1); res(); }));
+    }
+  };
+
   /* ---------- the + menu (photos · file · poll) ---------- */
   const plus = document.querySelector("label.plus");
   const menu = document.createElement("div"); menu.id = "plusmenu";
@@ -3134,7 +3147,7 @@ label.plus.open{transform:rotate(45deg)}
   menu.addEventListener("click", e => {
     const b = e.target.closest("button[data-a]"); if(!b) return; const a = b.dataset.a;
     closeMenu();
-    if(a === "photo"){ window.__pbDirect = true; plus.click(); }
+    if(a === "photo") pp.click();
     else if(a === "file") pf.click();
     else if(a === "poll") openPoll();
   });
