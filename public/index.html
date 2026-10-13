@@ -4599,14 +4599,15 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     }
   }
 
-  function onClosed(sock){
+  function onClosed(sock, ev){
     if(sock !== ws) return;
+    const why = " (" + (sock.__opened ? "connected, then closed" : "never connected") + ", code " + ((ev && ev.code) || "none") + ((ev && ev.reason) ? ": " + String(ev.reason).slice(0, 60) : "") + " · " + (HUB_URL.split("/")[2] || "") + ")";
     clearInterval(pingT);
     const wasHost = hostMode, hc = [...hostConns.values()], cc = clientConn;
     ws = null; hostMode = false; clientConn = null; hostConns = new Map();
     if(wasHost) hc.forEach(c => { if(c.open){ c.open = false; c.emit("close"); } });
     if(cc && cc.open){ cc.open = false; cc.emit("close"); return; }   // the page's own close handler starts the reconnect
-    if(window.__leave) window.__leave(window.__entering ? "Couldn't connect to the room. Try again." : "Disconnected from the room. Rejoin to continue.");
+    if(window.__leave) window.__leave(window.__entering ? "Couldn't connect to the room. Try again." + why : "Disconnected from the room. Rejoin to continue." + why);
   }
 
   connect = function(){
@@ -4620,9 +4621,9 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     mp.destroy = function(){ closeHubQuiet(); return d0(); };
     peer = mp;
     const sock = new WebSocket(HUB_URL); ws = sock;
-    sock.onopen = () => { pingT = setInterval(() => { try { if(sock.readyState === 1) sock.send("ping"); } catch(e){} }, 25000); };
+    sock.onopen = () => { sock.__opened = true; pingT = setInterval(() => { try { if(sock.readyState === 1) sock.send("ping"); } catch(e){} }, 25000); };
     sock.onmessage = ev => { if(typeof ev.data === "string") onFrame(sock, ev.data); };
-    sock.onclose = () => onClosed(sock);
+    sock.onclose = ev => onClosed(sock, ev);
     sock.onerror = () => {};
   };
 })();
