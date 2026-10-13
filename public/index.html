@@ -600,7 +600,7 @@
     <button id="g-go">Join chat</button>
     <a class="goback" href="https://docs.google.com/document/d/1oa90mU-jYczqySulirTvHqqNWTSaNwPGnnArgBdVGrs/edit?tab=t.pqncc0vmsgzp" rel="noopener">← Go back</a>
   </div>
-  <div id="gver">Version 16</div>
+  <div id="gver">Version 0.1.6</div>
 </div>
 
 <div id="sb">
@@ -615,6 +615,7 @@
   <div class="stg-sb">
     <a class="goback" href="https://docs.google.com/document/d/1oa90mU-jYczqySulirTvHqqNWTSaNwPGnnArgBdVGrs/edit?tab=t.pqncc0vmsgzp" rel="noopener">← Go back</a>
     <div id="youare"></div>
+    <button class="stg-btn" id="opts-btn" type="button" aria-expanded="false">☰ Options ▾</button>
     <button class="stg-btn" id="stg-toggle">⚙️ Settings</button>
 
   </div>
@@ -710,7 +711,7 @@ let usr = "User", peer = null, conns = [], isHost = false, logs = [];
 /* private DM state */
 let dmWith = "", dmNm = "", chipT = null;
 let seen = {}; try { seen = JSON.parse(load("dm_seen", "{}")) || {}; } catch(e){ seen = {}; }
-const PH = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage",material:"Chat message",terminal:"enter message…"};
+const PH = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage",material:"Text message",terminal:"enter message…"};
 const THEMES = ["imessage","discord","whatsapp","tiktok","roblox","instagram","twitter","material","terminal"];
 const CHNAME = {discord:"# purebred-chat",whatsapp:"WhatsApp Group",tiktok:"TikTok Inbox",roblox:"Roblox Chat",instagram:"Instagram Direct",twitter:"Twitter Messages",imessage:"iMessage Channel",material:"Messages",terminal:"/dev/purebred"};
 let draft = null, stgOpen = false, pvLoaded = false, pvq = 0;
@@ -776,7 +777,7 @@ function setTheme(t){
   document.body.dataset.theme = t;
   $("theme").value = t; $("g-theme").value = t;
   $("chname").textContent = {discord:"# purebred-chat",whatsapp:"WhatsApp Group",tiktok:"TikTok Inbox",roblox:"Roblox Chat",instagram:"Instagram Direct",twitter:"Twitter Messages",imessage:"iMessage Channel",material:"Messages",terminal:"/dev/purebred"}[t];
-  $("inp").placeholder = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage",material:"Chat message",terminal:"enter message…"}[t];
+  $("inp").placeholder = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage",material:"Text message",terminal:"enter message…"}[t];
   save("chat_theme", t); if(curCh === "dm") updateDmBar();
   applyWall();
   restyleAll();
@@ -3222,7 +3223,7 @@ label.plus.open{transform:rotate(45deg)}
   /* ---------- new version on the server: everyone gets kicked to a "please refresh" screen ---------- */
   (function(){
     if(!/^https?:$/.test(location.protocol)) return;                        // opened from a file: nothing to check
-    const own = (($$("gver") || {}).textContent || "").match(/\d+/);
+    const own = (($$("gver") || {}).textContent || "").match(/\d+(?:\.\d+)*/);
     let base = null, shown = false;
     const hash = t => { let h = 5381; for(let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return t.length + ":" + h; };
     function showUpdate(){
@@ -3255,7 +3256,7 @@ label.plus.open{transform:rotate(45deg)}
         if(sg && sigBase !== null && base !== null && sg === sigBase) return;   // identical headers: nothing to download
         if(!sg && base !== null && tick % 2 !== 1) return;                  // no usable headers: full check every other poll
         const r = await fetch(url, { cache: "no-store" }); if(!r.ok) return;
-        const t = await r.text(), v = t.match(/id="gver">Version (\d+)</);
+        const t = await r.text(), v = t.match(/id="gver">Version (\d+(?:\.\d+)*)</);
         if(!v) return;                                                      // not our page (error / placeholder page): ignore it
         if(own && v[1] !== own[0]) return showUpdate();                     // version number changed
         const h = hash(t);
@@ -5850,5 +5851,87 @@ body[data-theme="terminal"] #box[style*="url("] .msg .bubble{background:rgba(0,0
 body[data-theme="terminal"] #box[style*="url("] .msg .lbl{background:rgba(0,0,0,.62);padding:0 4px}
 
 </style>
+<style id="pixel-css">
+/* =====================================================================
+   Pixel look (Google Messages, Material 3): Google-blue palette, circular avatars,
+   grouped bubbles with tight inner corners, pill composer, round send button.
+   Colours below only apply when no custom colour is picked (the picker still wins).
+   ===================================================================== */
+body[data-theme="material"]:not([style*="--accent"]){
+  --m-pri:#A8C7FA; --m-on-pri:#062E6F; --m-pri-c:#0842A0; --m-on-pri-c:#D3E3FD;
+  --m-sec-c:#004A77; --m-on-sec-c:#C2E7FF; --m-ter-c:#0F5223; --m-on-ter-c:#C4EED0;
+  --m-surf:#131314; --m-s1:#1B1B1D; --m-s2:#1E1F20; --m-s3:#282A2C; --m-s4:#333537;
+  --m-on-surf:#E3E3E3; --m-on-var:#C4C7C5; --m-outline:#444746;
+  --m-sent:#0842A0; --m-on-sent:#D3E3FD; --m-recv:#282A2C;
+}
+@media (prefers-color-scheme:light){
+  body[data-theme="material"]:not([style*="--accent"]){
+    --m-pri:#0B57D0; --m-on-pri:#FFFFFF; --m-pri-c:#D3E3FD; --m-on-pri-c:#041E49;
+    --m-sec-c:#C2E7FF; --m-on-sec-c:#001D35; --m-ter-c:#C4EED0; --m-on-ter-c:#072711;
+    --m-surf:#FFFFFF; --m-s1:#F8FAFD; --m-s2:#F3F6FC; --m-s3:#E9EEF6; --m-s4:#DDE3EA;
+    --m-on-surf:#1F1F1F; --m-on-var:#444746; --m-outline:#C4C7C5;
+    --m-sent:#0B57D0; --m-on-sent:#FFFFFF; --m-recv:#E9EEF6;
+  }
+}
+body[data-theme="material"]:not([style*="--accent"]) .me .bubble{background:var(--m-sent);color:var(--m-on-sent)}
+body[data-theme="material"]:not([style*="--accent"]) .peer .bubble{background:var(--m-recv)}
+body[data-theme="material"]{font-family:"Google Sans","Google Sans Text","Product Sans",Roboto,"Segoe UI",system-ui,sans-serif,"Noto Color Emoji","Apple Color Emoji"}
+
+/* conversation list: round contact avatars, tonal selected row */
+body[data-theme="material"] .av-sb,body[data-theme="material"] .av-sb.lp{border-radius:50%}
+body[data-theme="material"] .av-sb:not(.lp){background:var(--m-sec-c);color:var(--m-on-sec-c)}
+body[data-theme="material"] .hdr-sb{font-size:22px;font-weight:500;padding:22px 24px 10px}
+body[data-theme="material"] .row-ch{border-radius:28px}
+
+/* messages: Google Messages grouping */
+body[data-theme="material"] #box{gap:2px;padding:12px 16px 8px}
+body[data-theme="material"] .msg{max-width:78%;gap:8px}
+body[data-theme="material"] .msg.first{margin-top:10px}
+body[data-theme="material"] .tsep{display:block;align-self:center;margin:16px 0 6px;font-size:12px;font-weight:500;color:var(--m-on-var)}
+body[data-theme="material"] .me .lbl,body[data-theme="material"] .msg:not(.first) .lbl{display:none}
+body[data-theme="material"] .peer .av{display:flex;width:32px;height:32px;font-size:13px;align-self:flex-end;visibility:hidden}
+body[data-theme="material"] .peer.last .av{visibility:visible}
+body[data-theme="material"] .bubble{border-radius:20px;padding:10px 16px;font-size:16px;line-height:1.35}
+body[data-theme="material"] .peer:not(.first) .bubble{border-top-left-radius:6px}
+body[data-theme="material"] .peer:not(.last) .bubble{border-bottom-left-radius:6px}
+body[data-theme="material"] .me:not(.first) .bubble{border-top-right-radius:6px}
+body[data-theme="material"] .me:not(.last) .bubble{border-bottom-right-radius:6px}
+body[data-theme="material"] .peer.last .bubble{border-bottom-left-radius:20px}
+body[data-theme="material"] .me.last .bubble{border-bottom-right-radius:20px}
+body[data-theme="material"] .me.lastmine .col::after{content:"Delivered";align-self:flex-end;margin:3px 6px 0 0;font-size:11px;color:var(--m-on-var)}
+
+/* composer: round "+", pill field, round send button */
+body[data-theme="material"] #tray{padding:8px 12px 14px;gap:6px;align-items:center}
+body[data-theme="material"] .plus{width:44px;height:44px;border-radius:50%;background:var(--m-s3);color:var(--m-on-surf)}
+body[data-theme="material"] .pill{background:var(--m-s3);border-radius:28px;min-height:48px;padding:4px 6px 4px 18px}
+body[data-theme="material"] #inp{font-size:16px}
+body[data-theme="material"] #sendbtn{width:40px;height:40px;border-radius:50%;background:var(--m-pri);color:var(--m-on-pri);margin-left:6px}
+
+/* top bar: flat surface, segmented pill tabs */
+body[data-theme="material"] #hdr{min-height:64px}
+body[data-theme="material"] #chtabs{background:var(--m-s3)}
+body[data-theme="material"] #chtabs button.on{background:var(--m-sec-c);color:var(--m-on-sec-c)}
+body[data-theme="material"][style*="--accent"] #chtabs button.on{background:var(--accent);color:var(--on-accent,#fff)}
+@media (max-width:640px){
+  body[data-theme="material"] .msg{max-width:86%}
+  body[data-theme="material"] .plus{width:40px;height:40px}
+}
+
+</style>
+<style id="opts-css">
+/* Options drop-down: folds away Reset tab order, Settings and the Admin / Mod panel */
+.stg-sb.opts-closed .stg-btn:not(#opts-btn){display:none !important}
+#opts-btn{display:block}
+</style>
+<script id="opts-js">
+(function(){
+  const sb=document.querySelector(".stg-sb"), b=document.getElementById("opts-btn"); if(!sb||!b) return;
+  const KEY="chat_opts_open";
+  let open=false; try{ open=localStorage.getItem(KEY)==="1"; }catch(e){}
+  function paint(){ sb.classList.toggle("opts-closed",!open); b.textContent=open?"☰ Options ▴":"☰ Options ▾"; b.setAttribute("aria-expanded",open?"true":"false"); }
+  b.addEventListener("click",()=>{ open=!open; try{ localStorage.setItem(KEY,open?"1":"0"); }catch(e){} paint(); });
+  paint();
+})();
+</script>
 </body>
 </html>
