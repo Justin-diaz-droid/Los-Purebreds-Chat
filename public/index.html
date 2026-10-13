@@ -600,7 +600,7 @@
     <button id="g-go">Join chat</button>
     <a class="goback" href="https://docs.google.com/document/d/1oa90mU-jYczqySulirTvHqqNWTSaNwPGnnArgBdVGrs/edit?tab=t.pqncc0vmsgzp" rel="noopener">← Go back</a>
   </div>
-  <div id="gver">Version 12</div>
+  <div id="gver">Version 14</div>
 </div>
 
 <div id="sb">
@@ -1303,6 +1303,21 @@ function handle(d, from){
       }
       dmChanged(changed);
     }
+    return;
+  }
+  if(d.t === "RD"){
+    const ch = ["main", "shame", "dm", "grp"].includes(d.ch) ? d.ch : "main", ts = +d.ts || 0;
+    if(ts <= 0 || ts > Date.now() + 60000) return;
+    const ctx = { ch, c: okUid(d.c) ? d.c : "", to: okUid(d.to) ? d.to : "", g: okGid(d.g) ? d.g : "" };
+    if(isHost){
+      if(from && from.uid) ctx.c = from.uid;
+      if(ch === "dm" && !ctx.to) return;
+      if(ch === "grp"){ const gr = groups[ctx.g]; if(!gr || !from || !from.uid || !gr.m.includes(from.uid)) return; }
+      d.ch = ch; d.c = ctx.c;
+    }
+    const forMe = ch === "dm" ? ctx.to === uid : ch === "grp" ? isMember(ctx.g) : true;
+    if(forMe && ctx.c && window.recordSeen) window.recordSeen(ctx, String(d.u || "").slice(0, 12), ts);
+    if(isHost) routeTyping(d, from);
     return;
   }
   if(d.t === "T"){
@@ -2995,6 +3010,7 @@ label.plus.open{transform:rotate(45deg)}
 #pollmod .pcancel{background:var(--row);color:var(--text)}
 #pollmod .ppost{background:var(--accent);color:var(--on-accent,#fff)}
 #pollmod .perr{color:#ff6b61;font-size:13px;min-height:16px}
+#box .seen{align-self:flex-end;text-align:right;font-size:11px;font-weight:600;color:var(--muted);margin:2px 6px 0}
 </style>
 <script id="rich-js">
 (function(){
@@ -3075,6 +3091,54 @@ label.plus.open{transform:rotate(45deg)}
     persist(); renderRx(l); sendEntry(l);
   }
   setInterval(() => { logs.forEach(l => { if(l.poll && l.poll.end && !l.del) renderRx(l); }); }, 20000);   // countdown / auto-close
+
+  /* ---------- "Seen" read receipts ---------- */
+  const seen = {};                                     // room -> { uid: {n, ts} } = how far each person has read
+  const roomKey = () => curCh === "dm" && dmWith ? dmWith : (curCh === "main" || curCh === "shame") ? curCh : "";
+  const inRoom = (l, key) => key === "main" ? (!l.to && !l.g && !l.ch) : key === "shame" ? l.ch === "shame" : !!((l.to || l.g) && dmKey(l) === key);
+  window.recordSeen = function(ctx, name, ts){
+    if(!ctx.c || ctx.c === uid) return;
+    const key = ctx.ch === "dm" ? "d:" + ctx.c : ctx.ch === "grp" ? "g:" + ctx.g : ctx.ch;
+    const room = seen[key] || (seen[key] = {});
+    room[ctx.c] = { n: name || "Someone", ts: Math.max(ts, (room[ctx.c] || {}).ts || 0) };
+    renderSeen();
+  };
+  function renderSeen(){
+    const key = roomKey(), box = $$("box");
+    const clear = () => box.querySelectorAll(".seen").forEach(e => e.remove());
+    if(!key || !seen[key]){ clear(); return; }
+    const mine = [...box.querySelectorAll(".msg.me")].filter(e => e.offsetParent !== null && !e.classList.contains("ghost"));
+    const last = mine[mine.length - 1]; if(!last){ clear(); return; }
+    const lts = +last.dataset.ts || 0, room = seen[key];
+    const names = Object.keys(room).filter(u => u !== uid && room[u].ts >= lts).map(u => room[u].n);
+    if(!names.length){ clear(); return; }
+    const isDm = key[0] === "d";
+    const text = isDm ? "Seen" : "Seen by " + (names.length <= 3 ? names.join(", ") : names.length + " people");
+    const cur = box.querySelector(".seen");
+    if(cur && cur.parentNode.parentNode === last && cur.textContent === text) return;
+    clear();
+    const col = last.querySelector(":scope > .col"); if(!col) return;
+    const d = document.createElement("div"); d.className = "seen"; d.textContent = text; col.appendChild(d);
+  }
+  let rrOn = load("pb_rr", "1") !== "0"; const lastRep = {};
+  function reportRead(){
+    if(!rrOn || !peer || $$("gate").style.display !== "none" || document.visibilityState !== "visible") return;
+    const key = roomKey(); if(!key) return;
+    const box = $$("box"); if(box.scrollHeight - box.scrollTop - box.clientHeight > 320) return;   // only counts if you're at the bottom
+    let ts = 0; logs.forEach(l => { if(!l.del && l.c !== uid && inRoom(l, key) && (l.ts || 0) > ts) ts = l.ts; });
+    const prev = lastRep[key] || { ts: 0, at: 0 };
+    if(!ts || (ts <= prev.ts && Date.now() - prev.at < 45000)) return;
+    lastRep[key] = { ts, at: Date.now() };
+    const m = { t: "RD", u: usr, c: uid, i: newId(), ts };
+    if(key[0] === "d"){ m.ch = "dm"; m.to = key.slice(2); } else if(key[0] === "g"){ m.ch = "grp"; m.g = key.slice(2); } else m.ch = key;
+    routeTyping(m, null);
+  }
+  setInterval(() => { reportRead(); renderSeen(); }, 1200);
+  document.addEventListener("visibilitychange", reportRead); window.addEventListener("focus", reportRead);
+  const rrCard = document.createElement("div"); rrCard.className = "stg-card";
+  rrCard.innerHTML = '<h3>👁 Read receipts</h3><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="rrchk" style="width:auto;margin:0"> Let people see when I\'ve read their messages</label><div class="stg-note">Shows “Seen” under a message once the other person has read it.</div>';
+  document.querySelector(".stg-scroll").appendChild(rrCard);
+  $$("rrchk").checked = rrOn; $$("rrchk").onchange = () => { rrOn = $$("rrchk").checked; save("pb_rr", rrOn ? "1" : "0"); };
 
   /* ---------- poll maker ---------- */
   const pm = document.createElement("div"); pm.id = "pollmod";
@@ -3490,7 +3554,7 @@ label.plus.open{transform:rotate(45deg)}
     fxT=setTimeout(()=>{ Object.keys(TROLLS).forEach(x=>b.classList.remove("tr-"+x)); document.documentElement.classList.remove("tr-on"); },8000);
   }
   function runTroll(m,f,isAdm,say,name){
-    const k=String(m.k||""); if(!TROLLS[k]) return say("Unknown troll.");
+    const k=String(m.tk||""); if(!TROLLS[k]) return say("Unknown troll.");
     const l=low(name);
     if(!isAdm){
       if(reg.mto) return say("Admins have turned mod trolls off");
@@ -4186,7 +4250,7 @@ label.plus.open{transform:rotate(45deg)}
       const bs={};
       Object.keys(TROLLS).forEach(k=>{
         const b=document.createElement("button"); b.type="button"; b.className="abtn"; b.dataset.k=k;
-        b.onclick=()=>{ const m={a:"troll",k,u:sel.value}; if(isAdm) adminDo(m); else modDo(m); };
+        b.onclick=()=>{ const m={a:"troll",tk:k,u:sel.value}; if(isAdm) adminDo(m); else modDo(m); };
         row.appendChild(b); bs[k]=b;
       });
       function refresh(){
