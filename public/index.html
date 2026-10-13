@@ -3042,7 +3042,7 @@ label.plus.open{transform:rotate(45deg)}
     }
     return H.map(v=>v.toString(16).padStart(8,"0")).join("");
   }
-  // sha256("pbadmin:1214")  — the admin password is checked against this hash, never stored in plain text
+  // sha256("pbadmin:12142864")  — the admin password is checked against this hash, never stored in plain text
   const ADMIN_KEY="f8166acc73453bd8652123ff0fdd7cc7e54def7a1b9efa50fbbc90f7d85e82d5";
   const hCred=p=>sha256("pb1:"+p);            // what a user's browser remembers + sends to log in
   const hVer=h=>sha256("pbv:"+h);             // what the room stores (can't be replayed as a login)
