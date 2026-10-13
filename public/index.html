@@ -1346,6 +1346,7 @@ function cleanEntry(e){
     if(!okGid(e.g) || !o.c) return null;
     o.g = e.g; o.ch = "grp";
   } else if(e.ch === "gal" && o.img) o.ch = "gal";   // gallery only accepts images
+  else if(e.ch === "hos" && !o.img && !o.aud) o.ch = "hos";   // hall of shame is text only
   if(e.edited) o.edited = true;
   if(e.r && typeof e.r === "object" && validId(e.r.i)){      // reply: id + name + short preview of the original
     o.r = { i: e.r.i, u: String(e.r.u || "").slice(0, 12), t: String(e.r.t || "").slice(0, 80), m: e.r.m ? 1 : 0 };
@@ -1628,6 +1629,7 @@ function postMsg(b, img, aud){
   if(curCh === "dm" && dmWith){
     if(dmWith[0] === "g"){ o.g = dmWith.slice(2); o.ch = "grp"; } else { o.to = dmWith.slice(2); o.tn = dmNm; o.ch = "dm"; }
   }
+  if(curCh === "hos" && !o.img && !o.aud) o.ch = "hos";
   if(replyTo && curCh !== "gal"){ o.r = replyTo; clearReply(); }
   logs.push(o); persist(); renderRow(o, true);
   sendEntry(o); renderDMList();
@@ -1848,8 +1850,8 @@ function renderRow(m, animate){
   const act = document.createElement("div"); act.className = "act";
   if(m.ch !== "gal") act.appendChild(iconBtn("rep", "Reply", ICON_REPLY, () => startReply(m.i)));
   act.appendChild(iconBtn("rct", "React with any emoji", ICON_REACT, () => startReact(m.i)));
-  if(!m.img && !m.aud && (!(m.to || m.g) || mine)) act.appendChild(iconBtn("edt", "Edit message", ICON_EDIT, () => startEdit(m.i)));
-  if(mine) act.appendChild(iconBtn("del", "Delete message", ICON_DEL, () => deleteMsg(m.i)));
+  if(!m.img && !m.aud && (!(m.to || m.g) || mine) && (m.ch !== "hos" || (window.__pbAdm && window.__pbAdm()))) act.appendChild(iconBtn("edt", "Edit message", ICON_EDIT, () => startEdit(m.i)));
+  if(mine && (m.ch !== "hos" || (window.__pbAdm && window.__pbAdm()))) act.appendChild(iconBtn("del", "Delete message", ICON_DEL, () => deleteMsg(m.i)));
   if(act.children.length) wrap.appendChild(act);
   col.appendChild(wrap);
   w.append(av, col);
@@ -1901,7 +1903,7 @@ function regroup(){
     if(!e.classList.contains("msg")) return false;
     e.classList.remove("first", "last", "lastmine");
     if(e.classList.contains("sys")) return true;
-    const show = curCh === "dm" ? ((e.dataset.ch === "dm" || e.dataset.ch === "grp") && e.dataset.dm === dmWith) : curCh === "gal" ? e.dataset.ch === "gal" : !e.dataset.ch;
+    const show = curCh === "dm" ? ((e.dataset.ch === "dm" || e.dataset.ch === "grp") && e.dataset.dm === dmWith) : curCh === "gal" ? e.dataset.ch === "gal" : curCh === "hos" ? e.dataset.ch === "hos" : !e.dataset.ch;
     e.classList.toggle("off", !show);
     return show;
   });
@@ -3019,7 +3021,7 @@ label.plus.open{transform:rotate(45deg)}
   reg.muteAll=false;
   let myPwH="", adminMode=false, keyAdmin=false, pendW=null;
   let myHide=load("pb_hidetag","0")==="1";
-  window.__pbAdm=()=>adminMode?1:0; window.__pbHide=()=>myHide?1:0;
+  window.__pbAdm=()=>adminMode?1:0; window.__pbStaff=()=>!!(adminMode||reg.mods.includes(low(usr))); window.__pbHide=()=>myHide?1:0;
   function syncAdm(){ adminMode=keyAdmin||AUTO.includes(low(usr)); const b=$("admbtn"); if(b&&$("gate").style.display==="none") b.style.display=adminMode?"":"none"; if(window.__retag) window.__retag(); }
   const low=n=>String(n||"").trim().slice(0,12).toLowerCase();
   const amMod=()=>!adminMode&&reg.mods.includes(low(usr));        // approved by an admin as a moderator
@@ -3028,11 +3030,11 @@ label.plus.open{transform:rotate(45deg)}
   function commit(){ reg.v=Math.max(Date.now(),reg.v+1); saveReg(); if(isHost) send(areg()); refreshUI(); }
   function applyClear(){
     // main chat and image gallery are cleared separately; private chats are never touched
-    logs=logs.filter(l=>l.to||l.g||(l.ts||0)>(l.del?Math.min(reg.clr,reg.clg):l.ch==="gal"?reg.clg:reg.clr));
+    logs=logs.filter(l=>l.to||l.g||l.ch==="hos"||(l.ts||0)>(l.del?Math.min(reg.clr,reg.clg):l.ch==="gal"?reg.clg:reg.clr));
     persist(); rerender();
   }
   const _cleanEntry=cleanEntry;
-  cleanEntry=function(e){ const o=_cleanEntry(e); if(o&&!o.to&&!o.g&&(o.ts||0)<=(o.del?Math.min(reg.clr,reg.clg):o.ch==="gal"?reg.clg:reg.clr)) return null; return o; };
+  cleanEntry=function(e){ const o=_cleanEntry(e); if(o&&!o.to&&!o.g&&o.ch!=="hos"&&(o.ts||0)<=(o.del?Math.min(reg.clr,reg.clg):o.ch==="gal"?reg.clg:reg.clr)) return null; return o; };
   window.addEventListener("load",()=>{ if(reg.clr||reg.clg) applyClear(); refreshUI(); });
 
   /* =============== sending my login (hash + admin key) with every "P" message =============== */
@@ -3244,6 +3246,11 @@ label.plus.open{transform:rotate(45deg)}
     if(!d||typeof d!=="object"||!validId(d.i)) return;
     if(isHost){
       if(from.denied) return;
+      if(d.t==="Y"&&Array.isArray(d.e)&&from.ok2&&!from.admin){      // hall of shame: mods can post, only admins can edit or delete
+        const staff=reg.mods.includes(low(from.userName)); let bl=false;
+        d.e=d.e.filter(e=>{ if(!e) return true; const cur=logs.find(l=>l.i===e.i); if(cur&&cur.ch==="hos"){ bl=true; return false; } if(e.ch==="hos"&&!e.del&&!staff){ bl=true; return false; } return true; });
+        if(bl){ try{ from.send({t:"E",i:newId(),msg:"Hall of Shame: only admins and mods can write there, and only admins can edit or delete."}); }catch(e){} }
+      }
       if(d.t==="Y"&&Array.isArray(d.e)&&from.ok2&&!from.admin){      // only admins and mods may delete other people's public messages
         const isMod=reg.mods.includes(low(from.userName)); let blocked=false;
         d.e=d.e.filter(e=>{ if(!e||!e.del||e.to||e.g) return true; const cur=logs.find(l=>l.i===e.i); if(!cur||!cur.c||cur.c===from.uid||isMod) return true; blocked=true; return false; });
@@ -3826,7 +3833,7 @@ label.plus.open{transform:rotate(45deg)}
     let act=wrap.querySelector(":scope > .act");
     if(!act){ act=document.createElement("div"); act.className="act"; wrap.appendChild(act); }
     const mkb=(txt,title,fn)=>{ const b=document.createElement("button"); b.type="button"; b.className="adm"; b.title=title; b.setAttribute("aria-label",title); b.textContent=txt; b.style.fontSize="13px"; b.onclick=ev=>{ ev.stopPropagation(); fn(); }; return b; };
-    if(!w.dataset.dm) act.appendChild(mkb("🗑","Delete this message from "+name+" (admin)",()=>{ if(confirm("Delete this message from "+name+" for everyone?")) deleteMsg(w.id); }));
+    if(!w.dataset.dm&&(w.dataset.ch!=="hos"||adminMode)) act.appendChild(mkb("🗑","Delete this message from "+name+" (admin)",()=>{ if(confirm("Delete this message from "+name+" for everyone?")) deleteMsg(w.id); }));
     if(!u||!adminMode){ return; }
     act.appendChild(mkb("🦵","Kick "+name+" (they can rejoin)",()=>{ if(confirm("Kick "+name+"? They can rejoin.")) adminDo({a:"kick",u}); }));
     act.appendChild(mkb("🔇","Mute / unmute "+name,()=>adminDo({a:reg.mutes.includes(low(name))?"unmute":"mute",name})));
@@ -4751,6 +4758,42 @@ body.in-gal #men-sug{display:none !important}
     });
   }).observe($("box"),{childList:true,subtree:true});
   scan($("box"));
+})();
+</script>
+
+<style id="hos-css">
+body:not(.in-hos) .msg[data-ch="hos"]{display:none}
+body.in-hos .msg:not([data-ch="hos"]){display:none}
+body.in-hos .plus,body.in-hos #vbtn,body.in-hos #attach{display:none !important}
+#hosbar{display:none;padding:8px 20px;font-size:13px;font-weight:600;border-bottom:1px solid var(--line);background:var(--bar,var(--side));color:var(--bar-text,var(--text))}
+body.in-hos #hosbar{display:block}
+body.in-draw #hosbar{display:none !important}
+</style>
+<script id="hos-js">
+(function(){
+  const $$=id=>document.getElementById(id);
+  const row=document.createElement("div"); row.className="row-ch"; row.id="ch-hos";
+  row.innerHTML='<div class="av-sb" style="font-size:18px">🏛️</div><div><b style="font-size:15px">Hall of Shame</b><br><span class="csub">Staff post, everyone reads</span></div>';
+  ($$("ch-draw")||$$("ch-gal")).after(row); row.onclick=()=>setChannel("hos");
+  const tab=document.createElement("button"); tab.type="button"; tab.dataset.ch="hos"; tab.textContent="🏛️ Shame"; tab.onclick=()=>setChannel("hos");
+  $$("chtabs").appendChild(tab);
+  const bar=document.createElement("div"); bar.id="hosbar"; $$("box").before(bar);
+  const staff=()=>!!(window.__pbStaff&&window.__pbStaff()), adm=()=>!!(window.__pbAdm&&window.__pbAdm());
+  function sync(){
+    if(curCh!=="hos") return;
+    const ok=staff(), inp=$$("inp");
+    inp.disabled=!ok;
+    inp.placeholder=ok?"Write in the Hall of Shame":"🔒 Only admins and mods can write here";
+    bar.textContent=adm()?"🏛️ Hall of Shame · you can write, edit and delete here":ok?"🏛️ Hall of Shame · you can write here, but only admins can edit or delete":"🏛️ Hall of Shame · only admins and mods can write here";
+  }
+  const _sc=setChannel;
+  setChannel=function(c){
+    _sc(c);
+    document.body.classList.toggle("in-hos",c==="hos");
+    $$("ch-hos").classList.toggle("active",c==="hos");
+    if(c==="hos") sync(); else if(peer) $$("inp").disabled=false;
+  };
+  setInterval(sync,800);
 })();
 </script>
 </body>
