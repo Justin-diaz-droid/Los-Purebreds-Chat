@@ -235,7 +235,6 @@
   #typing .dots i:nth-child(2){animation-delay:.2s}
   #typing .dots i:nth-child(3){animation-delay:.4s}
   @keyframes tdot{0%,60%,100%{opacity:.25;transform:translateY(0)}30%{opacity:1;transform:translateY(-2px)}}
-  body.in-gal #typing{display:none}
   /* Channels: gallery posts only show in the gallery, chat posts only in chat */
   body:not(.in-gal) .msg[data-ch="gal"]{display:none}
   body.in-gal .msg:not([data-ch="gal"]){display:none}
@@ -1293,7 +1292,7 @@ function handle(d, from){
     if(changed.length){
       logs.sort((a, b) => (a.ts || 0) - (b.ts || 0)); persist();
       changed.forEach(applyToDom);
-      changed.forEach(o => { if(o.u) delete typers[o.u]; }); renderTyping();   // they sent their message, so stop "typing"
+      changed.forEach(o => { if(o.u){ delete typers[o.u]; delete typWhere[o.u]; } }); renderTyping();   // they sent their message, so stop "typing"
       if(isHost){
         const pub = changed.filter(o => !o.to && !o.g);
         if(pub.length) send({ t: "Y", i: newId(), e: pub }, from);
@@ -1304,8 +1303,21 @@ function handle(d, from){
     return;
   }
   if(d.t === "T"){
-    if(typeof d.u === "string"){ const n = d.u.slice(0, 12); if(d.s) delete typers[n]; else typers[n] = Date.now() + 5000; renderTyping(); }
-    if(isHost) send(d, from);
+    const ch = ["main", "shame", "dm", "grp"].includes(d.ch) ? d.ch : "main";
+    const ctx = { ch, c: okUid(d.c) ? d.c : "", to: okUid(d.to) ? d.to : "", g: okGid(d.g) ? d.g : "" };
+    if(isHost){
+      if(from && from.uid) ctx.c = from.uid;
+      if(ch === "dm" && !ctx.to) return;
+      if(ch === "grp"){ const gr = groups[ctx.g]; if(!gr || !from || !from.uid || !gr.m.includes(from.uid)) return; }   // only members can type to a group
+      d.ch = ch; d.c = ctx.c;
+    }
+    const forMe = ch === "dm" ? ctx.to === uid : ch === "grp" ? isMember(ctx.g) : true;
+    if(typeof d.u === "string" && forMe){
+      const n = d.u.slice(0, 12);
+      if(d.s){ delete typers[n]; delete typWhere[n]; } else { typers[n] = Date.now() + 5000; typWhere[n] = ctx; }
+      renderTyping();
+    }
+    if(isHost) routeTyping(d, from);     // DMs go only to the person, groups only to the members
     return;
   }
   if(d.t === "B"){ if(setBstyle(d.c, d.bc, d.bi, d.v) && isHost) send(d, from); return; }
@@ -1576,18 +1588,42 @@ $("inp").addEventListener("keydown", e => {
 $("inp").addEventListener("blur", () => setTimeout(hideSug, 120));
 
 /* ---------- typing indicator ---------- */
-const typers = {};
+const typers = {}, typWhere = {};
 let lastTyped = 0, lastTypeKey = "";
+function typeCtx(){ return curCh === "dm" && dmWith ? (dmWith[0] === "g" ? { ch: "grp", g: dmWith.slice(2) } : { ch: "dm", to: dmWith.slice(2) }) : { ch: curCh }; }
+function routeTyping(m, from){
+  if(!isHost){ send(m); return; }
+  if(m.ch === "dm") conns.forEach(x => { if(x !== from && x.open && x.uid === m.to) x.send(m); });
+  else if(m.ch === "grp"){ const gr = groups[m.g]; if(gr) conns.forEach(x => { if(x !== from && x.open && x.uid && gr.m.includes(x.uid)) x.send(m); }); }
+  else send(m, from);
+}
+function sendTyping(stop){
+  const c = typeCtx(), m = { t: "T", u: usr, c: uid, i: newId(), ch: c.ch };
+  if(c.to) m.to = c.to; if(c.g) m.g = c.g; if(stop) m.s = 1;
+  routeTyping(m, null);
+}
+const tabLabel = k => { const b = document.querySelector('#chtabs button[data-ch="' + k + '"]'); return b ? b.textContent.trim() : (k === "shame" ? "Hall of Shame" : "Chat"); };
 function renderTyping(){
   const now = Date.now();
   Object.keys(typers).forEach(k => { if(typers[k] < now) delete typers[k]; });
   const names = Object.keys(typers).filter(n => n !== usr), el = $("typing");
   const key = names.join("|"); if(key !== lastTypeKey){ lastTypeKey = key; renderPop(); }   // keep the Online lists in sync
   if(!names.length){ el.replaceChildren(); return; }
-  const txt = names.length === 1 ? names[0] + " is typing"
-    : names.length === 2 ? names[0] + " and " + names[1] + " are typing"
-    : names.length === 3 ? names[0] + ", " + names[1] + " and " + names[2] + " are typing"
+  const fmt = a => a.length === 1 ? a[0] + " is typing"
+    : a.length === 2 ? a[0] + " and " + a[1] + " are typing"
+    : a.length === 3 ? a[0] + ", " + a[1] + " and " + a[2] + " are typing"
     : "Several people are typing";
+  const here = [], other = {};          // typing in the room I'm looking at / typing somewhere else
+  names.forEach(n => {
+    const c = typWhere[n] || { ch: "main" };
+    const same = c.ch === "dm" ? (curCh === "dm" && dmWith === "d:" + c.c) : c.ch === "grp" ? (curCh === "dm" && dmWith === "g:" + c.g) : curCh === c.ch;
+    if(same) here.push(n);
+    else {
+      const where = c.ch === "dm" ? " to you (DM)" : c.ch === "grp" ? " in " + ((groups[c.g] || {}).n || "a group chat") : " in " + tabLabel(c.ch);
+      (other[where] = other[where] || []).push(n);
+    }
+  });
+  const txt = [here.length ? fmt(here) : "", ...Object.keys(other).map(w => fmt(other[w]) + w)].filter(Boolean).join(" · ");
   const s = document.createElement("span"); s.textContent = txt;
   const dots = document.createElement("span"); dots.className = "dots"; dots.innerHTML = "<i></i><i></i><i></i>";
   const avs = names.slice(0, 3).map(n => { const a = document.createElement("div"); a.className = "tav"; paintAv(a, n); return a; });
@@ -1595,10 +1631,10 @@ function renderTyping(){
 }
 setInterval(renderTyping, 1000);
 $("inp").addEventListener("input", () => {
-  if(curCh !== "main") return;
+  if(curCh === "gal" || curCh === "draw") return;
   if($("inp").value.trim()){
-    if(Date.now() - lastTyped > 2500){ lastTyped = Date.now(); send({ t: "T", u: usr, i: newId() }); }
-  } else if(lastTyped){ lastTyped = 0; send({ t: "T", u: usr, s: 1, i: newId() }); }
+    if(Date.now() - lastTyped > 2500){ lastTyped = Date.now(); sendTyping(false); }
+  } else if(lastTyped){ lastTyped = 0; sendTyping(true); }
 });
 
 /* ---------- sending ---------- */
@@ -2036,7 +2072,7 @@ function renderDMList(){
   list.sort((a, b) => b.ts - a.ts);
   let tot = 0; list.forEach(x => { if(!muted[x.k]) tot += x.un; });
   chipT = list.find(x => x.un && !muted[x.k]) || null;
-  document.title = (tot ? "(" + tot + ") " : "") + "Los-Purebreds-Chat";
+  document.title = (tot ? "(" + tot + ") " : "") + (window.__pbTitle || "Los-Purebreds-Chat");
   const chip = $("dmchip"); chip.style.display = tot ? "inline-block" : "none"; chip.textContent = "✉️ " + tot;
   const h = document.createElement("div"); h.className = "sbh";
   const ht = document.createElement("span"); ht.textContent = "Chats";
@@ -3013,7 +3049,7 @@ label.plus.open{transform:rotate(45deg)}
 
   /* =============== shared registry: protected names, bans, last chat-clear =============== */
   function cleanReg(r){
-    const o={acc:{},bans:[],mutes:[],mods:[],adms:[],hid:[],mto:false,cls:0,clr:0,clg:0,muteAll:false,v:0}; if(!r||typeof r!=="object") return o;
+    const o={acc:{},bans:[],mutes:[],mods:[],adms:[],hid:[],mto:false,tn:{},cls:0,clr:0,clg:0,muteAll:false,v:0}; if(!r||typeof r!=="object") return o;
     if(r.acc&&typeof r.acc==="object") Object.keys(r.acc).slice(0,500).forEach(k=>{ if(k&&k.length<=12&&k!=="__proto__"&&HEX.test(String(r.acc[k]))) o.acc[k]=r.acc[k]; });
     if(Array.isArray(r.bans)) o.bans=[...new Set(r.bans.map(x=>String(x).slice(0,12).toLowerCase()).filter(Boolean))].slice(0,500);
     if(Array.isArray(r.mutes)) o.mutes=[...new Set(r.mutes.map(x=>String(x).slice(0,12).toLowerCase()).filter(Boolean))].slice(0,500);
@@ -3021,11 +3057,12 @@ label.plus.open{transform:rotate(45deg)}
     if(Array.isArray(r.adms)) o.adms=[...new Set(r.adms.map(x=>String(x).slice(0,12).toLowerCase()).filter(Boolean))].slice(0,50);
     if(Array.isArray(r.hid)) o.hid=[...new Set(r.hid.map(x=>String(x).slice(0,12).toLowerCase()).filter(Boolean))].slice(0,100);
     o.mto=!!r.mto;
+    if(r.tn&&typeof r.tn==="object") ["app","main","gal","shame","draw"].forEach(k=>{ const x=r.tn[k]; if(x&&typeof x==="object"){ const n=String(x.n||"").trim().slice(0,24), i=String(x.i||"").trim().slice(0,8); if(n||i) o.tn[k]={n,i}; } });
     o.cls=+r.cls||0; o.clr=+r.clr||0; o.clg=+r.clg||0; o.muteAll=!!r.muteAll; o.v=+r.v||0; return o;
   }
   let reg=cleanReg((()=>{try{return JSON.parse(load("pb_reg","{}"));}catch(e){return {};}})());
   const saveReg=()=>save("pb_reg",JSON.stringify(reg));
-  const areg=()=>({t:"A",i:newId(),acc:reg.acc,bans:reg.bans,mutes:reg.mutes,mods:reg.mods,adms:adminNames(),hid:reg.hid,mto:reg.mto,cls:reg.cls,clr:reg.clr,clg:reg.clg,muteAll:reg.muteAll,v:reg.v});
+  const areg=()=>({t:"A",i:newId(),acc:reg.acc,bans:reg.bans,mutes:reg.mutes,mods:reg.mods,adms:adminNames(),hid:reg.hid,mto:reg.mto,tn:reg.tn,cls:reg.cls,clr:reg.clr,clg:reg.clg,muteAll:reg.muteAll,v:reg.v});
   function adminNames(){ const a=conns.filter(c=>c.ok2&&c.admin&&c.userName).map(c=>low(c.userName)); if(adminMode&&usr) a.push(low(usr)); return [...new Set(a)]; }
   reg.muteAll=false;
   let myPwH="", adminMode=false, pendW=null;
@@ -3168,6 +3205,10 @@ label.plus.open{transform:rotate(45deg)}
         const c=conn(m.u); if(!c) return say("They're not connected.");
         try{ c.send({t:"JS",i:newId()}); say("👻 Jumpscared "+(c.userName||"user")+"."); }catch(e){ say("Couldn't reach them."); }
       }
+    }
+    else if(m.a==="tabs"){
+      reg.tn=cleanReg({tn:m.tn}).tn; commit();
+      say(Object.keys(reg.tn).length?"🏷 Tab names and icons updated for everyone.":"🏷 Tab names and icons reset to default.");
     }
     else if(m.a==="troll") runTroll(m,f,true,say,f.conn?f.conn.userName:usr);
     else if(m.a==="modtroll"){
@@ -3447,6 +3488,7 @@ label.plus.open{transform:rotate(45deg)}
   function refreshUI(){
     const st=$("pwst"); if(st&&!pendW) st.textContent=own(reg.acc,low(usr))?"🔒 Your name “"+usr+"” is password-protected.":"No password yet — anyone could use the name “"+usr+"”.";
     renderAdminLists();
+    if(window.__pbTabs) window.__pbTabs();
   }
   new MutationObserver(refreshUI).observe($("stg"),{attributes:true,attributeFilter:["class"]});
   function sendW(m){
@@ -3532,7 +3574,7 @@ label.plus.open{transform:rotate(45deg)}
   const ab=document.createElement("button"); ab.id="admbtn"; ab.className="stg-btn"; ab.type="button"; ab.textContent="🛡 Admin panel"; ab.style.display="none";
   document.querySelector(".stg-sb").insertBefore(ab,$("stg-toggle"));
   const am=document.createElement("div"); am.id="amod";
-  am.innerHTML='<div class="acard"><div class="ah"><b>🛡 Admin panel</b><button type="button" id="amx" title="Close">✕</button></div><div id="amsg"></div><div id="amb"><div><h4>Public announcement</h4><div class="aform"><textarea id="amant" rows="2" maxlength="300" placeholder="Message to show everyone…"></textarea><button class="abtn" type="button" id="amanb">📢 Announce</button></div></div><div><h4>Quick actions</h4><button class="abtn scare" type="button" id="amscall">👻 Jumpscare everyone</button> <button class="abtn" type="button" id="amscpv">Preview</button> <button class="abtn red" type="button" id="ammall">🔇 Mute everyone (except admins)</button></div><div><h4>Chat log → Google Doc</h4><div class="aform"><input id="amlgu" type="text" placeholder="Paste your Apps Script web app URL (ends in /exec)" autocomplete="off"><button class="abtn" type="button" id="amlgsv">Save</button></div><div class="aform" style="margin-top:6px"><button class="abtn" type="button" id="amlgt">Send test line</button><button class="abtn" type="button" id="amlgo">⏸ Pause logging</button></div><div class="none" id="amlgst"></div></div><div><h4>Moderators</h4><div class="aform"><input id="ammodn" type="text" maxlength="12" placeholder="Name to make a mod" autocomplete="off"><button class="abtn" type="button" id="ammodb">➕ Add mod</button></div><div class="none">Mods can delete other people’s messages and make announcements. Names are protected by their owner’s password (🔒), so only that person can be the mod.</div><div id="ammods" style="margin-top:6px"></div></div><div><h4>😈 Trolls</h4><div id=\"amtr\"></div></div><div><h4>Online now</h4><div id="amon"></div></div><div><h4>Muted names</h4><div id="ammu"></div></div><div><h4>Banned names</h4><div id="ambn"></div><div class="aform" style="margin-top:6px"><input id="amban" type="text" maxlength="12" placeholder="Name to ban"><button class="abtn red" type="button" id="ambanb">Ban name</button></div></div><div><h4>Set or reset a password for any name</h4><div class="aform"><input id="ampn" type="text" maxlength="12" placeholder="Name"><input id="ampp" type="text" placeholder="New password (min 4 characters)" autocomplete="off"><button class="abtn" type="button" id="ampb">Apply</button></div></div><div><h4>Clear a channel for everyone</h4><div class="aform"><select id="amch"><option value="main">💬 Main chat</option><option value="gal">🖼️ Image gallery</option><option value="shame">🚨 Hall of Shame</option><option value="draw">🎨 Drawing board</option></select><button class="abtn red" type="button" id="amclr">🗑 Clear this channel</button></div><div class="none">Only the selected channel is cleared. Private chats are never touched.</div></div></div></div>';
+  am.innerHTML='<div class="acard"><div class="ah"><b>🛡 Admin panel</b><button type="button" id="amx" title="Close">✕</button></div><div id="amsg"></div><div id="amb"><div><h4>Public announcement</h4><div class="aform"><textarea id="amant" rows="2" maxlength="300" placeholder="Message to show everyone…"></textarea><button class="abtn" type="button" id="amanb">📢 Announce</button></div></div><div><h4>Quick actions</h4><button class="abtn scare" type="button" id="amscall">👻 Jumpscare everyone</button> <button class="abtn" type="button" id="amscpv">Preview</button> <button class="abtn red" type="button" id="ammall">🔇 Mute everyone (except admins)</button></div><div><h4>Chat log → Google Doc</h4><div class="aform"><input id="amlgu" type="text" placeholder="Paste your Apps Script web app URL (ends in /exec)" autocomplete="off"><button class="abtn" type="button" id="amlgsv">Save</button></div><div class="aform" style="margin-top:6px"><button class="abtn" type="button" id="amlgt">Send test line</button><button class="abtn" type="button" id="amlgo">⏸ Pause logging</button></div><div class="none" id="amlgst"></div></div><div><h4>Moderators</h4><div class="aform"><input id="ammodn" type="text" maxlength="12" placeholder="Name to make a mod" autocomplete="off"><button class="abtn" type="button" id="ammodb">➕ Add mod</button></div><div class="none">Mods can delete other people’s messages and make announcements. Names are protected by their owner’s password (🔒), so only that person can be the mod.</div><div id="ammods" style="margin-top:6px"></div></div><div><h4>🏷 Tab names &amp; icons</h4><div id=\"amtn\"></div></div><div><h4>😈 Trolls</h4><div id=\"amtr\"></div></div><div><h4>Online now</h4><div id="amon"></div></div><div><h4>Muted names</h4><div id="ammu"></div></div><div><h4>Banned names</h4><div id="ambn"></div><div class="aform" style="margin-top:6px"><input id="amban" type="text" maxlength="12" placeholder="Name to ban"><button class="abtn red" type="button" id="ambanb">Ban name</button></div></div><div><h4>Set or reset a password for any name</h4><div class="aform"><input id="ampn" type="text" maxlength="12" placeholder="Name"><input id="ampp" type="text" placeholder="New password (min 4 characters)" autocomplete="off"><button class="abtn" type="button" id="ampb">Apply</button></div></div><div><h4>Clear a channel for everyone</h4><div class="aform"><select id="amch"><option value="main">💬 Main chat</option><option value="gal">🖼️ Image gallery</option><option value="shame">🚨 Hall of Shame</option><option value="draw">🎨 Drawing board</option></select><button class="abtn red" type="button" id="amclr">🗑 Clear this channel</button></div><div class="none">Only the selected channel is cleared. Private chats are never touched.</div></div></div></div>';
   document.body.appendChild(am);
   function note(t){ const e=$("amsg"); if(e) e.textContent=t; const m=$("mmsg"); if(m) m.textContent=t; }
   function adminDo(m){
@@ -3746,6 +3788,56 @@ label.plus.open{transform:rotate(45deg)}
       return _pm.apply(this,arguments);
     };
     setInterval(updShame,800);
+  })();
+
+  /* =============== 🏷 admin-editable tab names + icons (synced to everyone) =============== */
+  (function(){
+    const TD={app:{i:"",n:"Los Purebreds"},main:{i:"💬",n:"Chat"},gal:{i:"🖼️",n:"Image Gallery"},shame:{i:"🚨",n:"Hall of Shame"},draw:{i:"🎨",n:"Draw"}};
+    const LBL={app:"App name",main:"Chat tab",gal:"Gallery",shame:"Hall of Shame",draw:"Drawing board"};
+    const set=(el,t)=>{ if(el&&el.textContent!==t) el.textContent=t; };
+    window.__pbTabs=function(){
+      const tn=reg.tn||{};
+      ["main","gal","shame","draw"].forEach(k=>{
+        const o=tn[k]||{}, d=TD[k], n=o.n||d.n, i=o.i||d.i;
+        set(document.querySelector('#chtabs button[data-ch="'+k+'"]'),i+" "+n);
+        if(k==="main") return;
+        const row=$("ch-"+k); if(!row) return;
+        set(row.querySelector("b"),o.n||(k==="draw"?"Drawing Board":d.n)); set(row.querySelector(".av-sb"),i);
+      });
+      const an=(tn.app&&tn.app.n)||TD.app.n;
+      set(document.querySelector("#gate h1"),an); set(document.querySelector("#ch-main b"),an);
+      window.__pbTitle=(tn.app&&tn.app.n)||null;
+    };
+    setInterval(window.__pbTabs,1500); window.__pbTabs();
+
+    const host=$("amtn"), inp={};
+    Object.keys(TD).forEach(k=>{
+      const r=document.createElement("div"); r.className="aform"; r.style.marginBottom="6px";
+      const l=document.createElement("span"); l.className="none"; l.style.cssText="width:96px;align-self:center"; l.textContent=LBL[k];
+      r.appendChild(l); inp[k]={};
+      if(k!=="app"){ const i=document.createElement("input"); i.type="text"; i.maxLength=8; i.placeholder="icon"; i.style.cssText="flex:none;min-width:0;width:60px;text-align:center"; r.appendChild(i); inp[k].i=i; }
+      const n=document.createElement("input"); n.type="text"; n.maxLength=24; n.placeholder="name"; r.appendChild(n); inp[k].n=n;
+      host.appendChild(r);
+    });
+    const btns=document.createElement("div"); btns.className="aform";
+    const sv=document.createElement("button"); sv.type="button"; sv.className="abtn"; sv.textContent="💾 Save for everyone";
+    const rs=document.createElement("button"); rs.type="button"; rs.className="abtn red"; rs.textContent="Reset to default";
+    btns.append(sv,rs); host.appendChild(btns);
+    function fill(){
+      Object.keys(TD).forEach(k=>{ const o=(reg.tn||{})[k]||{}; inp[k].n.value=o.n||TD[k].n; if(inp[k].i) inp[k].i.value=o.i||TD[k].i; });
+    }
+    sv.onclick=()=>{
+      const tn={};
+      Object.keys(TD).forEach(k=>{
+        const n=inp[k].n.value.trim(), i=inp[k].i?inp[k].i.value.trim():"";
+        const nn=n===TD[k].n?"":n, ii=i===TD[k].i?"":i;
+        if(nn||ii) tn[k]={n:nn,i:ii};
+      });
+      adminDo({a:"tabs",tn});
+    };
+    rs.onclick=()=>{ adminDo({a:"tabs",tn:{}}); setTimeout(fill,400); };
+    fill();
+    new MutationObserver(()=>{ if($("amod").classList.contains("open")) fill(); }).observe($("amod"),{attributes:true,attributeFilter:["class"]});
   })();
 
   /* =============== 😈 troll buttons (admin panel + mod panel) =============== */
