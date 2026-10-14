@@ -85,6 +85,13 @@
   body[data-theme="twitter"] .av-sb{background:#1d9bf0}
   /* Google Docs-style light emoji picker */
   #emo-btn{font-size:22px;cursor:pointer;user-select:none}
+  #sp-btn{font-size:20px;cursor:pointer;user-select:none;opacity:.45;filter:grayscale(1);transition:opacity .15s,filter .15s}
+  #sp-btn.on{opacity:1;filter:none;text-shadow:0 0 0 #fff;background:var(--row);border-radius:50%;padding:2px 4px}
+  .spbox{position:relative;display:inline-block;max-width:100%;cursor:pointer;border-radius:inherit}
+  .spbox>.bubble,.spbox>.img{filter:blur(9px);pointer-events:none;user-select:none;-webkit-user-select:none}
+  .spbox>.img{min-width:60px;min-height:40px}
+  .sptag{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;letter-spacing:1px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.7);pointer-events:none}
+
   #emo-panel{display:none;flex-direction:column;position:absolute;bottom:62px;left:20px;width:min(352px,92vw);height:380px;background:#fff;color:#202124;border:1px solid #dadce0;border-radius:8px;box-shadow:0 1px 3px rgba(60,64,67,.3),0 4px 8px 3px rgba(60,64,67,.15);z-index:6;overflow:hidden;font-family:"Google Sans",Roboto,Arial,sans-serif}
   #emo-q{margin:10px 10px 6px;padding:8px 14px;border:1px solid #dadce0;border-radius:20px;font-size:13px;color:#202124;background:#f1f3f4;outline:none;width:auto}
   #emo-q:focus{background:#fff;border-color:#1a73e8}
@@ -600,7 +607,7 @@
     <button id="g-go">Join chat</button>
     <a class="goback" href="https://docs.google.com/document/d/1oa90mU-jYczqySulirTvHqqNWTSaNwPGnnArgBdVGrs/edit?tab=t.pqncc0vmsgzp" rel="noopener">← Go back</a>
   </div>
-  <div id="gver">Version 0.2.1</div>
+  <div id="gver">Version 0.2.6</div>
 </div>
 
 <div id="sb">
@@ -617,6 +624,7 @@
     <div id="youare"></div>
     <button class="stg-btn" id="opts-btn" type="button" aria-expanded="false">☰ Options ▾</button>
     <button class="stg-btn" id="stg-toggle">⚙️ Settings</button>
+    <button class="stg-btn" id="cl-open" type="button">📝 What's new</button>
 
   </div>
 </div>
@@ -644,6 +652,7 @@
         <label>Message font (everyone sees it)</label><select id="font"></select>
         <label>My bubble color (everyone sees it)</label>
         <div class="stg-row"><input type="color" id="bcol" value="#0a84ff" style="flex:1;min-width:90px"><button id="bcolrm" type="button" class="btn alt">Use theme color</button></div>
+        <label class="chk"><input type="checkbox" id="spchk">Send my messages &amp; photos as spoilers (blurred until clicked)</label>
         <label>My bubble image (overrides color)</label>
         <div class="stg-row"><button id="bimgbtn" type="button" class="btn">Choose image</button><button id="bimgrm" type="button" class="btn alt">Remove</button><input type="file" id="bimgfile" accept="image/*" style="display:none"></div>
       </div>
@@ -654,6 +663,8 @@
         <label>Wallpaper image (syncs to your other devices)</label>
         <div class="stg-row"><button id="wimg" type="button" class="btn">Choose image</button><button id="wreset" type="button" class="btn alt">Reset wallpaper</button><input type="file" id="wfile" accept="image/*" style="display:none"></div>
         <label>Image dimming</label><input type="range" id="wdim" min="0" max="80" value="30">
+        <label>Text color (on this device)</label>
+        <div class="stg-row"><input type="color" id="tcol" value="#ffffff" style="flex:1;min-width:90px"><button id="tcolrm" type="button" class="btn alt">Use theme color</button></div>
       </div>
       <div class="stg-card"><h3>🧩 Layout</h3>
         <label class="chk"><input type="checkbox" id="hh">Hide top bar</label>
@@ -681,7 +692,7 @@
   <div id="tray">
     <label for="fi" class="plus">+</label>
     <input type="file" id="fi" accept="image/*" style="display:none" disabled>
-    <span id="emo-btn" title="Emoji">😊</span>
+    <span id="emo-btn" title="Emoji">😊</span><span id="sp-btn" title="Send as spoiler (blurred until clicked)">🙈</span>
     <div id="emo-panel"></div>
     <div id="emo-sug"></div>
     <div class="pill"><input type="text" id="inp" placeholder="Message" disabled><button id="sendbtn" type="button" title="Send" aria-label="Send"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>
@@ -826,12 +837,19 @@ function setCx(st, hex, dim){
   if(lum > 0.5){ st.setProperty("--cx-text", "#111"); st.setProperty("--cx-muted", "#3a3a40"); }
   else { st.setProperty("--cx-text", "#fff"); st.setProperty("--cx-muted", "rgba(255,255,255,.78)"); }
 }
+const TC_VARS = ["--text", "--cx-text", "--cx-muted"];
+function okTc(c){ return /^#[0-9a-f]{6}$/i.test(c || "") ? c : ""; }
+function applyTc(st, tc){            // custom text color: overrides the theme's text + the text drawn over the wallpaper
+  tc = okTc(tc); if(!tc) return;
+  st.setProperty("--text", tc); st.setProperty("--cx-text", tc);
+  st.setProperty("--cx-muted", "color-mix(in srgb," + tc + " 78%,transparent)");
+}
 function applyWall(){
   const box = $("box"), k = load("wall_kind", "none"), dim = (+load("wall_dim", "30")) / 100;
   box.style.backgroundImage = ""; box.style.backgroundColor = "";
   $("wdim").value = load("wall_dim", "30"); $("wcol").value = load("wall_color", "#000000");
   const st = document.body.style;
-  ["--accent", "--me", "--on-accent", "--bar", "--bar-text", "--cx-text", "--cx-muted"].forEach(v => st.removeProperty(v));
+  ["--accent", "--me", "--on-accent", "--bar", "--bar-text", "--cx-text", "--cx-muted", "--text"].forEach(v => st.removeProperty(v));
   if(k === "color"){
     setCx(st, load("wall_color", "#000000"), 0);
     const c = load("wall_color", "#000000");
@@ -856,6 +874,7 @@ function applyWall(){
       } else dominantColor(img, c => { if(c){ save("wall_img_col", c); applyWall(); } });   // older saved wallpapers
     }
   }
+  applyTc(st, load("chat_tc", ""));
 }
 
 /* ---------- hide / show bars ---------- */
@@ -1004,13 +1023,13 @@ function updateYou(){ $("youare").textContent = "Signed in as " + usr; }
 /* ---------- settings screen (fullscreen, live preview) ---------- */
 function currentSettings(){
   return { name: usr, avatar: myAvatar, font: myFont, bc: myBc, bi: myBi, theme: document.body.dataset.theme,
-    wallKind: load("wall_kind", "none"), wallColor: load("wall_color", "#000000"), wallImg: load("wall_img", ""), wallImgCol: load("wall_img_col", ""), wallDim: +load("wall_dim", "30"),
+    wallKind: load("wall_kind", "none"), wallColor: load("wall_color", "#000000"), wallImg: load("wall_img", ""), wallImgCol: load("wall_img_col", ""), wallDim: +load("wall_dim", "30"), tc: okTc(load("chat_tc", "")),
     hideHdr: load("hide_hdr", "0") === "1", hideSb: load("hide_sb", "0") === "1" };
 }
 function fillControls(){
   const d = draft;
   $("hi").value = d.name; $("font").value = d.font; $("bcol").value = d.bc || "#0a84ff"; $("theme").value = d.theme;
-  $("wcol").value = d.wallColor; $("wdim").value = d.wallDim; $("hh").checked = d.hideHdr; $("hs").checked = d.hideSb; paintPfp();
+  $("wcol").value = d.wallColor; $("tcol").value = d.tc || getComputedStyle(document.body).getPropertyValue("--text").trim().replace(/^#([0-9a-f])([0-9a-f])([0-9a-f])$/i,"#$1$1$2$2$3$3") || "#ffffff"; $("wdim").value = d.wallDim; $("hh").checked = d.hideHdr; $("hs").checked = d.hideSb; paintPfp();
 }
 function paintPfp(){
   const pv = $("pfpprev"); if(!pv) return;
@@ -1049,6 +1068,8 @@ $("bcolrm").onclick = upd(() => { draft.bc = ""; $("bcol").value = "#0a84ff"; })
 $("bimgrm").onclick = upd(() => { draft.bi = ""; });
 $("pfprm").onclick = upd(() => { draft.avatar = ""; paintPfp(); });
 $("wcol").addEventListener("input", upd(e => { draft.wallKind = "color"; draft.wallColor = e.target.value; }));
+$("tcol").addEventListener("input", upd(e => { draft.tc = okTc(e.target.value); }));
+$("tcolrm").onclick = upd(() => { draft.tc = ""; });
 $("wdim").addEventListener("input", upd(e => { draft.wallDim = +e.target.value; }));
 $("wreset").onclick = upd(() => { draft.wallKind = "none"; draft.wallImg = ""; });
 $("hh").addEventListener("change", upd(e => { draft.hideHdr = e.target.checked; }));
@@ -1115,7 +1136,7 @@ $("wfile").onchange = e => {
 };
 const wallPickStatic = e => readImage(e, 1280, 0.8, u => { draft.wallImg = u; draft.wallKind = "image"; draft.wallImgCol = ""; renderPreview(); dominantColor(u, c => { if(draft && draft.wallImg === u){ draft.wallImgCol = c; renderPreview(); } }); });
 
-$("save").onclick = () => {
+const doSaveSettings = () => {
   if(!draft) return;
   const d = draft, old = usr, oldAv = myAvatar;
   if(d.wallKind === "image" && d.wallImg){
@@ -1123,7 +1144,7 @@ $("save").onclick = () => {
     catch(err){ $("stgerr").textContent = "That wallpaper is too big to save — pick a smaller image."; return; }
   } else { try { localStorage.removeItem("wall_img"); } catch(err){} }
   save("wall_img_col", d.wallKind === "image" ? (d.wallImgCol || "") : ""); save("wall_kind", d.wallKind); save("wall_color", d.wallColor); save("wall_dim", String(d.wallDim));
-  save("hide_hdr", d.hideHdr ? "1" : "0"); save("hide_sb", d.hideSb ? "1" : "0");
+  save("chat_tc", d.tc || ""); save("hide_hdr", d.hideHdr ? "1" : "0"); save("hide_sb", d.hideSb ? "1" : "0");
   myFont = okFont(d.font); save("chat_font", myFont); $("inp").style.fontFamily = FONT_MAP[myFont] || "";
   usr = (d.name.trim() || usr).slice(0, 12); save("chat_usr", usr); updateYou();
   myAvatar = okAv(d.avatar); save("chat_pfp", myAvatar);
@@ -1136,6 +1157,15 @@ $("save").onclick = () => {
   else sys("Settings saved.");
   if(usr !== old || myAvatar !== oldAv) announce();
   setStg(false);
+};
+$("save").onclick = () => {
+  if(!draft || $("applying").classList.contains("on")) return;
+  const ov = $("applying"); ov.classList.add("on");
+  // let the overlay paint first, then do the heavy work
+  requestAnimationFrame(() => setTimeout(() => {
+    try { doSaveSettings(); } catch(err){ console.error(err); }
+    setTimeout(() => ov.classList.remove("on"), 250);
+  }, 30));
 };
 
 /* ---- live preview: a sandboxed copy of the real UI that follows the draft ---- */
@@ -1177,7 +1207,7 @@ function drawPreview(){
   // wallpaper + accent (same rules as the real app)
   const box = doc.getElementById("box");
   box.style.backgroundImage = ""; box.style.backgroundColor = "";
-  ["--accent", "--me", "--on-accent", "--bar", "--bar-text", "--cx-text", "--cx-muted"].forEach(v => body.style.removeProperty(v));
+  ["--accent", "--me", "--on-accent", "--bar", "--bar-text", "--cx-text", "--cx-muted", "--text"].forEach(v => body.style.removeProperty(v));
   if(d.wallKind === "color"){
     setCx(body.style, d.wallColor, 0);
     box.style.backgroundColor = d.wallColor; const a = accentFrom(d.wallColor);
@@ -1196,6 +1226,7 @@ function drawPreview(){
     box.style.backgroundImage = "linear-gradient(rgba(0,0,0," + dim + "),rgba(0,0,0," + dim + ")),url(\"" + d.wallImg + "\")";
     box.style.backgroundSize = "cover"; box.style.backgroundPosition = "center";
   }
+  applyTc(body.style, d.tc);
   // who's online
   const on = doc.getElementById("online"); on.replaceChildren();
   [[myName, d.avatar], ["Sam", ""]].forEach(([n, a]) => { const o = E("div", "oav"); o.dataset.dev = "💻"; paintTo(o, n, a); on.appendChild(o); });
@@ -1433,6 +1464,7 @@ function cleanEntry(e){
   } else if(e.ch === "gal" && o.img) o.ch = "gal";   // gallery only accepts images
   else if(e.ch === "shame" && !o.aud) o.ch = "shame";   // hall of shame: text or photos
   if(e.edited) o.edited = true;
+  if(e.sp && (o.img || !(o.aud || o.fl || o.poll))) o.sp = 1;     // spoiler: blurred until clicked
   if(e.r && typeof e.r === "object" && validId(e.r.i)){      // reply: id + name + short preview of the original
     o.r = { i: e.r.i, u: String(e.r.u || "").slice(0, 12), t: String(e.r.t || "").slice(0, 80), m: e.r.m ? 1 : 0 };
   }
@@ -1741,6 +1773,23 @@ $("ch-gal").onclick = () => setChannel("gal");
 $("ch-shame").onclick = () => setChannel("shame");
 document.querySelectorAll("#chtabs button").forEach(b => b.onclick = () => setChannel(b.dataset.ch));
 
+/* ---------- spoilers: the sender can blur their message / photo until someone clicks it ---------- */
+let mySpoiler = load("chat_sp", "0") === "1";
+function setSpoiler(on){
+  mySpoiler = !!on; save("chat_sp", on ? "1" : "0");
+  const b = document.getElementById("sp-btn"); if(b){ b.classList.toggle("on", mySpoiler); b.title = mySpoiler ? "Spoiler ON: your messages will be blurred" : "Send as spoiler (blurred until clicked)"; }
+  const c = document.getElementById("spchk"); if(c) c.checked = mySpoiler;
+}
+function wrapSpoiler(wrap){
+  const el = wrap.querySelector(":scope > .bubble, :scope > .img"); if(!el) return;
+  const box = document.createElement("div"); box.className = "spbox";
+  const tag = document.createElement("div"); tag.className = "sptag"; tag.textContent = "SPOILER";
+  wrap.insertBefore(box, el); box.append(el, tag);
+  box.addEventListener("click", ev => {            // capture: reveal first, don't open the photo viewer
+    ev.stopPropagation(); ev.preventDefault();
+    box.parentNode.insertBefore(el, box); box.remove();
+  }, true);
+}
 function postMsg(b, img, aud, extra){
   const now = Date.now(), o = { i: newId(), u: usr, c: uid, b, ts: now, v: now, d: myDevice };
   if(img){ o.img = 1; if(curCh === "gal") o.ch = "gal"; } else if(aud){ o.aud = 1; } else o.f = myFont;
@@ -1750,6 +1799,7 @@ function postMsg(b, img, aud, extra){
     if(extra.fl){ o.fl = 1; o.fn = cleanFn(extra.fn); o.fz = extra.fz || 0; delete o.f; }
     if(extra.poll){ o.poll = cleanPoll(extra.poll); if(!o.poll) return; delete o.f; }
   }
+  if(mySpoiler && !aud && !(extra && (extra.fl || extra.poll))) o.sp = 1;
   if(curCh === "shame" && !aud) o.ch = "shame";
   if(curCh === "dm" && dmWith){
     if(dmWith[0] === "g"){ o.g = dmWith.slice(2); o.ch = "grp"; } else { o.to = dmWith.slice(2); o.tn = dmNm; o.ch = "dm"; }
@@ -1758,6 +1808,9 @@ function postMsg(b, img, aud, extra){
   logs.push(o); persist(); renderRow(o, true);
   sendEntry(o); renderDMList();
 }
+setSpoiler(mySpoiler);
+document.getElementById("sp-btn").onclick = () => setSpoiler(!mySpoiler);
+document.getElementById("spchk").addEventListener("change", e => setSpoiler(e.target.checked));
 function updateSendBtn(){ document.querySelector(".pill").classList.toggle("has-text", !!$("inp").value.trim()); }
 function sendText(){
   if(curCh === "gal") return;   // gallery is photos only
@@ -1802,7 +1855,7 @@ function startReply(id){
   if(curCh === "gal") return;
   const l = logs.find(x => x.i === id);
   if(!l || l.del) return;
-  replyTo = { i: l.i, u: l.u, t: l.img ? "📷 Photo" : l.fl ? "📎 " + l.fn : l.poll ? "📊 " + l.poll.q.slice(0, 60) : l.aud ? "🎤 Voice message" : String(l.b).slice(0, 80), m: (l.img || l.aud || l.fl || l.poll) ? 1 : 0 };
+  replyTo = { i: l.i, u: l.u, t: l.sp ? "🙈 Spoiler" : l.img ? "📷 Photo" : l.fl ? "📎 " + l.fn : l.poll ? "📊 " + l.poll.q.slice(0, 60) : l.aud ? "🎤 Voice message" : String(l.b).slice(0, 80), m: (l.img || l.aud || l.fl || l.poll) ? 1 : 0 };
   showReply();
   const w = $(id); if(w) w.classList.remove("tap");
   $("inp").focus();
@@ -1978,6 +2031,8 @@ function renderRow(m, animate){
     if(m.edited) setEditedTag(wrap, true);
   }
 
+  if(m.sp && (m.img || wrap.querySelector(":scope > .bubble"))) wrapSpoiler(wrap);
+
   const act = document.createElement("div"); act.className = "act";
   if(m.ch !== "gal") act.appendChild(iconBtn("rep", "Reply", ICON_REPLY, () => startReply(m.i)));
   if(!m.poll) act.appendChild(iconBtn("rct", "React with any emoji", ICON_REACT, () => startReact(m.i)));
@@ -2146,7 +2201,7 @@ function renderDMList(){
     const x = map[k] || (map[k] = { k, n: "", ts: 0, last: "", un: 0 });
     if((l.ts || 0) >= x.ts){
       x.ts = l.ts || 0;
-      x.last = (l.g ? (l.c === uid ? "You" : l.u) + ": " : "") + (l.img ? "📷 Photo" : l.fl ? "📎 " + l.fn : l.poll ? "📊 Poll" : l.aud ? "🎤 Voice message" : String(l.b));
+      x.last = (l.g ? (l.c === uid ? "You" : l.u) + ": " : "") + (l.sp ? "🙈 Spoiler" : l.img ? "📷 Photo" : l.fl ? "📎 " + l.fn : l.poll ? "📊 Poll" : l.aud ? "🎤 Voice message" : String(l.b));
       if(!l.g) x.n = (l.c === uid ? l.tn : l.u) || x.n;
     }
     if(l.c !== uid && (l.ts || 0) > (seen[k] || 0)) x.un++;
@@ -6223,5 +6278,99 @@ body[data-theme="pornhub"] .stg-btn{color:#ff9000}
 body[data-theme="pornhub"] .stg-card,body[data-theme="pornhub"] #gate .card{border-radius:10px}
 body[data-theme="pornhub"] #gate .logo{background:#ff9000;color:#000}
 </style>
+<style id="applying-css">
+#applying{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(0,0,0,.55);color:#fff;font:600 16px system-ui,sans-serif;opacity:0;pointer-events:none;transition:opacity .15s}
+#applying.on{opacity:1;pointer-events:auto}
+#applying .sp{width:38px;height:38px;border:4px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:applyspin .8s linear infinite}
+@keyframes applyspin{to{transform:rotate(360deg)}}
+</style>
+<div id="applying" role="status" aria-live="polite"><div class="sp"></div><div>Applying changes…</div></div>
+<style id="cl-css">
+#clog{position:fixed;inset:0;z-index:99998;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.55)}
+#clog.on{display:flex}
+#clog .cl-box{width:min(520px,100%);max-height:85vh;display:flex;flex-direction:column;border-radius:18px;background:var(--bg,#fff);color:var(--fg,#111);box-shadow:0 20px 60px rgba(0,0,0,.4);overflow:hidden;font-family:system-ui,-apple-system,sans-serif}
+@media (prefers-color-scheme:dark){#clog .cl-box{background:#1c1c1e;color:#f2f2f7}}
+#clog .cl-top{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid rgba(128,128,128,.25)}
+#clog .cl-top h2{margin:0;font-size:18px;flex:1}
+#clog .cl-ver{font-size:12px;opacity:.6;font-weight:600}
+#clog .cl-x{border:none;background:none;color:inherit;font-size:20px;cursor:pointer;opacity:.7}
+#clog .cl-list{overflow:auto;padding:6px 16px 16px}
+#clog .cl-day{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;opacity:.55;margin:14px 0 6px}
+#clog .cl-item{padding:8px 0;border-bottom:1px solid rgba(128,128,128,.15)}
+#clog .cl-item.new .cl-t::after{content:"NEW";margin-left:8px;font-size:10px;font-weight:800;background:#0a84ff;color:#fff;border-radius:999px;padding:2px 7px;vertical-align:middle}
+#clog .cl-t{font-weight:650;font-size:14px;line-height:1.35}
+#clog .cl-b{font-size:13px;opacity:.75;margin-top:3px;white-space:pre-wrap}
+#clog .cl-m{font-size:11px;opacity:.5;margin-top:3px}
+#clog .cl-m a{color:inherit}
+#clog .cl-msg{padding:28px 8px;text-align:center;opacity:.7;font-size:14px;line-height:1.5}
+</style>
+<div id="clog" role="dialog" aria-label="Changelog"><div class="cl-box">
+  <div class="cl-top"><h2>📝 What's new</h2><span class="cl-ver" id="cl-ver"></span><button class="cl-x" id="cl-x" type="button" title="Close">✕</button></div>
+  <div class="cl-list" id="cl-list"></div>
+</div></div>
+<script id="cl-js">
+(function(){
+  /* ===== CHANGELOG — pulled live from your GitHub commits =====
+     Set GH_REPO to "owner/repo" (e.g. "irma/purebred"). Add GH_BRANCH if not the default branch.
+     Private repo? Add a read-only token in GH_TOKEN (note: it will be visible in the page source). */
+  const GH_REPO = "OWNER/REPO", GH_BRANCH = "", GH_TOKEN = "", MAX = 40;
+
+  const $c = id => document.getElementById(id);
+  const ls = { get:k=>{ try{ return localStorage.getItem(k); }catch(e){ return null; } }, set:(k,v)=>{ try{ localStorage.setItem(k,v); }catch(e){} } };
+  const repo = ls.get("cl_repo") || GH_REPO;
+  const esc = t => String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  let cache = null;
+
+  async function load(){
+    if(cache) return cache;
+    if(!/^[\w.-]+\/[\w.-]+$/.test(repo) || repo === "OWNER/REPO") throw new Error("setup");
+    const u = "https://api.github.com/repos/" + repo + "/commits?per_page=" + MAX + (GH_BRANCH ? "&sha=" + encodeURIComponent(GH_BRANCH) : "");
+    const h = { Accept:"application/vnd.github+json" }; if(GH_TOKEN) h.Authorization = "Bearer " + GH_TOKEN;
+    const r = await fetch(u, { headers:h });
+    if(!r.ok) throw new Error(r.status === 403 ? "rate" : r.status === 404 ? "404" : "http");
+    cache = (await r.json()).filter(c => c && c.commit && !/^Merge /.test(c.commit.message));
+    return cache;
+  }
+  function render(list, seenSha){
+    let out = "", day = "", hitSeen = !seenSha;
+    for(const c of list){
+      const m = c.commit.message.split("\n"), title = m[0], body = m.slice(1).join("\n").trim().replace(/^Co-Authored-By:.*$/gmi,"").replace(/^Claude-Session:.*$/gmi,"").trim();
+      const d = new Date(c.commit.author.date), dk = d.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric",year:"numeric"});
+      if(dk !== day){ day = dk; out += '<div class="cl-day">' + esc(dk) + '</div>'; }
+      const isNew = seenSha && !hitSeen && c.sha !== seenSha;
+      if(c.sha === seenSha) hitSeen = true;
+      out += '<div class="cl-item' + (isNew ? " new" : "") + '"><div class="cl-t">' + esc(title) + '</div>' + (body ? '<div class="cl-b">' + esc(body) + '</div>' : "") +
+        '<div class="cl-m">' + d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"}) + ' · <a href="' + esc(c.html_url) + '" target="_blank" rel="noopener">' + c.sha.slice(0,7) + '</a></div></div>';
+    }
+    $c("cl-list").innerHTML = out || '<div class="cl-msg">No commits yet.</div>';
+  }
+  async function open(auto){
+    const seen = ls.get("cl_seen");
+    $c("cl-ver").textContent = (($c("gver")||{}).textContent || "").trim();
+    $c("cl-list").innerHTML = '<div class="cl-msg">Loading…</div>';
+    $c("clog").classList.add("on");
+    try{
+      const list = await load(); render(list, seen);
+      if(list[0]) ls.set("cl_seen", list[0].sha);
+    }catch(e){
+      const m = { setup:"Changelog isn't connected yet.<br>Set <b>GH_REPO</b> to your <b>owner/repo</b> in the changelog script.", rate:"GitHub rate limit hit — try again in a bit.", "404":"Repo not found. If it's private, add a GH_TOKEN.", http:"Couldn't load the changelog." }[e.message] || "Couldn't load the changelog (offline?).";
+      $c("cl-list").innerHTML = '<div class="cl-msg">' + m + '</div>';
+    }
+  }
+  const close = () => $c("clog").classList.remove("on");
+  $c("cl-open").addEventListener("click", () => open(false));
+  $c("cl-x").onclick = close;
+  $c("clog").addEventListener("click", e => { if(e.target.id === "clog") close(); });
+  document.addEventListener("keydown", e => { if(e.key === "Escape") close(); });
+
+  /* after an update: if there are commits you haven't seen, pop the changelog once */
+  window.addEventListener("load", () => setTimeout(async () => {
+    try{
+      if(!ls.get("cl_seen")){ const l = await load(); if(l[0]) ls.set("cl_seen", l[0].sha); return; }   // first visit: don't nag
+      const l = await load(); if(l[0] && l[0].sha !== ls.get("cl_seen")) open(true);
+    }catch(e){}
+  }, 2500));
+})();
+</script>
 </body>
 </html>
