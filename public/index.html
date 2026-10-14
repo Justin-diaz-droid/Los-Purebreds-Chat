@@ -1084,7 +1084,20 @@ $("bimgfile").onchange = e => readImage(e, 240, 0.6, u => {
   if(!okBi(u)){ $("stgerr").textContent = "That bubble image is too detailed — try a simpler one."; return; }
   draft.bi = u; renderPreview();
 });
-$("wfile").onchange = e => readImage(e, 1280, 0.8, u => { draft.wallImg = u; draft.wallKind = "image"; draft.wallImgCol = ""; renderPreview(); dominantColor(u, c => { if(draft && draft.wallImg === u){ draft.wallImgCol = c; renderPreview(); } }); });
+function wallPick(u){ draft.wallImg = u; draft.wallKind = "image"; draft.wallImgCol = ""; renderPreview(); dominantColor(u, c => { if(draft && draft.wallImg === u){ draft.wallImgCol = c; renderPreview(); } }); }
+$("wfile").onchange = e => {
+  const f = e.target.files[0];
+  if(f && draft && (f.type === "image/gif" || /\.gif$/i.test(f.name))){   // keep GIFs as-is so they stay animated
+    e.target.value = "";
+    if(f.size > 3400000){ $("stgerr").textContent = "That GIF is too big to save as a wallpaper (max ~3 MB) — pick a smaller one."; return; }
+    const r = new FileReader();
+    r.onload = ev => { $("stgerr").textContent = ""; wallPick(ev.target.result); };
+    r.readAsDataURL(f);
+    return;
+  }
+  wallPickStatic(e);
+};
+const wallPickStatic = e => readImage(e, 1280, 0.8, u => { draft.wallImg = u; draft.wallKind = "image"; draft.wallImgCol = ""; renderPreview(); dominantColor(u, c => { if(draft && draft.wallImg === u){ draft.wallImgCol = c; renderPreview(); } }); });
 
 $("save").onclick = () => {
   if(!draft) return;
