@@ -1600,6 +1600,8 @@ $("emo-btn").onclick = () => { if(window.__rxPick){ cancelReact(); return; } con
 /* ---------- :shortcodes: popup (searches every emoji name) ---------- */
 function suggest(q){
   const keys = Object.keys(EMOJI_MAP), seen = new Set(), out = [];
+  (window.__ceNames ? window.__ceNames() : []).filter(k => k.includes(q))
+    .sort((a, b) => (a.startsWith(q) ? 0 : 1) - (b.startsWith(q) ? 0 : 1)).forEach(k => out.push("ce:" + k));   // custom emojis first
   for(const pass of [0, 1]) for(const k of keys){
     if(out.length >= 60) return out;
     if(!(pass === 0 ? k.startsWith(q) : k.includes(q)) || seen.has(EMOJI_MAP[k])) continue;
@@ -1619,14 +1621,14 @@ function highlightSug(){
 }
 function pickSug(name){
   const el = $("inp"), pos = el.selectionStart, before = el.value.slice(0, pos), after = el.value.slice(pos);
-  const nb = before.replace(/(^|\s):[a-z0-9_+-]*$/i, (m, a) => a + EMOJI_MAP[name] + " ");
+  const nb = before.replace(/(^|\s):[a-z0-9_+-]*$/i, (m, a) => a + (name.indexOf("ce:") === 0 ? ":" + name.slice(3) + ":" : EMOJI_MAP[name]) + " ");
   el.value = nb + after; el.setSelectionRange(nb.length, nb.length); el.focus(); hideSug(); updateSendBtn();
 }
 function showSug(){
   const el = $("inp"), m = el.value.slice(0, el.selectionStart).match(/(?:^|\s):([a-z0-9_+-]*)$/i);
   if(!m){ hideSug(); return; }
   const q = m[1].toLowerCase();
-  sugList = q ? suggest(q) : DEFAULT_SUG.filter(k => EMOJI_MAP[k]);
+  sugList = q ? suggest(q) : [...(window.__ceNames ? window.__ceNames() : []).map(k => "ce:" + k), ...DEFAULT_SUG.filter(k => EMOJI_MAP[k])];
   sugIdx = 0;
   if(!sugList.length){ hideSug(); return; }
   const box = $("emo-sug"); box.innerHTML = "";
@@ -1636,8 +1638,11 @@ function showSug(){
   box.appendChild(hd);
   sugList.forEach(k => {
     const d = document.createElement("div"); d.className = "item";
-    const e = document.createElement("span"); e.className = "e"; e.textContent = EMOJI_MAP[k];
-    const n = document.createElement("span"); n.textContent = ":" + k + ":";
+    const isC = k.indexOf("ce:") === 0, nm = isC ? k.slice(3) : k;
+    const e = document.createElement("span"); e.className = "e";
+    if(isC){ const ci = document.createElement("img"); ci.src = window.__ceImg(nm); ci.alt = ""; ci.style.cssText = "width:22px;height:22px;object-fit:contain;vertical-align:middle"; e.appendChild(ci); }
+    else e.textContent = EMOJI_MAP[k];
+    const n = document.createElement("span"); n.textContent = ":" + nm + ":";
     d.append(e, n);
     d.onmousedown = ev => { ev.preventDefault(); pickSug(k); };
     box.appendChild(d);
@@ -3890,7 +3895,7 @@ label.plus.open{transform:rotate(45deg)}
     }
     else {
       if(d.t==="A"){
-        const n=cleanReg(d);
+        const n=cleanReg(d); if(d.ce===undefined&&reg.ce) n.ce=reg.ce;
         if(window.revealChat) window.revealChat();       // the host accepted us: now show the chat
         const grew=n.clr>reg.clr||n.clg>reg.clg||n.cls>reg.cls; reg=n; saveReg(); if(grew) applyClear(); refreshUI(); return;
       }
@@ -4428,6 +4433,8 @@ label.plus.open{transform:rotate(45deg)}
       bub.classList.toggle("jumbo",only&&used<=5);
     }
     window.fillBubble=(bub,text)=>{ bub._raw=text; paint(bub); };
+    window.__ceNames=()=>Object.keys(reg.ce||{}).filter(n=>reg.ce[n].k==="e").sort();
+    window.__ceImg=n=>(reg.ce&&reg.ce[n]&&reg.ce[n].im)||"";
 
     const tabs=$("emo-tabs"), grid=$("emo-grid"), title=$("emo-title"), foot=$("emo-foot");
     const ct=document.createElement("span"); ct.textContent="⭐"; ct.dataset.g="ce"; ct.title="Custom emojis & stickers"; tabs.appendChild(ct);
@@ -4448,6 +4455,13 @@ label.plus.open{transform:rotate(45deg)}
           grid.appendChild(sp); }); }
     }
     ct.onclick=()=>{ [...tabs.children].forEach(t=>t.classList.toggle("on",t===ct)); $("emo-q").value=""; title.textContent="Custom"; fillCE(); grid.scrollTop=0; foot.textContent=Object.keys(reg.ce||{}).length+" custom"; };
+
+    /* the emoji library finishing its download used to snap the picker off the ⭐ tab */
+    const _rfp=window.refreshEmojiPicker;
+    window.refreshEmojiPicker=function(){
+      if(ct.classList.contains("on")&&!window.__rxPick&&!$("emo-q").value.trim()){ fillCE(); foot.textContent=Object.keys(reg.ce||{}).length+" custom"; return; }
+      if(_rfp) _rfp.apply(this,arguments);
+    };
 
     function ceImg(f,type,cb){
       const url=URL.createObjectURL(f), im=new Image();
