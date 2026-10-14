@@ -592,22 +592,25 @@
   @media (hover:hover){#stg .btn:hover,.seg button:hover{transform:scale(1.05)}.stg-x:hover{transform:scale(1.15)}}
   #stg .btn:active,.stg-x:active,.seg button:active{transform:scale(.94)}
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body data-theme="imessage">
 
 <div id="gate">
-  <div class="card">
+  <div class="gside">
+    <h1>Los Purebred's</h1>
+    <p class="sub">Unification initiation</p>
+    <div id="gver">Version 0.2.9</div>
     <div class="logo lp"></div>
-    <h1>Los Purebreds</h1>
-    <p class="sub">Enter the room to start chatting</p>
-    <label class="fld"><span>Room code</span><input id="g-code" type="password" placeholder="Enter code" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+  </div>
+  <div class="card">
+    <label class="fld"><span>Room Code</span><input id="g-code" type="password" placeholder="Enter room code" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
     <label class="fld"><span>Your name</span><input id="g-name" type="text" placeholder="Pick a name" maxlength="12" autocomplete="off"></label>
-    <label class="fld"><span>Theme</span><select id="g-theme"><option value="imessage">iMessage</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option><option value="material">Material You (Android)</option><option value="terminal">Terminal</option><option value="pornhub">Pornhub</option></select></label>
+    <label class="fld" id="g-themefld"><span>Themes</span><select id="g-theme"><option value="imessage">iMessage</option><option value="ios6">iOS 6</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option><option value="material">Material You (Android)</option><option value="terminal">Terminal</option><option value="pornhub">Pornhub</option></select></label>
     <div id="gerr"></div>
-    <button id="g-go">Join chat</button>
+    <button id="g-go">Join Chat</button>
     <a class="goback" href="https://docs.google.com/document/d/1oa90mU-jYczqySulirTvHqqNWTSaNwPGnnArgBdVGrs/edit?tab=t.pqncc0vmsgzp" rel="noopener">← Go back</a>
   </div>
-  <div id="gver">Version 0.2.6</div>
 </div>
 
 <div id="sb">
@@ -658,7 +661,7 @@
       </div>
       <div class="stg-card"><h3>🎨 Appearance</h3>
         <label>Theme</label>
-        <select id="theme"><option value="imessage">iMessage</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option><option value="material">Material You (Android)</option><option value="terminal">Terminal</option><option value="pornhub">Pornhub</option></select>
+        <select id="theme"><option value="imessage">iMessage</option><option value="ios6">iOS 6</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option><option value="material">Material You (Android)</option><option value="terminal">Terminal</option><option value="pornhub">Pornhub</option></select>
         <label>Wallpaper &amp; accent color (also tints top bar, message bar &amp; left bar)</label><input type="color" id="wcol" value="#000000">
         <label>Wallpaper image (syncs to your other devices)</label>
         <div class="stg-row"><button id="wimg" type="button" class="btn">Choose image</button><button id="wreset" type="button" class="btn alt">Reset wallpaper</button><input type="file" id="wfile" accept="image/*" style="display:none"></div>
@@ -722,9 +725,9 @@ let usr = "User", peer = null, conns = [], isHost = false, logs = [];
 /* private DM state */
 let dmWith = "", dmNm = "", chipT = null;
 let seen = {}; try { seen = JSON.parse(load("dm_seen", "{}")) || {}; } catch(e){ seen = {}; }
-const PH = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage",material:"Text message",terminal:"enter message…",pornhub:"Type a message"};
-const THEMES = ["imessage","discord","whatsapp","tiktok","roblox","instagram","twitter","material","terminal","pornhub"];
-const CHNAME = {discord:"# purebred-chat",whatsapp:"WhatsApp Group",tiktok:"TikTok Inbox",roblox:"Roblox Chat",instagram:"Instagram Direct",twitter:"Twitter Messages",imessage:"iMessage Channel",material:"Messages",terminal:"/dev/purebred",pornhub:"Members Chat"};
+const PH = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage",ios6:"iMessage",material:"Text message",terminal:"enter message…",pornhub:"Type a message"};
+const THEMES = ["imessage","ios6","discord","whatsapp","tiktok","roblox","instagram","twitter","material","terminal","pornhub"];
+const CHNAME = {discord:"# purebred-chat",whatsapp:"WhatsApp Group",tiktok:"TikTok Inbox",roblox:"Roblox Chat",instagram:"Instagram Direct",twitter:"Twitter Messages",imessage:"iMessage Channel",ios6:"Messages",material:"Messages",terminal:"/dev/purebred",pornhub:"Members Chat"};
 let draft = null, stgOpen = false, pvLoaded = false, pvq = 0;
 const shownKeys = new Set();
 let groups = {};
@@ -761,6 +764,7 @@ if(LOGO){
 }
 
 function load(k, fallback){ try { const v = localStorage.getItem(k); return v === null ? fallback : v; } catch(e){ return fallback; } }
+const tick = (fn, ms) => setInterval(() => { if(!document.hidden) fn(); }, ms);   // UI-only timers sleep while the tab is in the background
 function save(k, v){ try { localStorage.setItem(k, v); } catch(e){ console.warn("Storage failed", e); } }
 
 /* permanent per-browser identity + bubble styles */
@@ -784,11 +788,11 @@ const myDevice = detectDevice();
 
 /* ---------- theme ---------- */
 function setTheme(t){
-  if(!["imessage","discord","whatsapp","tiktok","roblox","instagram","twitter","material","terminal","pornhub"].includes(t)) t = "imessage";
+  if(!["imessage","ios6","discord","whatsapp","tiktok","roblox","instagram","twitter","material","terminal","pornhub"].includes(t)) t = "imessage";
   document.body.dataset.theme = t;
   $("theme").value = t; $("g-theme").value = t;
-  $("chname").textContent = {discord:"# purebred-chat",whatsapp:"WhatsApp Group",tiktok:"TikTok Inbox",roblox:"Roblox Chat",instagram:"Instagram Direct",twitter:"Twitter Messages",imessage:"iMessage Channel",material:"Messages",terminal:"/dev/purebred",pornhub:"Members Chat"}[t];
-  $("inp").placeholder = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage",material:"Text message",terminal:"enter message…",pornhub:"Type a message"}[t];
+  $("chname").textContent = {discord:"# purebred-chat",whatsapp:"WhatsApp Group",tiktok:"TikTok Inbox",roblox:"Roblox Chat",instagram:"Instagram Direct",twitter:"Twitter Messages",imessage:"iMessage Channel",ios6:"Messages",material:"Messages",terminal:"/dev/purebred",pornhub:"Members Chat"}[t];
+  $("inp").placeholder = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage",ios6:"iMessage",material:"Text message",terminal:"enter message…",pornhub:"Type a message"}[t];
   save("chat_theme", t); if(curCh === "dm") updateDmBar();
   applyWall();
   restyleAll();
@@ -1737,7 +1741,7 @@ function renderTyping(){
   const avs = names.slice(0, 3).map(n => { const a = document.createElement("div"); a.className = "tav"; paintAv(a, n); return a; });
   el.replaceChildren(...avs, s, dots);
 }
-setInterval(renderTyping, 1000);
+tick(renderTyping, 1000);
 $("inp").addEventListener("input", () => {
   if(curCh === "gal" || curCh === "draw") return;
   if($("inp").value.trim()){
@@ -4020,7 +4024,7 @@ label.plus.open{transform:rotate(45deg)}
   /* =============== gate: password field, secret admin button =============== */
   const lab=document.createElement("label"); lab.className="fld";
   lab.innerHTML='<span>Password <i style="text-transform:none;font-weight:400;opacity:.7">(required — a new name uses it to create its password)</i></span><input id="g-pw" type="password" autocomplete="current-password" placeholder="At least 4 characters">';
-  $("gerr").before(lab);
+  $("g-themefld").before(lab);
   $("g-pw").addEventListener("keydown",e=>{ if(e.key==="Enter") $("g-go").click(); });
 
   const adm=document.createElement("button"); adm.id="gadm"; adm.type="button"; adm.textContent="🛡"; adm.setAttribute("aria-label","Admin");
@@ -4260,7 +4264,7 @@ label.plus.open{transform:rotate(45deg)}
       !lgOn()?"⏸ Paused.":
       "✅ Logging on · "+lgSentN+" sent"+(lgLast?" · last at "+lgLast:"")+(lgQ.length?" · "+lgQ.length+" waiting":"")+(lgErr?" · "+lgErr:"");
   }
-  setInterval(lgStatus,1000);
+  tick(lgStatus,1000);
   $("amlgsv").onclick=()=>{
     const u=$("amlgu").value.trim();
     if(!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(u)){ note("That doesn't look like an Apps Script web app URL (it should end in /exec)."); return; }
@@ -4324,7 +4328,7 @@ label.plus.open{transform:rotate(45deg)}
         if(r){ const t=document.createElement("span"); t.className="rtag "+r; t.textContent=r==="admin"?"ADMIN":"MOD"; lb.appendChild(t); }
       });
     }
-    new MutationObserver(tagAll).observe($("box"),{childList:true,subtree:true});
+    let tgq=0; new MutationObserver(()=>{ if(tgq) return; tgq=requestAnimationFrame(()=>{ tgq=0; tagAll(); }); }).observe($("box"),{childList:true,subtree:true});
     const _pr=pushRoster; pushRoster=function(){ _pr.apply(this,arguments); if(isHost) try{ send(areg()); }catch(e){} };
 
     window.setHidden=function(l,h){
@@ -4372,7 +4376,7 @@ label.plus.open{transform:rotate(45deg)}
       }
       return _pm.apply(this,arguments);
     };
-    setInterval(updShame,800);
+    tick(updShame,800);
   })();
 
   /* =============== 🏷 admin-editable tab names + icons (synced to everyone) =============== */
@@ -4406,7 +4410,7 @@ label.plus.open{transform:rotate(45deg)}
       avImg(document.querySelector("#ch-main .av-sb"),(tn.app&&tn.app.im)||"");
       window.__pbTitle=(tn.app&&tn.app.n)||null;
     };
-    setInterval(window.__pbTabs,1500); window.__pbTabs();
+    tick(window.__pbTabs,1500); window.__pbTabs();
 
     const host=$("amtn"), inp={}, imgs={};
     function showImg(k){ const d=imgs[k]||""; const p=inp[k]&&inp[k].pv; if(!p) return; if(d){ p.src=d; p.style.display=""; inp[k].xb.style.display=""; } else { p.removeAttribute("src"); p.style.display="none"; inp[k].xb.style.display="none"; } }
@@ -4654,7 +4658,7 @@ label.plus.open{transform:rotate(45deg)}
         Object.keys(bs).forEach(k=>{ bs[k].textContent=ICON[k]+" "+TROLLS[k]+(left>0?" ("+left+"s)":""); bs[k].disabled=lock||left>0; });
         st.textContent=msg;
       }
-      refresh(); setInterval(refresh,500);
+      refresh(); tick(refresh,500);
     }
     build($("amtr"),true); build($("mmtr"),false);
   })();
@@ -4664,13 +4668,13 @@ label.plus.open{transform:rotate(45deg)}
   hm.title="Mute / unmute everyone except admins";
   $("hdr").insertBefore(hm,$("online"));
   hm.onclick=()=>adminDo({a:reg.muteAll?"unmuteall":"muteall"});
-  setInterval(()=>{
+  tick(()=>{
     const inRoom=adminMode&&!!peer&&$("gate").style.display==="none";
     hm.style.display=inRoom?"":"none";
     hm.textContent=reg.muteAll?"🔊 Unmute all":"🔇 Mute all";
     hm.classList.toggle("on",!!reg.muteAll);
   },400);
-  setInterval(renderAdminLists,1500);
+  tick(renderAdminLists,1500);
 
   /* =============== admin: 🗑 delete (any public message) / 🦵 kick / 🔇 mute / 🔨 ban buttons next to reply / edit / delete =============== */
   function addAdminBtns(w){
@@ -4689,7 +4693,7 @@ label.plus.open{transform:rotate(45deg)}
     act.appendChild(mkb("🔨","Ban the name “"+name+"”",()=>{ if(confirm('Ban the name "'+name+'" and remove them?')) adminDo({a:"ban",name}); }));
   }
   new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(addAdminBtns))).observe($("box"),{childList:true});
-  setInterval(()=>{ if(adminMode||amMod()) document.querySelectorAll("#box .msg[data-uid]:not([data-admx])").forEach(addAdminBtns); },1500);
+  tick(()=>{ if(adminMode||amMod()) document.querySelectorAll("#box .msg[data-uid]:not([data-admx])").forEach(addAdminBtns); },1500);
 
   /* =============== screen sharing in calls =============== */
   const callbar=document.querySelector("#callov .call-bar");
@@ -5755,10 +5759,15 @@ body.in-gal #men-sug{display:none !important}
   }
   const SEL=".bubble[data-bubble]";
   function scan(root){ if(!root||root.nodeType!==1) return; if(root.matches&&root.matches(SEL)) processBubble(root); root.querySelectorAll&&root.querySelectorAll(SEL).forEach(processBubble); }
+  let mq=[], mqt=0;
   new MutationObserver(ms=>{
-    ms.forEach(m=>{
-      m.addedNodes.forEach(scan);
-      const b=m.target&&m.target.closest?m.target.closest(SEL):null; if(b) processBubble(b);
+    mq.push(...ms);
+    if(mqt) return;
+    mqt=requestAnimationFrame(()=>{ mqt=0; const q=mq; mq=[];
+      q.forEach(m=>{
+        m.addedNodes.forEach(scan);
+        const b=m.target&&m.target.closest?m.target.closest(SEL):null; if(b) processBubble(b);
+      });
     });
   }).observe($("box"),{childList:true,subtree:true});
   scan($("box"));
@@ -5802,7 +5811,7 @@ body.tab-dragging,body.tab-dragging *{user-select:none !important;-webkit-user-s
     tabs().forEach(b=>{ if(!b.title) b.title="Drag to move this tab (only you see the new order)"; });
     rows().forEach(r=>{ if(!r.title) r.title="Drag to move this room (only you see the new order)"; });
   }
-  setInterval(()=>{ apply(); tip(); },1000); apply(); tip();
+  tick(()=>{ apply(); tip(); },1000); apply(); tip();
 
   function reset(){
     order=[]; try{ localStorage.removeItem(LS); }catch(e){}
@@ -6313,7 +6322,7 @@ body[data-theme="pornhub"] #gate .logo{background:#ff9000;color:#000}
   /* ===== CHANGELOG — pulled live from your GitHub commits =====
      Set GH_REPO to "owner/repo" (e.g. "irma/purebred"). Add GH_BRANCH if not the default branch.
      Private repo? Add a read-only token in GH_TOKEN (note: it will be visible in the page source). */
-  const GH_REPO = "Justin-diaz-droid/Los-Purebreds-Chat", GH_BRANCH = "", GH_TOKEN = "", MAX = 40;
+  const GH_REPO = "OWNER/REPO", GH_BRANCH = "", GH_TOKEN = "", MAX = 40;
 
   const $c = id => document.getElementById(id);
   const ls = { get:k=>{ try{ return localStorage.getItem(k); }catch(e){ return null; } }, set:(k,v)=>{ try{ localStorage.setItem(k,v); }catch(e){} } };
@@ -6372,5 +6381,85 @@ body[data-theme="pornhub"] #gate .logo{background:#ff9000;color:#000}
   }, 2500));
 })();
 </script>
+<style id="gate-css">
+/* ===== login screen: dark two-column layout ===== */
+#gate#gate{background:#262626 !important;font-family:"Comfortaa","Nunito","Quicksand",system-ui,sans-serif;gap:clamp(16px,4vw,44px);align-items:flex-start;justify-content:center;padding:clamp(16px,6vh,48px) 16px;overflow:hidden;color:#d6d6d6;flex-direction:row}
+#gate#gate .card{order:1;background:#383838;border:none;border-radius:40px;box-shadow:none;width:min(246px,100%);padding:22px;gap:12px;flex:0 0 auto;text-align:center;animation:none}
+#gate#gate .fld{gap:6px;align-items:stretch}
+#gate#gate .fld span{font-size:17px;font-weight:400;letter-spacing:.3px;text-transform:none;color:#cfcfcf;text-align:center}
+#gate#gate .fld span i{display:none}
+#gate#gate input,#gate#gate select,#gate#gate .fld input[type=password]{background:#2f2f2f;border:1px solid #484848;border-radius:8px;padding:12px 10px;font:600 13px "Comfortaa","Nunito",system-ui,sans-serif;color:#fff;height:42px;box-sizing:border-box}
+#gate#gate input::placeholder{color:#5f5f5f;font-weight:400}
+#gate#gate input:focus,#gate#gate select:focus{border-color:#2f7bf6}
+#gate#gate select{appearance:none;-webkit-appearance:none;padding-right:34px;background:#2f2f2f url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='12' viewBox='0 0 18 12'><path d='M2 2l7 7 7-7' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/></svg>") right 12px center/16px no-repeat}
+#gate#gate select option{background:#2f2f2f;color:#fff}
+#gate#gate #g-go{background:#2f7bf6;color:#fff;border-radius:8px;font:700 16px "Comfortaa","Nunito",system-ui,sans-serif;padding:11px;margin-top:14px;border:none;letter-spacing:.3px}
+#gate#gate .goback{color:#8a8a8a;font-size:12px;text-align:center}
+#gate#gate #gerr{min-height:0}
+#gate#gate .gside{order:2;flex:0 1 340px;display:flex;flex-direction:column;align-items:stretch;gap:16px;min-width:0;text-align:center}
+#gate#gate .gside h1{background:#383838;border-radius:12px;padding:20px 12px;font:400 clamp(24px,3.4vw,32px)/1.1 "Comfortaa","Nunito",system-ui,sans-serif;color:#fff;margin:0;letter-spacing:.5px}
+#gate#gate .gside h1::before,#gate#gate .gside h1::after{content:none !important}
+#gate#gate .gside .sub{background:#383838;border-radius:12px;padding:10px 12px;margin:0 auto;font:400 clamp(18px,2.6vw,24px)/1.2 "Comfortaa","Nunito",system-ui,sans-serif;color:#fff;width:fit-content;max-width:100%;box-sizing:border-box}
+#gate#gate #gver{position:static;margin:-4px 0 0;font-size:12px;font-weight:400;letter-spacing:.3px;color:#cfcfcf;opacity:.85;text-align:center}
+#gate#gate .logo.lp{position:fixed;right:-1vw;bottom:-6vh;width:min(560px,52vw);height:min(560px,70vh);border-radius:0;background-color:transparent !important;background-image:var(--lp-icon) !important;background-position:bottom right !important;background-size:contain !important;background-repeat:no-repeat !important;margin:0;pointer-events:none;z-index:0}
+#gate#gate .logo.lp::after{content:none}
+#gate .card,#gate .gside h1,#gate .gside .sub,#gate #gver{position:relative;z-index:1}
+#gadm#gadm{position:fixed;top:auto;bottom:10px;left:10px}
+#gadmbox#gadmbox{position:fixed;top:auto;bottom:44px;left:10px}
+@media (max-width:640px){
+  #gate#gate{flex-direction:column;align-items:center;overflow-y:auto}
+  #gate#gate .gside{order:1;flex:0 0 auto;width:min(340px,100%)}
+  #gate#gate .card{order:2}
+  #gate#gate .logo.lp{display:none}
+}
+</style>
+<style id="ios6-css">
+/* ===== iOS 6 theme: linen, glossy blue bars, glossy bubbles ===== */
+body[data-theme="ios6"]{
+  color-scheme:light;
+  --bg:#d9dee7; --side:#e8ecf2; --row:#cdd4df; --input:#fff; --line:#a4adbd;
+  --text:#1c1c1e; --muted:#6a7383; --accent:#3d7fd1; --me:#3f8fe8; --peer:#eef1f6;
+  --on-accent:#fff; --bar-text:#1c1c1e;
+  font-family:"Helvetica Neue",Helvetica,Arial,sans-serif,"Noto Color Emoji","Apple Color Emoji";
+}
+body[data-theme="ios6"] #box{background-color:#d9dee7;background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.22) 0 1px,transparent 1px 4px),repeating-linear-gradient(90deg,rgba(60,80,120,.05) 0 1px,transparent 1px 4px);box-shadow:inset 0 8px 8px -8px rgba(0,0,0,.35);gap:3px;padding:12px 12px 8px}
+body[data-theme="ios6"] :is(#hdr,#sb .hdr-sb){background:linear-gradient(#b3c0d6 0%,#8397b8 50%,#6f86ab 50%,#627ba3 100%);border-bottom:1px solid #2d4575;box-shadow:0 1px 2px rgba(0,0,0,.35);color:#fff;text-shadow:0 -1px 0 rgba(0,0,0,.45)}
+body[data-theme="ios6"] #hdr{min-height:48px}
+body[data-theme="ios6"] #hdr *,body[data-theme="ios6"] .hdr-sb{color:#fff}
+body[data-theme="ios6"] .hdr-sb{font-size:20px;font-weight:700;padding:14px 16px}
+body[data-theme="ios6"] #sb{background:var(--side);border-right:1px solid #8e98aa}
+body[data-theme="ios6"] .row-ch{color:#1c1c1e;border-left:none !important;border-bottom:1px solid #c3c9d4;padding:10px 14px}
+body[data-theme="ios6"] .row-ch .csub{color:var(--muted)}
+body[data-theme="ios6"] .row-ch.active{background:linear-gradient(#5aa0ee,#2d70d4);color:#fff;text-shadow:0 -1px 0 rgba(0,0,0,.3)}
+body[data-theme="ios6"] .row-ch.active .csub{color:#e3eefc}
+body[data-theme="ios6"] .av-sb{background:linear-gradient(#b9c3d3,#8793a8);color:#fff}
+body[data-theme="ios6"] #chtabs{background:rgba(25,45,85,.35);border-radius:7px;padding:2px;box-shadow:inset 0 1px 3px rgba(0,0,0,.45)}
+body[data-theme="ios6"] #chtabs button{border-radius:5px;color:#fff;text-shadow:0 -1px 0 rgba(0,0,0,.4);font-weight:700}
+body[data-theme="ios6"] #chtabs button.on{background:linear-gradient(#8fb7ea,#4b86d6);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 1px 1px rgba(0,0,0,.3)}
+body[data-theme="ios6"] #onpop{background:var(--side);border:1px solid #8e98aa;border-radius:10px;color:#1c1c1e}
+body[data-theme="ios6"] .msg{max-width:78%}
+body[data-theme="ios6"] .msg.first{margin-top:8px}
+body[data-theme="ios6"] .lbl{color:#5b6475;font-size:11px;font-weight:700;margin:0 0 2px 12px;text-shadow:0 1px 0 rgba(255,255,255,.7)}
+body[data-theme="ios6"] .me .lbl,body[data-theme="ios6"] .msg:not(.first) .lbl{display:none}
+body[data-theme="ios6"] .tsep{display:block;align-self:center;margin:12px 0 4px;font-size:11px;font-weight:700;color:#5b6475;text-shadow:0 1px 0 rgba(255,255,255,.7)}
+body[data-theme="ios6"] .bubble{padding:8px 14px;border-radius:18px;font-size:15px;line-height:1.3;border:1px solid rgba(0,0,0,.28);background-color:var(--bub,var(--me));background-image:linear-gradient(rgba(255,255,255,.38),rgba(255,255,255,0) 55%);box-shadow:0 1px 2px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.35);color:#fff;text-shadow:0 -1px 0 rgba(0,0,0,.35)}
+body[data-theme="ios6"] .peer .bubble{background-color:var(--bub,#eef1f6);background-image:linear-gradient(rgba(255,255,255,.85),rgba(255,255,255,0) 60%);color:#000;text-shadow:0 1px 0 rgba(255,255,255,.6);border-color:rgba(0,0,0,.25)}
+body[data-theme="ios6"] .me.last .bubble{border-bottom-right-radius:5px}
+body[data-theme="ios6"] .peer.last .bubble{border-bottom-left-radius:5px}
+body[data-theme="ios6"] .img{border-radius:14px;border:3px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.45);margin-top:0}
+body[data-theme="ios6"] .quote{background:rgba(255,255,255,.55);color:#333;border-radius:10px}
+body[data-theme="ios6"].has-peers .msg.lastmine .col::after{content:"Delivered";align-self:flex-end;margin:3px 6px 0 0;font-size:11px;font-weight:700;color:#5b6475;text-shadow:0 1px 0 rgba(255,255,255,.7)}
+body[data-theme="ios6"] .act{background:var(--side);border:1px solid #8e98aa}
+body[data-theme="ios6"] #tray,body[data-theme="ios6"] #replybar,body[data-theme="ios6"] #dmbar{background:linear-gradient(#a0aec4,#6a7d9d);border-top:1px solid #3d5380;box-shadow:inset 0 1px 0 rgba(255,255,255,.4);color:#fff}
+body[data-theme="ios6"] #tray{gap:8px;padding:7px 10px}
+body[data-theme="ios6"] .plus{background:linear-gradient(#f4f6fa,#b9c2d1);color:#4a5568;border:1px solid #5a6b8c;border-radius:50%;box-shadow:inset 0 1px 0 #fff,0 1px 1px rgba(0,0,0,.3);text-shadow:0 1px 0 #fff}
+body[data-theme="ios6"] .pill{background:#fff;border:1px solid #4d5f82;border-radius:17px;box-shadow:inset 0 2px 3px rgba(0,0,0,.28);padding:3px 4px 3px 12px}
+body[data-theme="ios6"] #inp{color:#000;font-size:15px}
+body[data-theme="ios6"] #inp::placeholder{color:#9aa2b0}
+body[data-theme="ios6"] #sendbtn{background:linear-gradient(#6fa8ee,#2a66c8);border:1px solid #1d4a94;border-radius:14px;color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 1px 1px rgba(0,0,0,.3)}
+body[data-theme="ios6"] #sendbtn svg{stroke:#fff}
+body[data-theme="ios6"] #typing:not(:empty){background:transparent;color:#5b6475}
+body[data-theme="ios6"] #replybar *,body[data-theme="ios6"] #dmbar *{color:inherit}
+</style>
 </body>
 </html>
