@@ -600,7 +600,7 @@
     <button id="g-go">Join chat</button>
     <a class="goback" href="https://docs.google.com/document/d/1oa90mU-jYczqySulirTvHqqNWTSaNwPGnnArgBdVGrs/edit?tab=t.pqncc0vmsgzp" rel="noopener">← Go back</a>
   </div>
-  <div id="gver">Version 0.1.6</div>
+  <div id="gver">Version 0.1.9</div>
 </div>
 
 <div id="sb">
@@ -758,7 +758,7 @@ if(!uid){ uid = "u" + Date.now().toString(36) + Math.random().toString(36).slice
 const bstyle = {}; let myBc = "", myBi = "";
 const okUid = c => typeof c === "string" && /^[A-Za-z0-9_-]{1,40}$/.test(c) && c !== "__proto__";
 const okBc = c => typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c) ? c : "";
-const okBi = a => typeof a === "string" && a.length < 60000 && /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(a) ? a : "";
+const okBi = a => typeof a === "string" && a.length < 150000 && /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(a) ? a : "";
 
 /* ---------- device (PC / mobile / tablet) ---------- */
 const DEVS = { pc: ["💻", "PC"], mobile: ["📱", "Mobile"], tablet: ["📱", "Tablet"] };
@@ -893,7 +893,7 @@ const avatars = {};
   Object.keys(FONT_MAP).forEach(k => { const o = document.createElement("option"); o.value = k; o.textContent = k; o.style.fontFamily = FONT_MAP[k]; sel.appendChild(o); });
 })();
 function okFont(f){ return typeof f === "string" && Object.prototype.hasOwnProperty.call(FONT_MAP, f) ? f : ""; }
-function okAv(a){ return typeof a === "string" && a.length < 30000 && /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(a) ? a : ""; }
+function okAv(a){ return typeof a === "string" && a.length < 100000 && /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(a) ? a : ""; }
 function paintAv(el, name){
   const a = avatars[name];
   if(a){ el.style.background = 'url("' + a + '") center/cover'; el.textContent = ""; el.classList.add("has-pfp"); }
@@ -1071,7 +1071,22 @@ function readImage(e, maxSide, quality, done){
   };
   r.readAsDataURL(f);
 }
-$("pfpfile").onchange = e => readImage(e, 80, 0.75, (u, cv) => {   // square crop for the profile picture
+/* GIFs stay GIFs (so they keep moving). Too big to fit? fall back to a still picture. */
+function gifPick(e, ok, use, tooBig, stillFn){
+  const f = e.target.files && e.target.files[0];
+  if(!(f && draft && (f.type === "image/gif" || /\.gif$/i.test(f.name)))) return false;
+  e.target.value = "";
+  const r = new FileReader();
+  r.onload = ev => {
+    const u = ev.target.result;
+    if(ok(u)){ $("stgerr").textContent = ""; use(u); }
+    else { stillFn({ target: { files: [f], value: "" } }); $("stgerr").textContent = tooBig; }
+  };
+  r.readAsDataURL(f);
+  return true;
+}
+$("pfpfile").onchange = e => { if(!gifPick(e, okAv, u => { draft.avatar = u; paintPfp(); renderPreview(); }, "That GIF is too big to animate (max ~70 KB) — using a still picture instead.", pfpStill)) pfpStill(e); };
+const pfpStill = e => readImage(e, 80, 0.75, (u, cv) => {   // square crop for the profile picture
   const im = new Image();
   im.onload = () => {
     const c = document.createElement("canvas"), n = 80, m = Math.min(im.width, im.height);
@@ -1080,10 +1095,11 @@ $("pfpfile").onchange = e => readImage(e, 80, 0.75, (u, cv) => {   // square cro
   };
   im.src = u;
 });
-$("bimgfile").onchange = e => readImage(e, 240, 0.6, u => {
+const bubStill = e => readImage(e, 240, 0.6, u => {
   if(!okBi(u)){ $("stgerr").textContent = "That bubble image is too detailed — try a simpler one."; return; }
   draft.bi = u; renderPreview();
 });
+$("bimgfile").onchange = e => { if(!gifPick(e, okBi, u => { draft.bi = u; renderPreview(); }, "That GIF is too big to animate (max ~110 KB) — using a still picture instead.", bubStill)) bubStill(e); };
 function wallPick(u){ draft.wallImg = u; draft.wallKind = "image"; draft.wallImgCol = ""; renderPreview(); dominantColor(u, c => { if(draft && draft.wallImg === u){ draft.wallImgCol = c; renderPreview(); } }); }
 $("wfile").onchange = e => {
   const f = e.target.files[0];
@@ -1235,7 +1251,7 @@ function connect(){
       peer.on("error", e => {
         setStatus("Connection error: " + e.type);
         if(e.type === "peer-unavailable" || e.type === "network" || e.type === "server-error" || e.type === "socket-error")
-          setTimeout(() => { try { if(peer && !isHost && peer.open && !conns.length) addConn(peer.connect(ROOM_ID, { reliable: true })); } catch(x){} }, 2500);
+          { if(e.type === "peer-unavailable" && window.__hoRestart) window.__hoRestart(); else setTimeout(() => { try { if(peer && !isHost && peer.open && !conns.length) addConn(peer.connect(ROOM_ID, { reliable: true })); } catch(x){} }, 2500); }
       });
     } else { setStatus("Connection error: " + err.type); }
   });
@@ -1254,10 +1270,11 @@ function addConn(c){
   });
   c.on("data", d => { try { handle(d, c); } catch(err){ console.error("handle failed", err, d); } });
   c.on("close", () => {
+    if(!isHost){ window.__hoQuiet = Date.now() + 25000; window.__rosterSnap = (lastRoster || []).slice(); }   // the host left: hand over quietly
     conns = conns.filter(x => x !== c);
     if(isHost) pushRoster(); else renderOnline([me()]);
-    setStatus(isHost ? "Online (hosting)" : "Disconnected — refresh to rejoin");
-    sys("A friend left.");
+    setStatus(isHost ? "Online (hosting)" : "Online — reconnecting…");
+    if(isHost) sys("A friend left.");
     queueRegroup();
     // lost the connection to the room (host left, kicked, network drop) -> straight back to the join screen
     if(!isHost && window.__leave) window.__leave("Disconnected from the room. Rejoin to continue.");
@@ -1401,7 +1418,7 @@ function cleanEntry(e){
   }
   if(typeof e.u !== "string" || typeof e.b !== "string") return null;
   o.u = e.u.slice(0, 12); o.c = okUid(e.c) ? e.c : ""; o.f = okFont(e.f); o.d = okDev(e.d);
-  if(e.img){ if(!e.b.startsWith("data:image/") || e.b.length > 4500000) return null; o.img = 1; }
+  if(e.img){ if(!e.b.startsWith("data:image/") || e.b.length > 4500000) return null; o.img = 1; if(e.stk) o.stk = 1; }
   else if(e.aud){ if(!e.b.startsWith("data:audio/") || e.b.length > 1800000) return null; o.aud = 1; }
   else if(e.fl){ if(!/^data:[\w.+\-\/]*;base64,[A-Za-z0-9+\/=]*$/.test(e.b) || e.b.length > 3500000) return null; o.fl = 1; o.fn = cleanFn(e.fn); o.fz = Math.max(0, Math.min(1e8, +e.fz || 0)); }
   else if(e.poll){ const pl = cleanPoll(e.poll); if(!pl || e.b.length >= 300) return null; o.poll = pl; }
@@ -1724,6 +1741,7 @@ function postMsg(b, img, aud, extra){
   if(img){ o.img = 1; if(curCh === "gal") o.ch = "gal"; } else if(aud){ o.aud = 1; } else o.f = myFont;
   if(extra){
     if(curCh === "gal"){ sys("The gallery is for photos only."); return; }
+    if(extra.stk) o.stk = 1;
     if(extra.fl){ o.fl = 1; o.fn = cleanFn(extra.fn); o.fz = extra.fz || 0; delete o.f; }
     if(extra.poll){ o.poll = cleanPoll(extra.poll); if(!o.poll) return; delete o.f; }
   }
@@ -1935,7 +1953,7 @@ function renderRow(m, animate){
 
   const wrap = document.createElement("div"); wrap.className = "bwrap";
   if(m.img){
-    const im = document.createElement("img"); im.className = "img"; im.decoding = "async"; im.alt = "Photo";
+    const im = document.createElement("img"); im.className = "img" + (m.stk ? " stk" : ""); im.decoding = "async"; im.alt = "Photo";
     if(box.scrollHeight - box.scrollTop - box.clientHeight < 240) im.onload = () => { box.scrollTop = box.scrollHeight; };   // keep the chat pinned to the bottom while photos load
     im.src = m.b; wrap.appendChild(im);
   } else if(m.fl){
@@ -1947,7 +1965,7 @@ function renderRow(m, animate){
     const au = document.createElement("audio"); au.controls = true; au.preload = "metadata"; au.src = m.b;
     bub.appendChild(au); styleBubble(bub, m.c || ""); wrap.appendChild(bub);
   } else {
-    const bub = document.createElement("div"); bub.className = "bubble"; bub.textContent = m.b;
+    const bub = document.createElement("div"); bub.className = "bubble"; bub._raw = m.b; if(window.fillBubble) window.fillBubble(bub, m.b); else bub.textContent = m.b;
     if(m.f && FONT_MAP[m.f]) bub.style.fontFamily = FONT_MAP[m.f];
     bub.dataset.bubble = "1";
     styleBubble(bub, m.c || "");
@@ -1984,7 +2002,7 @@ function applyToDom(l){
   if(!e){ renderRow(l, true); return; }
   renderRx(l, e);
   const bub = e.querySelector("[data-bubble]"); if(!bub || l.img) return;
-  bub.textContent = l.b;
+  bub._raw = l.b; if(window.fillBubble) window.fillBubble(bub, l.b); else bub.textContent = l.b;
   if(l.edited) setEditedTag(bub.parentNode, true);
 }
 function rerender(){
@@ -3052,7 +3070,7 @@ label.plus.open{transform:rotate(45deg)}
   lbx.addEventListener("click", e => { if(e.target.closest("#lbdl")) return; closeLb(); });
   document.addEventListener("keydown", e => { if(e.key === "Escape") closeLb(); });
   $$("box").addEventListener("click", e => {
-    const im = e.target.closest("img.img"); if(!im || im.closest(".ghost")) return;
+    const im = e.target.closest("img.img"); if(!im || im.closest(".ghost") || im.classList.contains("stk")) return;
     lbx.querySelector("img").src = im.src; $$("lbdl").href = im.src; lbx.classList.add("open");
   });
 
@@ -3425,9 +3443,10 @@ label.plus.open{transform:rotate(45deg)}
   const own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k)?o[k]:"";
 
   /* =============== shared registry: protected names, bans, last chat-clear =============== */
+  const okCImg=x=>typeof x==="string"&&x.length<=40000&&/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+\/=]+$/.test(x);   // custom emoji / sticker pictures
   const okTImg=x=>typeof x==="string"&&x.length<=40000&&/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+\/=]+$/.test(x);   // room icons: small png/jpeg/webp pictures only
   function cleanReg(r){
-    const o={acc:{},bans:[],mutes:[],mods:[],adms:[],hid:[],mto:false,tn:{},cls:0,clr:0,clg:0,muteAll:false,v:0}; if(!r||typeof r!=="object") return o;
+    const o={acc:{},bans:[],mutes:[],mods:[],adms:[],hid:[],mto:false,tn:{},ce:{},cls:0,clr:0,clg:0,muteAll:false,v:0}; if(!r||typeof r!=="object") return o;
     if(r.acc&&typeof r.acc==="object") Object.keys(r.acc).slice(0,500).forEach(k=>{ if(k&&k.length<=12&&k!=="__proto__"&&HEX.test(String(r.acc[k]))) o.acc[k]=r.acc[k]; });
     if(Array.isArray(r.bans)) o.bans=[...new Set(r.bans.map(x=>String(x).slice(0,12).toLowerCase()).filter(Boolean))].slice(0,500);
     if(Array.isArray(r.mutes)) o.mutes=[...new Set(r.mutes.map(x=>String(x).slice(0,12).toLowerCase()).filter(Boolean))].slice(0,500);
@@ -3446,11 +3465,18 @@ label.plus.open{transform:rotate(45deg)}
         }
       });
     }
+    if(r.ce&&typeof r.ce==="object"){
+      let tot=0;
+      Object.keys(r.ce).slice(0,60).forEach(k=>{
+        const x=r.ce[k]; if(!/^[a-z0-9_]{2,20}$/.test(k)||!x||typeof x!=="object"||!okCImg(x.im)||tot+x.im.length>700000) return;
+        tot+=x.im.length; o.ce[k]={k:x.k==="s"?"s":"e",im:x.im,by:String(x.by||"").slice(0,12).toLowerCase()};
+      });
+    }
     o.cls=+r.cls||0; o.clr=+r.clr||0; o.clg=+r.clg||0; o.muteAll=!!r.muteAll; o.v=+r.v||0; return o;
   }
   let reg=cleanReg((()=>{try{return JSON.parse(load("pb_reg","{}"));}catch(e){return {};}})());
   const saveReg=()=>save("pb_reg",JSON.stringify(reg));
-  const areg=()=>({t:"A",i:newId(),acc:reg.acc,bans:reg.bans,mutes:reg.mutes,mods:reg.mods,adms:adminNames(),hid:reg.hid,mto:reg.mto,tn:reg.tn,cls:reg.cls,clr:reg.clr,clg:reg.clg,muteAll:reg.muteAll,v:reg.v});
+  const areg=()=>({t:"A",i:newId(),acc:reg.acc,bans:reg.bans,mutes:reg.mutes,mods:reg.mods,adms:adminNames(),hid:reg.hid,mto:reg.mto,tn:reg.tn,ce:reg.ce,cls:reg.cls,clr:reg.clr,clg:reg.clg,muteAll:reg.muteAll,v:reg.v});
   function adminNames(){ const a=conns.filter(c=>c.ok2&&c.admin&&c.userName).map(c=>low(c.userName)); if(adminMode&&usr) a.push(low(usr)); return [...new Set(a)]; }
   reg.muteAll=false;
   let myPwH="", adminMode=false, pendW=null;
@@ -3598,6 +3624,7 @@ label.plus.open{transform:rotate(45deg)}
       reg.tn=cleanReg({tn:m.tn}).tn; commit();
       say(Object.keys(reg.tn).length?"🏷 Tab names and icons updated for everyone.":"🏷 Tab names and icons reset to default.");
     }
+    else if(m.a==="ce") ceOp(m,f,true,say,f.conn?f.conn.userName:usr);
     else if(m.a==="troll") runTroll(m,f,true,say,f.conn?f.conn.userName:usr);
     else if(m.a==="modtroll"){
       reg.mto=!!m.off; commit();
@@ -3624,6 +3651,7 @@ label.plus.open{transform:rotate(45deg)}
       showAnnounce(by,text);
       say("📢 Announcement sent to everyone.");
     }
+    else if(m.a==="ce") ceOp(m,f,false,say,name);
     else if(m.a==="troll") runTroll(m,f,false,say,name);
   }
 
@@ -3700,12 +3728,12 @@ label.plus.open{transform:rotate(45deg)}
     const wd=isFinite(+p.wd)?Math.max(0,Math.min(90,+p.wd)):30;
     return {th:S(p.th,12),wk:["none","color","image"].includes(p.wk)?p.wk:"none",wc:hex(p.wc)?p.wc:"#000000",wd:String(wd),
       wi:okImg(p.wi,900000)?p.wi:"",wic:hex(p.wic)?p.wic:"",hh:!!p.hh,hs:!!p.hs,ft:S(p.ft,30),bc:S(p.bc,20),
-      bi:okImg(p.bi,60000)?p.bi:"",av:okImg(p.av,30000)?p.av:"",ts};
+      bi:okImg(p.bi,150000)?p.bi:"",av:okImg(p.av,100000)?p.av:"",ts};
   }
   function persistPrefs(){
     const ks=Object.keys(prefsDB); if(ks.length>40) ks.sort((a,b)=>prefsDB[a].ts-prefsDB[b].ts).slice(0,ks.length-40).forEach(k=>delete prefsDB[k]);
     try{ localStorage.setItem("pb_prefs",JSON.stringify(prefsDB)); }
-    catch(e){ Object.keys(prefsDB).forEach(k=>{ prefsDB[k].wi=""; }); try{ localStorage.setItem("pb_prefs",JSON.stringify(prefsDB)); }catch(e2){} }
+    catch(e){ Object.keys(prefsDB).forEach(k=>{ prefsDB[k].wi=""; }); try{ localStorage.setItem("pb_prefs",JSON.stringify(prefsDB)); }catch(e2){ Object.keys(prefsDB).forEach(k=>{ if((prefsDB[k].av||"").length>30000) prefsDB[k].av=""; if((prefsDB[k].bi||"").length>60000) prefsDB[k].bi=""; }); try{ localStorage.setItem("pb_prefs",JSON.stringify(prefsDB)); }catch(e3){} } }
   }
   function savePrefs(from,d){                  // host: remember the newest look for this name
     const l=low(from.userName); if(!l) return;
@@ -3735,6 +3763,7 @@ label.plus.open{transform:rotate(45deg)}
   }
   setInterval(()=>{                            // watch for changes on this device and share them
     if($("gate").style.display!=="none"||window.__entering||!peer) return;
+    if(window.__pbResync){ if(!isHost&&!conns.some(c=>c.open)) return; window.__pbResync=false; lastJSON=null; }   // new host: share my look again
     const cur=JSON.stringify(collectPrefs());
     if(lastJSON===null){                       // first look after joining: upload what this device already had
       lastJSON=cur;
@@ -3743,6 +3772,24 @@ label.plus.open{transform:rotate(45deg)}
     }
     if(cur!==lastJSON){ lastJSON=cur; pts=Date.now(); save("pb_pts",String(pts)); pushPrefs(); }
   },2000);
+
+  /* custom emojis & stickers: mods + admins add them, everyone uses them */
+  function ceOp(m,f,isAdm,say,name){
+    const l=low(name), nm=String(m.nm||"").toLowerCase().trim();
+    if(!/^[a-z0-9_]{2,20}$/.test(nm)) return say("Names are 2–20 letters, numbers or _.");
+    if(m.op==="del"){
+      const c=reg.ce[nm]; if(!c) return say("There's no :"+nm+": to remove.");
+      if(!isAdm&&c.by!==l) return say("Mods can only remove the ones they added.");
+      delete reg.ce[nm]; commit(); return say("🗑 Removed :"+nm+":.");
+    }
+    if(EMOJI_MAP[nm]) return say("That name is already used by a normal emoji — pick another.");
+    if(reg.ce[nm]) return say(":"+nm+": already exists.");
+    if(Object.keys(reg.ce).length>=40) return say("The limit is 40 custom emojis + stickers.");
+    if(!isAdm){ const h=f.conn||modSelf, now=Date.now(); if(now-(h.ceAt||0)<3000) return say("Slow down a little."); h.ceAt=now; }
+    const c=cleanReg({ce:{[nm]:{k:m.ty,im:m.im,by:l}}}).ce[nm];
+    if(!c) return say("That picture is too big or isn't a valid image.");
+    reg.ce[nm]=c; commit(); say("✅ Added "+(c.k==="s"?"sticker ":"emoji ")+":"+nm+":.");
+  }
 
   function onWA(d){
     if(d.ok&&pendW!==null){ myPwH=pendW; save("chat_pwh",myPwH); }
@@ -4043,7 +4090,7 @@ label.plus.open{transform:rotate(45deg)}
   const ab=document.createElement("button"); ab.id="admbtn"; ab.className="stg-btn"; ab.type="button"; ab.textContent="🛡 Admin panel"; ab.style.display="none";
   document.querySelector(".stg-sb").insertBefore(ab,$("stg-toggle"));
   const am=document.createElement("div"); am.id="amod";
-  am.innerHTML='<div class="acard"><div class="ah"><b>🛡 Admin panel</b><button type="button" id="amx" title="Close">✕</button></div><div id="amsg"></div><div id="amb"><div><h4>Public announcement</h4><div class="aform"><textarea id="amant" rows="2" maxlength="300" placeholder="Message to show everyone…"></textarea><button class="abtn" type="button" id="amanb">📢 Announce</button></div></div><div><h4>Quick actions</h4><button class="abtn scare" type="button" id="amscall">👻 Jumpscare everyone</button> <button class="abtn" type="button" id="amscpv">Preview</button> <button class="abtn red" type="button" id="ammall">🔇 Mute everyone (except admins)</button></div><div><h4>Chat log → Google Doc</h4><div class="aform"><input id="amlgu" type="text" placeholder="Paste your Apps Script web app URL (ends in /exec)" autocomplete="off"><button class="abtn" type="button" id="amlgsv">Save</button></div><div class="aform" style="margin-top:6px"><button class="abtn" type="button" id="amlgt">Send test line</button><button class="abtn" type="button" id="amlgo">⏸ Pause logging</button></div><div class="none" id="amlgst"></div></div><div><h4>Moderators</h4><div class="aform"><input id="ammodn" type="text" maxlength="12" placeholder="Name to make a mod" autocomplete="off"><button class="abtn" type="button" id="ammodb">➕ Add mod</button></div><div class="none">Mods can delete other people’s messages and make announcements. Names are protected by their owner’s password (🔒), so only that person can be the mod.</div><div id="ammods" style="margin-top:6px"></div></div><div><h4>🏷 Tab names &amp; icons</h4><div id=\"amtn\"></div></div><div><h4>😈 Trolls</h4><div id=\"amtr\"></div></div><div><h4>Online now</h4><div id="amon"></div></div><div><h4>Muted names</h4><div id="ammu"></div></div><div><h4>Banned names</h4><div id="ambn"></div><div class="aform" style="margin-top:6px"><input id="amban" type="text" maxlength="12" placeholder="Name to ban"><button class="abtn red" type="button" id="ambanb">Ban name</button></div></div><div><h4>Set or reset a password for any name</h4><div class="aform"><input id="ampn" type="text" maxlength="12" placeholder="Name"><input id="ampp" type="text" placeholder="New password (min 4 characters)" autocomplete="off"><button class="abtn" type="button" id="ampb">Apply</button></div></div><div><h4>Clear a channel for everyone</h4><div class="aform"><select id="amch"><option value="main">💬 Main chat</option><option value="gal">🖼️ Image gallery</option><option value="shame">🚨 Hall of Shame</option><option value="draw">🎨 Drawing board</option></select><button class="abtn red" type="button" id="amclr">🗑 Clear this channel</button></div><div class="none">Only the selected channel is cleared. Private chats are never touched.</div></div></div></div>';
+  am.innerHTML='<div class="acard"><div class="ah"><b>🛡 Admin panel</b><button type="button" id="amx" title="Close">✕</button></div><div id="amsg"></div><div id="amb"><div><h4>Public announcement</h4><div class="aform"><textarea id="amant" rows="2" maxlength="300" placeholder="Message to show everyone…"></textarea><button class="abtn" type="button" id="amanb">📢 Announce</button></div></div><div><h4>Quick actions</h4><button class="abtn scare" type="button" id="amscall">👻 Jumpscare everyone</button> <button class="abtn" type="button" id="amscpv">Preview</button> <button class="abtn red" type="button" id="ammall">🔇 Mute everyone (except admins)</button></div><div><h4>Chat log → Google Doc</h4><div class="aform"><input id="amlgu" type="text" placeholder="Paste your Apps Script web app URL (ends in /exec)" autocomplete="off"><button class="abtn" type="button" id="amlgsv">Save</button></div><div class="aform" style="margin-top:6px"><button class="abtn" type="button" id="amlgt">Send test line</button><button class="abtn" type="button" id="amlgo">⏸ Pause logging</button></div><div class="none" id="amlgst"></div></div><div><h4>Moderators</h4><div class="aform"><input id="ammodn" type="text" maxlength="12" placeholder="Name to make a mod" autocomplete="off"><button class="abtn" type="button" id="ammodb">➕ Add mod</button></div><div class="none">Mods can delete other people’s messages and make announcements. Names are protected by their owner’s password (🔒), so only that person can be the mod.</div><div id="ammods" style="margin-top:6px"></div></div><div><h4>🏷 Tab names &amp; icons</h4><div id=\"amtn\"></div></div><div><h4>⭐ Custom emojis &amp; stickers</h4><div id=\"amce\"></div></div><div><h4>😈 Trolls</h4><div id=\"amtr\"></div></div><div><h4>Online now</h4><div id="amon"></div></div><div><h4>Muted names</h4><div id="ammu"></div></div><div><h4>Banned names</h4><div id="ambn"></div><div class="aform" style="margin-top:6px"><input id="amban" type="text" maxlength="12" placeholder="Name to ban"><button class="abtn red" type="button" id="ambanb">Ban name</button></div></div><div><h4>Set or reset a password for any name</h4><div class="aform"><input id="ampn" type="text" maxlength="12" placeholder="Name"><input id="ampp" type="text" placeholder="New password (min 4 characters)" autocomplete="off"><button class="abtn" type="button" id="ampb">Apply</button></div></div><div><h4>Clear a channel for everyone</h4><div class="aform"><select id="amch"><option value="main">💬 Main chat</option><option value="gal">🖼️ Image gallery</option><option value="shame">🚨 Hall of Shame</option><option value="draw">🎨 Drawing board</option></select><button class="abtn red" type="button" id="amclr">🗑 Clear this channel</button></div><div class="none">Only the selected channel is cleared. Private chats are never touched.</div></div></div></div>';
   document.body.appendChild(am);
   function note(t){ const e=$("amsg"); if(e) e.textContent=t; const m=$("mmsg"); if(m) m.textContent=t; }
   function adminDo(m){
@@ -4173,7 +4220,7 @@ label.plus.open{transform:rotate(45deg)}
   $("ammodn").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); addModNow(); } });
 
   const mm=document.createElement("div"); mm.id="mmod";
-  mm.innerHTML='<div class="acard"><div class="ah"><b>🛡 Mod panel</b><button type="button" id="mmx" title="Close">✕</button></div><div id="mmsg"></div><div id="mmb"><div><h4>Public announcement</h4><div class="aform"><textarea id="mmant" rows="2" maxlength="300" placeholder="Message to show everyone…"></textarea><button class="abtn" type="button" id="mmanb">📢 Announce</button></div></div><div><h4>😈 Trolls</h4><div id=\"mmtr\"></div></div><div><h4>Deleting messages</h4><div class="none">Hover over any message (or tap it on a phone) and press the 🗑 button to delete it for everyone.</div></div></div></div>';
+  mm.innerHTML='<div class="acard"><div class="ah"><b>🛡 Mod panel</b><button type="button" id="mmx" title="Close">✕</button></div><div id="mmsg"></div><div id="mmb"><div><h4>Public announcement</h4><div class="aform"><textarea id="mmant" rows="2" maxlength="300" placeholder="Message to show everyone…"></textarea><button class="abtn" type="button" id="mmanb">📢 Announce</button></div></div><div><h4>⭐ Custom emojis &amp; stickers</h4><div id=\"mmce\"></div></div><div><h4>😈 Trolls</h4><div id=\"mmtr\"></div></div><div><h4>Deleting messages</h4><div class="none">Hover over any message (or tap it on a phone) and press the 🗑 button to delete it for everyone.</div></div></div></div>';
   document.body.appendChild(mm);
   function modDo(m){
     if(isHost) procMod(m,{reply:r=>note(r.msg)});
@@ -4344,6 +4391,134 @@ label.plus.open{transform:rotate(45deg)}
     rs.onclick=()=>{ adminDo({a:"tabs",tn:{}}); setTimeout(fill,400); };
     fill();
     new MutationObserver(()=>{ if($("amod").classList.contains("open")) fill(); }).observe($("amod"),{attributes:true,attributeFilter:["class"]});
+  })();
+
+  /* =============== ⭐ custom emojis + stickers: show them, pick them, make them =============== */
+  (function(){
+    const css=document.createElement("style");
+    css.textContent=".cemo{width:1.45em;height:1.45em;vertical-align:-.32em;object-fit:contain;margin:0 1px}"
+      +".bubble.jumbo .cemo{width:46px;height:46px;vertical-align:middle}"
+      +".img.stk{max-width:150px;max-height:150px;cursor:default;background:none;border-radius:0}"
+      +"#emo-grid span.cepick{width:40px;height:40px}#emo-grid span.cepick img{width:28px;height:28px;object-fit:contain;pointer-events:none}"
+      +"#emo-grid span.stpick{width:78px;height:78px}#emo-grid span.stpick img{width:68px;height:68px;object-fit:contain;pointer-events:none}"
+      +"#emo-grid .sech{width:100%;font-size:11px;font-weight:700;color:#5f6368;padding:6px 6px 2px;text-transform:uppercase;letter-spacing:.5px}"
+      +".cebox .cerow{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:13px}"
+      +".cebox .cerow img{width:30px;height:30px;object-fit:contain;border-radius:6px;background:rgba(127,127,127,.15);flex:none}"
+      +".cebox .cerow b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}"
+      +".cebox .cepv{width:34px;height:34px;object-fit:contain;border-radius:6px;background:rgba(127,127,127,.15)}";
+    document.head.appendChild(css);
+
+    const RE=/:([a-z0-9_]{2,20}):/g;
+    function paint(bub){
+      const text=bub._raw==null?bub.textContent:bub._raw, ce=reg.ce||{};
+      let used=0, last=0, m, frag=null;
+      if(text.indexOf(":")>=0&&Object.keys(ce).length){
+        frag=document.createDocumentFragment(); RE.lastIndex=0;
+        while((m=RE.exec(text))){
+          const c=ce[m[1]]; if(!c||c.k!=="e") continue;
+          if(m.index>last) frag.append(text.slice(last,m.index));
+          const im=document.createElement("img"); im.className="cemo"; im.src=c.im; im.alt=":"+m[1]+":"; im.title=":"+m[1]+":"; frag.appendChild(im);
+          last=RE.lastIndex; used++;
+        }
+        if(last<text.length) frag.append(text.slice(last));
+      }
+      if(!used){ if(bub.childElementCount||bub.textContent!==text) bub.textContent=text; bub.classList.remove("jumbo"); return; }
+      bub.replaceChildren(frag);
+      const only=text.replace(RE,(x,n)=>(ce[n]&&ce[n].k==="e")?"":x).trim()==="";
+      bub.classList.toggle("jumbo",only&&used<=5);
+    }
+    window.fillBubble=(bub,text)=>{ bub._raw=text; paint(bub); };
+
+    const tabs=$("emo-tabs"), grid=$("emo-grid"), title=$("emo-title"), foot=$("emo-foot");
+    const ct=document.createElement("span"); ct.textContent="⭐"; ct.dataset.g="ce"; ct.title="Custom emojis & stickers"; tabs.appendChild(ct);
+    function fillCE(){
+      grid.replaceChildren();
+      const ce=reg.ce||{}, names=Object.keys(ce).sort(), em=names.filter(n=>ce[n].k==="e"), st=names.filter(n=>ce[n].k==="s");
+      const sec=t=>{ const d=document.createElement("div"); d.className="sech"; d.textContent=t; grid.appendChild(d); };
+      if(!names.length){ const n=document.createElement("div"); n.className="none"; n.textContent="No custom emojis or stickers yet. Mods and admins can add them from their panel."; grid.appendChild(n); return; }
+      if(em.length){ sec("Emojis");
+        em.forEach(n=>{ const sp=document.createElement("span"); sp.className="cepick"; const im=document.createElement("img"); im.src=ce[n].im; im.alt=":"+n+":"; sp.appendChild(im);
+          sp.onmouseenter=()=>{ foot.textContent=":"+n+":"; };
+          sp.onclick=()=>{ if(window.__rxPick){ sys("Custom emojis can only go in messages, not reactions."); return; } insertAtCursor(":"+n+": "); };
+          grid.appendChild(sp); }); }
+      if(st.length){ sec("Stickers");
+        st.forEach(n=>{ const sp=document.createElement("span"); sp.className="stpick"; const im=document.createElement("img"); im.src=ce[n].im; im.alt=":"+n+":"; sp.appendChild(im);
+          sp.onmouseenter=()=>{ foot.textContent="Sticker :"+n+":"; };
+          sp.onclick=()=>{ if(window.__rxPick) return; setShown($("emo-panel"),false,"flex"); postMsg(ce[n].im,1,0,{stk:1}); };
+          grid.appendChild(sp); }); }
+    }
+    ct.onclick=()=>{ [...tabs.children].forEach(t=>t.classList.toggle("on",t===ct)); $("emo-q").value=""; title.textContent="Custom"; fillCE(); grid.scrollTop=0; foot.textContent=Object.keys(reg.ce||{}).length+" custom"; };
+
+    function ceImg(f,type,cb){
+      const url=URL.createObjectURL(f), im=new Image();
+      im.onload=()=>{
+        URL.revokeObjectURL(url);
+        const side=Math.min(im.width,im.height)||1, sx=(im.width-side)/2, sy=(im.height-side)/2;
+        for(const size of (type==="s"?[160,128,96,64]:[64,48,32])){
+          const c=document.createElement("canvas"); c.width=c.height=size; c.getContext("2d").drawImage(im,sx,sy,side,side,0,0,size,size);
+          let d=c.toDataURL("image/webp",0.9); if(!d.startsWith("data:image/webp")) d=c.toDataURL("image/png");
+          if(okCImg(d)){ cb(d); return; }
+        }
+        cb("");
+      };
+      im.onerror=()=>{ URL.revokeObjectURL(url); cb(""); };
+      im.src=url;
+    }
+
+    const lists=[];
+    function buildCE(host,isAdm){
+      host.classList.add("cebox");
+      const send=m=>{ if(isAdm) adminDo(m); else modDo(m); };
+      const top=document.createElement("div"); top.className="aform"; top.style.marginBottom="6px";
+      const nm=document.createElement("input"); nm.type="text"; nm.maxLength=20; nm.placeholder="name (a-z, 0-9, _)";
+      nm.oninput=()=>{ nm.value=nm.value.toLowerCase().replace(/[^a-z0-9_]/g,"_"); };
+      const ty=document.createElement("select"); ty.innerHTML='<option value="e">😀 Emoji (inline)</option><option value="s">🖼 Sticker (sent alone)</option>';
+      top.append(nm,ty);
+      const mid=document.createElement("div"); mid.className="aform"; mid.style.marginBottom="6px";
+      const pick=document.createElement("button"); pick.type="button"; pick.className="abtn"; pick.textContent="🖼 Choose picture";
+      const pv=document.createElement("img"); pv.className="cepv"; pv.style.display="none"; pv.alt="";
+      const add=document.createElement("button"); add.type="button"; add.className="abtn"; add.textContent="➕ Add";
+      const fi=document.createElement("input"); fi.type="file"; fi.accept="image/*"; fi.hidden=true;
+      mid.append(pick,pv,add,fi);
+      const st=document.createElement("div"); st.className="none"; st.style.margin="2px 0 6px";
+      st.textContent="Emojis are used by typing :name: (or the ⭐ tab). Stickers are sent as big pictures from the ⭐ tab.";
+      const list=document.createElement("div");
+      host.append(top,mid,st,list);
+      let im="", file=null;
+      const crop=()=>{ if(!file) return; ceImg(file,ty.value,d=>{ im=d; if(d){ pv.src=d; pv.style.display=""; st.textContent=""; } else { pv.style.display="none"; st.textContent="Couldn't use that picture — try another."; } }); };
+      pick.onclick=()=>fi.click();
+      fi.onchange=()=>{ file=fi.files&&fi.files[0]||null; fi.value=""; crop(); };
+      ty.onchange=crop;
+      add.onclick=()=>{
+        const n=nm.value.trim();
+        if(!/^[a-z0-9_]{2,20}$/.test(n)){ st.textContent="Give it a name: 2–20 letters, numbers or _."; return; }
+        if(!im){ st.textContent="Choose a picture first."; return; }
+        send({a:"ce",op:"add",nm:n,ty:ty.value,im}); nm.value=""; im=""; file=null; pv.style.display="none"; st.textContent="Sending…";
+      };
+      function render(){
+        const ce=reg.ce||{}, me=low(usr), names=Object.keys(ce).sort();
+        list.replaceChildren();
+        if(!names.length){ const d=document.createElement("div"); d.className="none"; d.textContent="None yet."; list.appendChild(d); return; }
+        names.forEach(n=>{
+          const c=ce[n], r=document.createElement("div"); r.className="cerow";
+          const i=document.createElement("img"); i.src=c.im; i.alt="";
+          const b=document.createElement("b"); b.textContent=":"+n+":"+(c.k==="s"?" · sticker":"");
+          r.append(i,b);
+          if(isAdm||c.by===me){ const x=document.createElement("button"); x.type="button"; x.className="abtn red"; x.textContent="✕"; x.title="Remove"; x.onclick=()=>send({a:"ce",op:"del",nm:n}); r.appendChild(x); }
+          list.appendChild(r);
+        });
+      }
+      lists.push(render); render();
+    }
+    buildCE($("amce"),true); buildCE($("mmce"),false);
+
+    let sig=null;
+    setInterval(()=>{
+      const ce=reg.ce||{}, s=Object.keys(ce).sort().map(k=>k+ce[k].k+ce[k].by+ce[k].im.length).join("|");
+      if(s===sig) return; sig=s;
+      document.querySelectorAll("#box .bubble[data-bubble]").forEach(b=>{ if(b._raw!=null) paint(b); });
+      lists.forEach(f=>f()); if(ct.classList.contains("on")) fillCE();
+    },800);
   })();
 
   /* =============== 😈 troll buttons (admin panel + mod panel) =============== */
@@ -5100,12 +5275,34 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
   const _leave = window.__leave; let tries = 0, joined = false;
   const _setStatus = setStatus;
   setInterval(() => { if(window.__hubUp && window.__hubUp() && (isHost || conns.some(c => c.open))){ joined = true; tries = 0; } }, 1000);
-  window.__leave = function(msg){
-    if(joined && tries < 6 && /^Disconnected from the room|^You went offline/.test(msg || "")){
-      tries++; _setStatus("Connection lost — reconnecting (" + tries + ")…");
+  /* quiet handover: no "friend left/joined" noise, no scary status, and a fixed order decides who takes over
+     (lowest id first) so the new host is up in about a second instead of everyone racing at random */
+  const _sys = sys;
+  sys = function(t){
+    if(window.__hoQuiet && Date.now() < window.__hoQuiet && /^(A friend (left|joined)\.|Connected to the room\.|You opened the room)/.test(String(t))) return;
+    return _sys.apply(this, arguments);
+  };
+  const rankDelay = () => {
+    const ids = ((window.__rosterSnap && window.__rosterSnap.length ? window.__rosterSnap : lastRoster) || []).map(e => e.c).filter(Boolean).sort();
+    return 300 + Math.max(0, ids.indexOf(uid)) * 450 + Math.random() * 300;
+  };
+  window.__hoRestart = function(){
+    if(window.__hoPending) return; window.__hoPending = true;
+    setTimeout(() => {
+      window.__hoPending = false;
+      if(isHost || conns.some(c => c.open)) return;
       try { peer && peer.destroy(); } catch(e){}
       peer = null; conns = []; isHost = false;
-      setTimeout(() => { try { connect(); } catch(e){} }, 1500 + Math.random() * 2500 * tries);
+      try { connect(); } catch(e){}
+    }, 1000 + rankDelay());
+  };
+  window.__leave = function(msg){
+    if(joined && tries < 15 && /^Disconnected from the room|^You went offline/.test(msg || "")){
+      tries++; _setStatus("Online — reconnecting…");
+      window.__hoQuiet = Date.now() + 25000; window.__pbResync = true;
+      try { peer && peer.destroy(); } catch(e){}
+      peer = null; conns = []; isHost = false;
+      setTimeout(() => { try { connect(); } catch(e){} }, rankDelay() + Math.min(tries, 6) * 300);
       return;
     }
     _leave(msg);
