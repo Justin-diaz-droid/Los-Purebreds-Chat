@@ -600,7 +600,7 @@
   <div class="gside">
     <h1>Los Purebred's</h1>
     <p class="sub">Unification initiation</p>
-    <div id="gver">Version 0.3.0</div>
+    <div id="gver">Version 0.3.1</div>
     <div class="logo lp"></div>
   </div>
   <div class="card">
@@ -3519,14 +3519,14 @@ label.plus.open{transform:rotate(45deg)}
   const okCImg=x=>typeof x==="string"&&x.length<=40000&&/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+\/=]+$/.test(x);   // custom emoji / sticker pictures
   const okTImg=x=>typeof x==="string"&&x.length<=40000&&/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+\/=]+$/.test(x);   // room icons: small png/jpeg/webp pictures only
   function cleanReg(r){
-    const o={acc:{},bans:[],mutes:[],mods:[],adms:[],hid:[],mto:false,tn:{},ce:{},cls:0,clr:0,clg:0,muteAll:false,v:0}; if(!r||typeof r!=="object") return o;
+    const o={acc:{},bans:[],mutes:[],mods:[],adms:[],hid:[],mto:false,mao:false,tn:{},ce:{},cls:0,clr:0,clg:0,muteAll:false,v:0}; if(!r||typeof r!=="object") return o;
     if(r.acc&&typeof r.acc==="object") Object.keys(r.acc).slice(0,500).forEach(k=>{ if(k&&k.length<=12&&k!=="__proto__"&&HEX.test(String(r.acc[k]))) o.acc[k]=r.acc[k]; });
     if(Array.isArray(r.bans)) o.bans=[...new Set(r.bans.map(x=>String(x).slice(0,12).toLowerCase()).filter(Boolean))].slice(0,500);
     if(Array.isArray(r.mutes)) o.mutes=[...new Set(r.mutes.map(x=>String(x).slice(0,12).toLowerCase()).filter(Boolean))].slice(0,500);
     if(Array.isArray(r.mods)) o.mods=[...new Set(r.mods.map(x=>String(x).slice(0,12).toLowerCase()).filter(Boolean))].slice(0,50);
     if(Array.isArray(r.adms)) o.adms=[...new Set(r.adms.map(x=>String(x).slice(0,12).toLowerCase()).filter(Boolean))].slice(0,50);
     if(Array.isArray(r.hid)) o.hid=[...new Set(r.hid.map(x=>String(x).slice(0,12).toLowerCase()).filter(Boolean))].slice(0,100);
-    o.mto=!!r.mto;
+    o.mto=!!r.mto; o.mao=!!r.mao;
     if(r.tn&&typeof r.tn==="object"){
       let tot=0;
       ["app","main","gal","shame","draw"].forEach(k=>{
@@ -3549,7 +3549,7 @@ label.plus.open{transform:rotate(45deg)}
   }
   let reg=cleanReg((()=>{try{return JSON.parse(load("pb_reg","{}"));}catch(e){return {};}})());
   const saveReg=()=>save("pb_reg",JSON.stringify(reg));
-  const areg=()=>({t:"A",i:newId(),acc:reg.acc,bans:reg.bans,mutes:reg.mutes,mods:reg.mods,adms:adminNames(),hid:reg.hid,mto:reg.mto,tn:reg.tn,ce:reg.ce,cls:reg.cls,clr:reg.clr,clg:reg.clg,muteAll:reg.muteAll,v:reg.v});
+  const areg=()=>({t:"A",i:newId(),acc:reg.acc,bans:reg.bans,mutes:reg.mutes,mods:reg.mods,adms:adminNames(),hid:reg.hid,mto:reg.mto,mao:reg.mao,tn:reg.tn,ce:reg.ce,cls:reg.cls,clr:reg.clr,clg:reg.clg,muteAll:reg.muteAll,v:reg.v});
   function adminNames(){ const a=conns.filter(c=>c.ok2&&c.admin&&c.userName).map(c=>low(c.userName)); if(adminMode&&usr) a.push(low(usr)); return [...new Set(a)]; }
   reg.muteAll=false;
   let myPwH="", adminMode=false, pendW=null;
@@ -3673,11 +3673,15 @@ label.plus.open{transform:rotate(45deg)}
       if(!adminMode&&low(usr)===l) sys("You're no longer a moderator.");
       say('"'+l+'" is no longer a mod.');
     }
+    else if(m.a==="annmod"){
+      reg.mao=!!m.off; commit();
+      say(reg.mao?"⛔ Mod announcements are OFF. Mods can't announce.":"✅ Mod announcements are ON.");
+    }
     else if(m.a==="announce"){
-      const text=String(m.text||"").trim().slice(0,300), by=String(m.n||"Admin").slice(0,12);
+      const text=String(m.text||"").trim().slice(0,300), by=String(m.n||"Admin").slice(0,12), dur=annDur(m.dur), col=annCol(m.col);
       if(!text) return say("Type an announcement first.");
-      conns.forEach(c=>{ if(c.ok2){ try{ c.send({t:"AN",i:newId(),n:by,msg:text}); }catch(e){} } });
-      showAnnounce(by,text);
+      conns.forEach(c=>{ if(c.ok2){ try{ c.send({t:"AN",i:newId(),n:by,msg:text,dur,col}); }catch(e){} } });
+      showAnnounce(by,text,dur,col);
       say("📢 Announcement sent to everyone.");
     }
     else if(m.a==="scare"){
@@ -3715,13 +3719,14 @@ label.plus.open{transform:rotate(45deg)}
     if(f.conn&&(!f.conn.ok2||f.conn.denied)) return;
     if(!reg.mods.includes(low(name))) return say("You're not a moderator.");
     if(m.a==="announce"){
-      const text=String(m.text||"").trim().slice(0,300); if(!text) return say("Type an announcement first.");
+      if(reg.mao) return say("Admins have turned mod announcements off");
+      const text=String(m.text||"").trim().slice(0,300), dur=annDur(m.dur), col=annCol(m.col); if(!text) return say("Type an announcement first.");
       const h=f.conn||modSelf, now=Date.now();
       if(now-(h.anAt||0)<5000) return say("Wait a few seconds between announcements.");
       h.anAt=now;
       const by=String(name).slice(0,12);
-      conns.forEach(c=>{ if(c.ok2){ try{ c.send({t:"AN",i:newId(),n:by,msg:text}); }catch(e){} } });
-      showAnnounce(by,text);
+      conns.forEach(c=>{ if(c.ok2){ try{ c.send({t:"AN",i:newId(),n:by,msg:text,dur,col}); }catch(e){} } });
+      showAnnounce(by,text,dur,col);
       say("📢 Announcement sent to everyone.");
     }
     else if(m.a==="ce") ceOp(m,f,false,say,name);
@@ -3975,7 +3980,7 @@ label.plus.open{transform:rotate(45deg)}
       if(d.t==="E"){ note(String(d.msg||"").slice(0,200)); sys(String(d.msg||"").slice(0,200)); return; }
       if(d.t==="WA"){ onWA(d); return; }
       if(d.t==="JS"){ jumpscare(); return; }
-      if(d.t==="AN"){ showAnnounce(d.n,d.msg); return; }
+      if(d.t==="AN"){ showAnnounce(d.n,d.msg,annDur(d.dur),annCol(d.col)); return; }
       if(d.t==="PV"){ applyPrefs(d); return; }
       if(d.t==="UD"){ if(okUid(d.u)&&d.u!==uid){ uid=d.u; save("chat_uid",uid); rerender(); announce(); } return; }
       if(d.t==="TR"){ runFx(d.k); return; }
@@ -4074,7 +4079,23 @@ label.plus.open{transform:rotate(45deg)}
   card.innerHTML='<h3>🔑 Password</h3><div class="stg-note" id="pwst"></div><label>New password (at least 4 characters)</label><input type="password" id="pwnew" autocomplete="new-password"><div class="stg-row"><button id="pwset" type="button" class="btn">Set password</button><button id="pwrm" type="button" class="btn alt">Remove password</button></div><div class="stg-note">Protects your name so nobody else can use it. If you forget it, an admin can reset it.</div>';
   document.querySelector(".stg-scroll").appendChild(card);
   $("pwrm").style.display="none";
+  const DURS=[[5,"5 seconds"],[10,"10 seconds"],[30,"30 seconds"],[60,"1 minute"],[300,"5 minutes"],[900,"15 minutes"],[3600,"1 hour"],[0,"Until dismissed"]];
+  function annUI(){
+    [["amant","amdur","amanb"],["mmant","mmdur","mmanb"]].forEach(([ta,id,btn])=>{
+      const t=$(ta), b=$(btn); if(!t||!b) return;
+      if(!$(id)){ const sel=document.createElement("select"); sel.id=id; sel.title="How long the announcement stays on screen"; sel.style.cssText="padding:7px 8px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--text);font-size:13px";
+        DURS.forEach(([v,l])=>{ const o=document.createElement("option"); o.value=v; o.textContent="⏱ "+l; sel.appendChild(o); }); b.before(sel);
+        const ci=document.createElement("input"); ci.type="color"; ci.id=id.replace("dur","col"); ci.value="#ffd60a"; ci.title="Announcement color"; ci.style.cssText="width:38px;height:32px;padding:0;border:none;background:none;cursor:pointer"; b.before(ci); }
+    });
+    const ab=$("amanb");
+    if(ab&&!$("amao")){ const sw=document.createElement("button"); sw.id="amao"; sw.type="button"; sw.className="abtn"; sw.style.marginTop="6px"; sw.onclick=()=>adminDo({a:"annmod",off:!reg.mao}); ab.parentNode.appendChild(sw); }
+    if($("amao")) $("amao").textContent=reg.mao?"✅ Let mods announce again":"⛔ Stop mods from announcing";
+    const mb=$("mmanb"), mt=$("mmant");
+    if(mb&&mt){ mb.disabled=!!reg.mao; mt.disabled=!!reg.mao; if($("mmdur")) $("mmdur").disabled=!!reg.mao; if($("mmcol")) $("mmcol").disabled=!!reg.mao;
+      mt.placeholder=reg.mao?"Admins have turned mod announcements off":"Message to show everyone…"; }
+  }
   function refreshUI(){
+    try{ annUI(); }catch(e){}
     const st=$("pwst"); if(st&&!pendW) st.textContent=own(reg.acc,low(usr))?"🔒 Your name “"+usr+"” is password-protected.":"No password yet — anyone could use the name “"+usr+"”.";
     renderAdminLists();
     if(window.__pbTabs) window.__pbTabs();
@@ -4112,7 +4133,9 @@ label.plus.open{transform:rotate(45deg)}
 
   /* =============== 📢 public announcements =============== */
   let anTimer=null;
-  function showAnnounce(by,msg){
+  function annDur(v){ v=+v; return v===0?0:(isFinite(v)&&v>=1?Math.min(3600,Math.round(v)):5); }   // seconds; 0 = stays until dismissed
+  function annCol(c){ return /^#[0-9a-f]{6}$/i.test(c||"")?c:""; }
+  function showAnnounce(by,msg,dur,col){
     msg=String(msg||"").slice(0,300); if(!msg) return;
     by=String(by||"Admin").slice(0,12);
     let b=document.getElementById("anb");
@@ -4122,9 +4145,13 @@ label.plus.open{transform:rotate(45deg)}
       b.querySelector("button").onclick=()=>{ b.classList.remove("on"); clearTimeout(anTimer); };
       document.body.appendChild(b);
     }
+    col=annCol(col);
+    if(col){ const n=parseInt(col.slice(1),16), L=(0.2126*(n>>16&255)+0.7152*(n>>8&255)+0.0722*(n&255))/255;
+      b.style.background="linear-gradient(135deg,"+col+",color-mix(in srgb,"+col+" 70%,#000))"; b.style.color=L>0.6?"#000":"#fff"; }
+    else { b.style.background=""; b.style.color=""; }
     b.querySelector(".anh").textContent="Announcement from "+by;
     b.querySelector(".anm").textContent=msg;
-    b.classList.add("on"); clearTimeout(anTimer); anTimer=setTimeout(()=>b.classList.remove("on"),5000);
+    b.classList.add("on"); clearTimeout(anTimer); dur=(dur===undefined)?5:annDur(dur); if(dur>0) anTimer=setTimeout(()=>b.classList.remove("on"),dur*1000);
     try{ sys("📢 Announcement from "+by+": "+msg); }catch(e){}
   }
 
@@ -4215,7 +4242,7 @@ label.plus.open{transform:rotate(45deg)}
     else adminDo({a:"clear",ch});
   };
   $("ammall").onclick=()=>adminDo({a:reg.muteAll?"unmuteall":"muteall"});
-  $("amanb").onclick=()=>{ const t=$("amant").value.trim(); if(!t){ note("Type an announcement first."); return; } adminDo({a:"announce",text:t,n:usr}); $("amant").value=""; };
+  $("amanb").onclick=()=>{ const t=$("amant").value.trim(); if(!t){ note("Type an announcement first."); return; } adminDo({a:"announce",text:t,n:usr,dur:+(($("amdur")||{}).value||5),col:($("amcol")||{}).value}); $("amant").value=""; };
   $("amant").addEventListener("keydown",e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); $("amanb").click(); } });
   $("amscall").onclick=()=>{ if(confirm("Jumpscare everyone (except admins) for 5 seconds?")) adminDo({a:"scare",u:"all"}); };
   $("amscpv").onclick=()=>{ note("Previewing on your screen…"); jumpscare(); };
@@ -4299,7 +4326,7 @@ label.plus.open{transform:rotate(45deg)}
     if(isHost) procMod(m,{reply:r=>note(r.msg)});
     else { m.t="MD"; m.i=newId(); send(m); }
   }
-  $("mmanb").onclick=()=>{ const t=$("mmant").value.trim(); if(!t){ note("Type an announcement first."); return; } modDo({a:"announce",text:t}); $("mmant").value=""; };
+  $("mmanb").onclick=()=>{ const t=$("mmant").value.trim(); if(!t){ note("Type an announcement first."); return; } if(reg.mao){ note("Admins have turned mod announcements off"); return; } modDo({a:"announce",text:t,dur:+(($("mmdur")||{}).value||5),col:($("mmcol")||{}).value}); $("mmant").value=""; };
   $("mmx").onclick=()=>mm.classList.remove("open");
   mm.addEventListener("mousedown",e=>{ if(e.target===mm) mm.classList.remove("open"); });
   const mbt=document.createElement("button"); mbt.id="modbtn"; mbt.className="stg-btn"; mbt.type="button"; mbt.textContent="🛡 Mod panel"; mbt.style.display="none";
