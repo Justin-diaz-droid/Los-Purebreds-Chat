@@ -600,7 +600,7 @@
     <button id="g-go">Join chat</button>
     <a class="goback" href="https://docs.google.com/document/d/1oa90mU-jYczqySulirTvHqqNWTSaNwPGnnArgBdVGrs/edit?tab=t.pqncc0vmsgzp" rel="noopener">← Go back</a>
   </div>
-  <div id="gver">Version 0.1.9</div>
+  <div id="gver">Version 0.2.1</div>
 </div>
 
 <div id="sb">
@@ -3036,6 +3036,9 @@ label.plus.open{transform:rotate(45deg)}
 .pollcard .pq{font-size:16px;font-weight:700;line-height:1.3;margin-bottom:2px;word-break:break-word}
 .pollcard .ps{font-size:12px;color:var(--muted);margin-bottom:10px}
 .pollcard .popt{position:relative;display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;margin-bottom:6px;padding:10px 12px;border:1.5px solid var(--line);border-radius:12px;background:transparent;color:inherit;font-size:14px;font-weight:600;text-align:left;cursor:pointer;overflow:hidden}
+.pollcard .popt-g{margin-bottom:6px}
+.pollcard .popt-g .popt{margin-bottom:0}
+.pollcard .pv{font-size:11px;color:var(--muted);margin:3px 4px 0;line-height:1.3;word-break:break-word}
 .pollcard .popt.mine{border-color:var(--accent)}
 .pollcard .popt[disabled]{cursor:default}
 .pollcard .popt .fill{position:absolute;left:0;top:0;bottom:0;background:var(--accent);opacity:.2;transition:width .3s}
@@ -3125,7 +3128,13 @@ label.plus.open{transform:rotate(45deg)}
       const n = document.createElement("span"); n.className = "n"; n.textContent = by[k].length + " · " + pct + "%";
       b.title = by[k].length ? by[k].map(u => (typeof rxNames === "function" ? rxNames([u]) : u)).join(", ") : "No votes yet";
       b.append(f, lb, n); b.onclick = ev => { ev.stopPropagation(); vote(l.i, k); };
-      return b;
+      const g = document.createElement("div"); g.className = "popt-g"; g.appendChild(b);
+      if(by[k].length){
+        const pv = document.createElement("div"); pv.className = "pv";
+        pv.textContent = by[k].map(u => u === uid ? "You" : (typeof rxNames === "function" ? rxNames([u]) : u)).join(", ");
+        g.appendChild(pv);
+      }
+      return g;
     });
     const ft = document.createElement("div"); ft.className = "pf"; ft.textContent = total + (total === 1 ? " vote" : " votes") + (ended ? " · Poll closed" : "");
     card.replaceChildren(q, sub, ...opts, ft);
@@ -4492,8 +4501,9 @@ label.plus.open{transform:rotate(45deg)}
       const pick=document.createElement("button"); pick.type="button"; pick.className="abtn"; pick.textContent="🖼 Choose picture";
       const pv=document.createElement("img"); pv.className="cepv"; pv.style.display="none"; pv.alt="";
       const add=document.createElement("button"); add.type="button"; add.className="abtn"; add.textContent="➕ Add";
-      const fi=document.createElement("input"); fi.type="file"; fi.accept="image/*"; fi.hidden=true;
-      mid.append(pick,pv,add,fi);
+      const fi=document.createElement("input"); fi.type="file"; fi.accept="image/*"; fi.style.display="none";
+      mid.append(pick,pv,add);
+      host.appendChild(fi);   // must live in the page or Safari / iOS ignore .click()
       const st=document.createElement("div"); st.className="none"; st.style.margin="2px 0 6px";
       st.textContent="Emojis are used by typing :name: (or the ⭐ tab). Stickers are sent as big pictures from the ⭐ tab.";
       const list=document.createElement("div");
