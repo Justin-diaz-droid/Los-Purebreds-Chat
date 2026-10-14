@@ -600,7 +600,7 @@
   <div class="gside">
     <h1>Los Purebred's</h1>
     <p class="sub">Unification initiation</p>
-    <div id="gver">Version 0.2.9</div>
+    <div id="gver">Version 0.3.0</div>
     <div class="logo lp"></div>
   </div>
   <div class="card">
@@ -6383,7 +6383,8 @@ body[data-theme="pornhub"] #gate .logo{background:#ff9000;color:#000}
 </script>
 <style id="gate-css">
 /* ===== login screen: dark two-column layout ===== */
-#gate#gate{background:#262626 !important;font-family:"Comfortaa","Nunito","Quicksand",system-ui,sans-serif;gap:clamp(16px,4vw,44px);align-items:flex-start;justify-content:center;padding:clamp(16px,6vh,48px) 16px;overflow:hidden;color:#d6d6d6;flex-direction:row}
+#gate#gate{background:#262626 !important;font-family:"Comfortaa","Nunito","Quicksand",system-ui,sans-serif;gap:calc(44px * var(--gs,1));align-items:flex-start;justify-content:center;padding:calc(44px * var(--gs,1)) 16px;overflow:hidden;color:#d6d6d6;flex-direction:row}
+#gate#gate .card,#gate#gate .gside{zoom:var(--gs,1)}
 #gate#gate .card{order:1;background:#383838;border:none;border-radius:40px;box-shadow:none;width:min(246px,100%);padding:22px;gap:12px;flex:0 0 auto;text-align:center;animation:none}
 #gate#gate .fld{gap:6px;align-items:stretch}
 #gate#gate .fld span{font-size:17px;font-weight:400;letter-spacing:.3px;text-transform:none;color:#cfcfcf;text-align:center}
@@ -6397,18 +6398,18 @@ body[data-theme="pornhub"] #gate .logo{background:#ff9000;color:#000}
 #gate#gate .goback{color:#8a8a8a;font-size:12px;text-align:center}
 #gate#gate #gerr{min-height:0}
 #gate#gate .gside{order:2;flex:0 1 340px;display:flex;flex-direction:column;align-items:stretch;gap:16px;min-width:0;text-align:center}
-#gate#gate .gside h1{background:#383838;border-radius:12px;padding:20px 12px;font:400 clamp(24px,3.4vw,32px)/1.1 "Comfortaa","Nunito",system-ui,sans-serif;color:#fff;margin:0;letter-spacing:.5px}
+#gate#gate .gside h1{background:#383838;border-radius:12px;padding:20px 12px;font:400 32px/1.1 "Comfortaa","Nunito",system-ui,sans-serif;color:#fff;margin:0;letter-spacing:.5px}
 #gate#gate .gside h1::before,#gate#gate .gside h1::after{content:none !important}
-#gate#gate .gside .sub{background:#383838;border-radius:12px;padding:10px 12px;margin:0 auto;font:400 clamp(18px,2.6vw,24px)/1.2 "Comfortaa","Nunito",system-ui,sans-serif;color:#fff;width:fit-content;max-width:100%;box-sizing:border-box}
+#gate#gate .gside .sub{background:#383838;border-radius:12px;padding:10px 12px;margin:0 auto;font:400 24px/1.2 "Comfortaa","Nunito",system-ui,sans-serif;color:#fff;width:fit-content;max-width:100%;box-sizing:border-box}
 #gate#gate #gver{position:static;margin:-4px 0 0;font-size:12px;font-weight:400;letter-spacing:.3px;color:#cfcfcf;opacity:.85;text-align:center}
-#gate#gate .logo.lp{position:fixed;right:-1vw;bottom:-6vh;width:min(560px,52vw);height:min(560px,70vh);border-radius:0;background-color:transparent !important;background-image:var(--lp-icon) !important;background-position:bottom right !important;background-size:contain !important;background-repeat:no-repeat !important;margin:0;pointer-events:none;z-index:0}
+#gate#gate .logo.lp{position:fixed;right:-1vw;bottom:-6vh;width:min(52vw,calc(340px * var(--gs,1)));height:min(50vh,calc(250px * var(--gs,1)));border-radius:0;background-color:transparent !important;background-image:var(--lp-icon) !important;background-position:bottom right !important;background-size:contain !important;background-repeat:no-repeat !important;margin:0;pointer-events:none;z-index:0}
 #gate#gate .logo.lp::after{content:none}
 #gate .card,#gate .gside h1,#gate .gside .sub,#gate #gver{position:relative;z-index:1}
 #gadm#gadm{position:fixed;top:auto;bottom:10px;left:10px}
 #gadmbox#gadmbox{position:fixed;top:auto;bottom:44px;left:10px}
 @media (max-width:640px){
   #gate#gate{flex-direction:column;align-items:center;overflow-y:auto}
-  #gate#gate .gside{order:1;flex:0 0 auto;width:min(340px,100%)}
+  #gate#gate .gside{order:1;flex:0 0 auto;width:340px;max-width:100%}
   #gate#gate .card{order:2}
   #gate#gate .logo.lp{display:none}
 }
@@ -6461,5 +6462,141 @@ body[data-theme="ios6"] #sendbtn svg{stroke:#fff}
 body[data-theme="ios6"] #typing:not(:empty){background:transparent;color:#5b6475}
 body[data-theme="ios6"] #replybar *,body[data-theme="ios6"] #dmbar *{color:inherit}
 </style>
+<script id="gate-scale">
+/* login screen scales with the window */
+(function(){
+  const g=document.getElementById("gate"); if(!g) return;
+  function fit(){
+    const w=innerWidth, h=innerHeight;
+    let s = w<=640 ? Math.min(w/380, h/820) : Math.min(w/700, h/540);
+    s = Math.max(.55, Math.min(1.8, s));
+    g.style.setProperty("--gs", s.toFixed(3));
+  }
+  fit(); addEventListener("resize", fit); addEventListener("orientationchange", fit);
+})();
+</script>
+<style id="prof-css">
+#profmod{position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.6)}
+#profmod.on{display:flex}
+#profmod .pcard{width:min(360px,100%);max-height:90vh;overflow:auto;border-radius:16px;background:var(--side);color:var(--text);border:1px solid var(--line);box-shadow:0 16px 50px rgba(0,0,0,.55)}
+#profmod .pban{height:96px;position:relative}
+#profmod .pxx{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;border:none;background:rgba(0,0,0,.45);color:#fff;font-size:14px;cursor:pointer}
+#profmod .pav{position:absolute;left:16px;bottom:-40px;width:84px;height:84px;border-radius:50%;border:6px solid var(--side);display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:800;color:#fff;background-size:cover;background-position:center}
+#profmod .pbody{padding:48px 16px 16px}
+#profmod .pnm{font-size:20px;font-weight:800;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#profmod .ppr{font-size:13px;color:var(--muted);margin-top:2px}
+#profmod .pbadge{font-size:10px;font-weight:800;letter-spacing:.4px;padding:2px 6px;border-radius:4px;background:#ff453a;color:#fff}
+#profmod .pst{margin-top:10px;display:inline-block;font-size:13px;padding:5px 10px;border-radius:999px;background:var(--row)}
+#profmod .psec{margin-top:14px;padding:10px 12px;border-radius:12px;background:var(--row)}
+#profmod .psec h4{margin:0 0 4px;font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
+#profmod .psec p{margin:0;font-size:14px;line-height:1.4;white-space:pre-wrap;word-break:break-word}
+#profmod .pempty{color:var(--muted);font-style:italic}
+#profmod label{display:block;margin:10px 0 4px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
+#profmod input[type=text],#profmod textarea{width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--text);font:inherit;font-size:14px;outline:none}
+#profmod textarea{min-height:84px;resize:vertical}
+#profmod .prow2{display:flex;gap:8px;align-items:center;margin-top:14px}
+#profmod .prow2 button{flex:1;padding:10px;border:none;border-radius:10px;font-weight:700;cursor:pointer;background:var(--accent);color:var(--on-accent,#fff)}
+#profmod .prow2 button.alt{background:var(--row);color:var(--text)}
+#profmod input[type=color]{height:34px;width:60px;padding:0;border:none;background:none}
+#profmod .pcount{float:right;font-weight:500;letter-spacing:0;text-transform:none}
+.msg .av,.msg .lbl[data-nm]{cursor:pointer}
+</style>
+<div id="profmod" role="dialog" aria-label="Profile"><div class="pcard"></div></div>
+<script id="prof-js">
+(function(){
+  /* ===== profiles: click a name or avatar. Everyone can look, only the owner can edit. ===== */
+  const KEY="pb_prof", $p=id=>document.getElementById(id);
+  const hex=c=>/^#[0-9a-f]{6}$/i.test(c||"")?c:"";
+  const txt=(t,n)=>String(t==null?"":t).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,"").slice(0,n);
+  const clean=p=>({ bio:txt(p&&p.bio,190), pr:txt(p&&p.pr,20).replace(/\n/g," "), st:txt(p&&p.st,40).replace(/\n/g," "), bn:hex(p&&p.bn), v:Math.max(0,+(p&&p.v)||0) });
+  let profs={};
+  try{ const c=JSON.parse(localStorage.getItem(KEY)||"{}"); Object.keys(c).forEach(k=>{ if(okUid(k)) profs[k]=clean(c[k]); }); }catch(e){}
+  const keep=()=>{ try{ localStorage.setItem(KEY,JSON.stringify(profs)); }catch(e){} };
+  function take(c,p){ if(!okUid(c)||!p||typeof p!=="object") return false; p=clean(p); if(profs[c]&&profs[c].v>=p.v) return false; profs[c]=p; keep(); return true; }
+
+  /* ---- sync (host is the referee: you can only change your own) ---- */
+  const prev=handle;
+  handle=function(d,from){
+    if(d&&typeof d==="object"&&(d.t==="PF"||d.t==="PFS")&&validId(d.i)){
+      if(isHost&&(!from||!from.ok2||from.denied||!from.uid)) return;
+      if(d.t==="PF"){
+        if(isHost){ d.c=from.uid; if(take(d.c,d.p)) send({t:"PF",i:newId(),c:d.c,p:profs[d.c]},from); }
+        else take(d.c,d.p);
+      } else if(!isHost&&d.all&&typeof d.all==="object"){
+        Object.keys(d.all).slice(0,200).forEach(k=>take(k,d.all[k]));
+      }
+      if($p("profmod").classList.contains("on")&&shown&&shown!==uid) paint();
+      return;
+    }
+    const r=prev.apply(this,arguments);
+    try{
+      if(isHost&&from&&from.ok2&&from.uid&&!from.pfSent){ from.pfSent=1; from.send({t:"PFS",i:newId(),all:profs}); }
+      else if(!isHost&&d&&(d.t==="P"||d.t==="R")&&profs[uid]&&!window.__pfOut){ window.__pfOut=1; send({t:"PF",i:newId(),c:uid,p:profs[uid]}); setTimeout(()=>{ window.__pfOut=0; },3000); }
+    }catch(e){}
+    return r;
+  };
+
+  /* ---- who is this? ---- */
+  function uidOf(name){
+    const r=(lastRoster||[]).find(e=>e.n===name&&e.c); if(r) return r.c;
+    const l=[...logs].reverse().find(x=>x.u===name&&x.c); return l?l.c:"";
+  }
+  let shown="", editing=false;
+  const card=document.querySelector("#profmod .pcard");
+  function paint(){
+    const id=shown, mine=id===uid, p=profs[id]||clean({});
+    const name=mine?usr:(card.dataset.nm||"?");
+    const bn=p.bn||colorFor(name), av=avatars[name];
+    card.textContent="";
+    const E=(t,c,x)=>{ const e=document.createElement(t); if(c) e.className=c; if(x!=null) e.textContent=x; return e; };
+    const ban=E("div","pban"); ban.style.background=editing?($p("pf-bn")?$p("pf-bn").value:bn):bn;
+    const x=E("button","pxx","✕"); x.type="button"; x.onclick=close; ban.appendChild(x);
+    const pav=E("div","pav"); if(av){ pav.style.backgroundImage='url("'+av+'")'; } else { pav.style.background=colorFor(name); pav.textContent=(name[0]||"?").toUpperCase(); }
+    ban.appendChild(pav);
+    const body=E("div","pbody");
+    const nm=E("div","pnm",name);
+    try{ if(window.__pbIsAdmin&&window.__pbIsAdmin(name)) nm.appendChild(E("span","pbadge","ADMIN")); }catch(e){}
+    body.appendChild(nm);
+    if(!editing){
+      if(p.pr) body.appendChild(E("div","ppr",p.pr));
+      if(p.st) body.appendChild(E("div","pst","💬 "+p.st));
+      const s=E("div","psec"); s.appendChild(E("h4",null,"About me"));
+      s.appendChild(p.bio?E("p",null,p.bio):E("p","pempty",mine?"You haven't written anything yet.":"Nothing here yet."));
+      body.appendChild(s);
+      if(mine){ const row=E("div","prow2"); const b=E("button",null,"✏️ Edit profile"); b.type="button"; b.onclick=()=>{ editing=true; paint(); }; row.appendChild(b); body.appendChild(row); }
+    } else {
+      const f=(lbl,el,cnt)=>{ const l=E("label",null,lbl); if(cnt){ const c=E("span","pcount",""); l.appendChild(c); el.addEventListener("input",()=>{ c.textContent=el.value.length+"/"+cnt; }); c.textContent=el.value.length+"/"+cnt; } body.append(l,el); };
+      const pr=E("input"); pr.type="text"; pr.id="pf-pr"; pr.maxLength=20; pr.value=p.pr; pr.placeholder="e.g. he/him";
+      const st=E("input"); st.type="text"; st.id="pf-st"; st.maxLength=40; st.value=p.st; st.placeholder="What are you up to?";
+      const bio=E("textarea"); bio.id="pf-bio"; bio.maxLength=190; bio.value=p.bio; bio.placeholder="Tell people about yourself";
+      const bc=E("input"); bc.type="color"; bc.id="pf-bn"; bc.value=p.bn||"#5865f2"; bc.addEventListener("input",()=>{ bc.dataset.t=1; ban.style.background=bc.value; });
+      f("Pronouns",pr,20); f("Status",st,40); f("About me",bio,190); body.append(E("label",null,"Banner color"),bc);
+      const row=E("div","prow2"); const sv=E("button",null,"Save"), cn=E("button","alt","Cancel"); sv.type=cn.type="button";
+      sv.onclick=()=>{
+        const np=clean({ bio:bio.value, pr:pr.value, st:st.value, bn:bc.dataset.t?bc.value:p.bn, v:Date.now() });
+        profs[uid]=np; keep(); send({t:"PF",i:newId(),c:uid,p:np}); editing=false; paint();
+      };
+      cn.onclick=()=>{ editing=false; paint(); };
+      row.append(sv,cn); body.appendChild(row);
+    }
+    card.append(ban,body);
+  }
+  function open(id,name){ if(!id) return; shown=id; editing=false; card.dataset.nm=name||""; $p("profmod").classList.add("on"); paint(); }
+  function close(){ $p("profmod").classList.remove("on"); editing=false; }
+  $p("profmod").addEventListener("click",e=>{ if(e.target.id==="profmod") close(); });
+  document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&$p("profmod").classList.contains("on")) close(); });
+  window.__pbProfile=open;
+  const ya=$p("youare"); if(ya){ ya.style.cursor="pointer"; ya.title="View / edit your profile"; ya.addEventListener("click",()=>open(uid,usr)); }
+
+  /* click a name or avatar in chat / the online strip */
+  document.addEventListener("click",e=>{
+    const t=e.target;
+    const m=t.closest&&t.closest("#box .msg .av, #box .msg .lbl[data-nm]");
+    if(m){ const w=m.closest(".msg"); const id=w&&w.dataset.uid, nm=w&&w.dataset.user; if(id){ e.stopPropagation(); open(id,nm); return; } }
+    const o=t.closest&&t.closest("#online .oav");
+    if(o){ const nm=(o.title||"").split(" · ")[0]; const id=nm===usr?uid:uidOf(nm); if(id){ e.stopPropagation(); open(id,nm); } }
+  },true);
+})();
+</script>
 </body>
 </html>
