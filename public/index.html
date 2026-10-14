@@ -6402,7 +6402,7 @@ body[data-theme="pornhub"] #gate .logo{background:#ff9000;color:#000}
 #gate#gate .gside h1::before,#gate#gate .gside h1::after{content:none !important}
 #gate#gate .gside .sub{background:#383838;border-radius:12px;padding:10px 12px;margin:0 auto;font:400 24px/1.2 "Comfortaa","Nunito",system-ui,sans-serif;color:#fff;width:fit-content;max-width:100%;box-sizing:border-box}
 #gate#gate #gver{position:static;margin:-4px 0 0;font-size:12px;font-weight:400;letter-spacing:.3px;color:#cfcfcf;opacity:.85;text-align:center}
-#gate#gate .logo.lp{position:fixed;right:-1vw;bottom:-6vh;width:min(52vw,calc(340px * var(--gs,1)));height:min(50vh,calc(250px * var(--gs,1)));border-radius:0;background-color:transparent !important;background-image:var(--lp-icon) !important;background-position:bottom right !important;background-size:contain !important;background-repeat:no-repeat !important;margin:0;pointer-events:none;z-index:0}
+#gate#gate .logo.lp{position:relative;right:auto;bottom:auto;width:100%;height:300px;flex:0 0 auto;border-radius:0;background-color:transparent !important;background-image:var(--lp-icon) !important;background-position:center top !important;background-size:contain !important;background-repeat:no-repeat !important;margin:6px 0 0;pointer-events:none;z-index:0}
 #gate#gate .logo.lp::after{content:none}
 #gate .card,#gate .gside h1,#gate .gside .sub,#gate #gver{position:relative;z-index:1}
 #gadm#gadm{position:fixed;top:auto;bottom:10px;left:10px}
@@ -6411,7 +6411,7 @@ body[data-theme="pornhub"] #gate .logo{background:#ff9000;color:#000}
   #gate#gate{flex-direction:column;align-items:center;overflow-y:auto}
   #gate#gate .gside{order:1;flex:0 0 auto;width:340px;max-width:100%}
   #gate#gate .card{order:2}
-  #gate#gate .logo.lp{display:none}
+  #gate#gate .logo.lp{height:220px}
 }
 </style>
 <style id="ios6-css">
@@ -6508,7 +6508,7 @@ body[data-theme="ios6"] #replybar *,body[data-theme="ios6"] #dmbar *{color:inher
   const KEY="pb_prof", $p=id=>document.getElementById(id);
   const hex=c=>/^#[0-9a-f]{6}$/i.test(c||"")?c:"";
   const txt=(t,n)=>String(t==null?"":t).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,"").slice(0,n);
-  const clean=p=>({ bio:txt(p&&p.bio,190), pr:txt(p&&p.pr,20).replace(/\n/g," "), st:txt(p&&p.st,40).replace(/\n/g," "), bn:hex(p&&p.bn), v:Math.max(0,+(p&&p.v)||0) });
+  const clean=p=>({ bio:txt(p&&p.bio,190), pr:txt(p&&p.pr,20).replace(/\n/g," "), st:txt(p&&p.st,40).replace(/\n/g," "), bn:hex(p&&p.bn), bi:(p&&typeof p.bi==="string"&&p.bi.length<120000&&/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(p.bi))?p.bi:"", v:Math.max(0,+(p&&p.v)||0) });
   let profs={};
   try{ const c=JSON.parse(localStorage.getItem(KEY)||"{}"); Object.keys(c).forEach(k=>{ if(okUid(k)) profs[k]=clean(c[k]); }); }catch(e){}
   const keep=()=>{ try{ localStorage.setItem(KEY,JSON.stringify(profs)); }catch(e){} };
@@ -6541,15 +6541,19 @@ body[data-theme="ios6"] #replybar *,body[data-theme="ios6"] #dmbar *{color:inher
     const r=(lastRoster||[]).find(e=>e.n===name&&e.c); if(r) return r.c;
     const l=[...logs].reverse().find(x=>x.u===name&&x.c); return l?l.c:"";
   }
-  let shown="", editing=false;
+  let shown="", editing=false, dbi=null;   // dbi: banner image being edited (null = unchanged)
   const card=document.querySelector("#profmod .pcard");
+  let draftT=null;
+  function keepDraft(){ const g=id=>$p(id)?$p(id).value:null; draftT={ bio:g("pf-bio"), pr:g("pf-pr"), st:g("pf-st"), bn:g("pf-bn"), t:$p("pf-bn")&&$p("pf-bn").dataset.t }; }
   function paint(){
     const id=shown, mine=id===uid, p=profs[id]||clean({});
     const name=mine?usr:(card.dataset.nm||"?");
     const bn=p.bn||colorFor(name), av=avatars[name];
     card.textContent="";
     const E=(t,c,x)=>{ const e=document.createElement(t); if(c) e.className=c; if(x!=null) e.textContent=x; return e; };
-    const ban=E("div","pban"); ban.style.background=editing?($p("pf-bn")?$p("pf-bn").value:bn):bn;
+    const ban=E("div","pban"); const curBi=editing&&dbi!==null?dbi:p.bi;
+    ban.style.background=editing?($p("pf-bn")?$p("pf-bn").value:bn):bn;
+    if(curBi){ ban.style.backgroundImage='url("'+curBi+'")'; ban.style.backgroundSize="cover"; ban.style.backgroundPosition="center"; }
     const x=E("button","pxx","✕"); x.type="button"; x.onclick=close; ban.appendChild(x);
     const pav=E("div","pav"); if(av){ pav.style.backgroundImage='url("'+av+'")'; } else { pav.style.background=colorFor(name); pav.textContent=(name[0]||"?").toUpperCase(); }
     ban.appendChild(pav);
@@ -6563,20 +6567,29 @@ body[data-theme="ios6"] #replybar *,body[data-theme="ios6"] #dmbar *{color:inher
       const s=E("div","psec"); s.appendChild(E("h4",null,"About me"));
       s.appendChild(p.bio?E("p",null,p.bio):E("p","pempty",mine?"You haven't written anything yet.":"Nothing here yet."));
       body.appendChild(s);
-      if(mine){ const row=E("div","prow2"); const b=E("button",null,"✏️ Edit profile"); b.type="button"; b.onclick=()=>{ editing=true; paint(); }; row.appendChild(b); body.appendChild(row); }
+      if(mine){ const row=E("div","prow2"); const b=E("button",null,"✏️ Edit profile"); b.type="button"; b.onclick=()=>{ editing=true; dbi=null; draftT=null; paint(); }; row.appendChild(b); body.appendChild(row); }
     } else {
       const f=(lbl,el,cnt)=>{ const l=E("label",null,lbl); if(cnt){ const c=E("span","pcount",""); l.appendChild(c); el.addEventListener("input",()=>{ c.textContent=el.value.length+"/"+cnt; }); c.textContent=el.value.length+"/"+cnt; } body.append(l,el); };
       const pr=E("input"); pr.type="text"; pr.id="pf-pr"; pr.maxLength=20; pr.value=p.pr; pr.placeholder="e.g. he/him";
       const st=E("input"); st.type="text"; st.id="pf-st"; st.maxLength=40; st.value=p.st; st.placeholder="What are you up to?";
       const bio=E("textarea"); bio.id="pf-bio"; bio.maxLength=190; bio.value=p.bio; bio.placeholder="Tell people about yourself";
       const bc=E("input"); bc.type="color"; bc.id="pf-bn"; bc.value=p.bn||"#5865f2"; bc.addEventListener("input",()=>{ bc.dataset.t=1; ban.style.background=bc.value; });
+      if(draftT){ if(draftT.bio!=null) bio.value=draftT.bio; if(draftT.pr!=null) pr.value=draftT.pr; if(draftT.st!=null) st.value=draftT.st; if(draftT.bn) bc.value=draftT.bn; if(draftT.t) bc.dataset.t=1; draftT=null; }
       f("Pronouns",pr,20); f("Status",st,40); f("About me",bio,190); body.append(E("label",null,"Banner color"),bc);
+      const ir=E("div","prow2"), ib=E("button","alt","🖼️ Banner image"), ix=E("button","alt","Remove image"), fi=E("input"); ib.type=ix.type="button"; fi.type="file"; fi.accept="image/*"; fi.style.display="none";
+      ib.onclick=()=>fi.click(); ix.onclick=()=>{ dbi=""; keepDraft(); paint(); };
+      fi.onchange=()=>{ const f=fi.files[0]; if(!f) return; const r=new FileReader(); r.onload=ev=>{ const im=new Image(); im.onload=()=>{
+        const W=640,H=220,cv=document.createElement("canvas"); cv.width=W; cv.height=H; const g=cv.getContext("2d"), k=Math.max(W/im.width,H/im.height), w=im.width*k, h=im.height*k;
+        g.drawImage(im,(W-w)/2,(H-h)/2,w,h);
+        let q=.8,u=cv.toDataURL("image/jpeg",q); while(u.length>110000&&q>.3){ q-=.1; u=cv.toDataURL("image/jpeg",q); }
+        dbi=u; keepDraft(); paint(); }; im.src=ev.target.result; }; r.readAsDataURL(f); };
+      ir.append(ib,ix,fi); body.appendChild(ir);
       const row=E("div","prow2"); const sv=E("button",null,"Save"), cn=E("button","alt","Cancel"); sv.type=cn.type="button";
       sv.onclick=()=>{
-        const np=clean({ bio:bio.value, pr:pr.value, st:st.value, bn:bc.dataset.t?bc.value:p.bn, v:Date.now() });
-        profs[uid]=np; keep(); send({t:"PF",i:newId(),c:uid,p:np}); editing=false; paint();
+        const np=clean({ bio:bio.value, pr:pr.value, st:st.value, bn:bc.dataset.t?bc.value:p.bn, bi:dbi!==null?dbi:p.bi, v:Date.now() });
+        profs[uid]=np; keep(); send({t:"PF",i:newId(),c:uid,p:np}); editing=false; dbi=null; paint();
       };
-      cn.onclick=()=>{ editing=false; paint(); };
+      cn.onclick=()=>{ editing=false; dbi=null; paint(); };
       row.append(sv,cn); body.appendChild(row);
     }
     card.append(ban,body);
