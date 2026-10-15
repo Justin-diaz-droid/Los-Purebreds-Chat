@@ -1444,7 +1444,7 @@ function cleanPoll(p){
   if(!q || os.length < 2) return null;
   return { q, o: os, m: p.m ? 1 : 0, end: Math.max(0, Math.min(Date.now() + 8 * 864e5, +p.end || 0)) };
 }
-const GIF_RE = /^https:\/\/(?:media\d*\.tenor\.com|c\.tenor\.com|media\d*\.giphy\.com|i\.giphy\.com|i\.imgur\.com)\/[A-Za-z0-9_\-.\/%~]{1,170}\.gif$/;   // GIF messages carry a Tenor link, not image data
+const GIF_RE = /^https:\/\/(?:media\d*\.tenor\.com|c\.tenor\.com|media\d*\.giphy\.com|i\.giphy\.com|i\.imgur\.com|(?:[a-z0-9-]+\.)?klipy\.(?:com|co))\/[A-Za-z0-9_\-.\/%~]{1,170}\.gif$/;   // GIF messages carry a KLIPY (or older Tenor) link, not image data
 function cleanEntry(e){
   if(!e || typeof e !== "object" || !validId(e.i)) return null;
   const o = { i: e.i, v: +e.v || 0, ts: +e.ts || 0 };
@@ -6770,7 +6770,9 @@ body[data-theme="ios6"] #replybar *,body[data-theme="ios6"] #dmbar *{color:inher
   const $g = id => document.getElementById(id);
   const btn = $g("gif-btn"), panel = $g("gif-panel");
   if(!btn || !panel) return;
-  const KEYN = "pb_tenorkey";
+  const KEYN = "pb_klipykey";
+  const CIDN = "pb_klipycid";
+  const getCid = () => { try{ let c = localStorage.getItem(CIDN); if(!c){ c = "pb" + Math.random().toString(36).slice(2, 12) + Date.now().toString(36); localStorage.setItem(CIDN, c); } return c; }catch(e){ return "pb-anon"; } };
   const getKey = () => { try{ return localStorage.getItem(KEYN) || ""; }catch(e){ return ""; } };
 
   /* the same Tenor GIF lives on a few hosts; if one is blocked / 404s we try the others */
@@ -6781,7 +6783,7 @@ body[data-theme="ios6"] #replybar *,body[data-theme="ios6"] #dmbar *{color:inher
   }
 
   panel.innerHTML = '<input type="text" id="gif-q" placeholder="Search GIFs" autocomplete="off"><div id="gif-grid"></div>' +
-    '<div id="gif-foot"><button type="button" id="gif-link" title="Paste a direct GIF link">🔗 Paste link</button><button type="button" id="gif-up" title="Send a GIF from your device">📁 Upload GIF</button><button type="button" id="gif-key" title="Search all of Tenor with a free API key">🔑 Tenor search</button><span id="gif-n" style="margin-left:auto;font-size:11px;color:var(--muted)"></span><input type="file" id="gif-file" accept="image/gif" hidden></div>';
+    '<div id="gif-foot"><button type="button" id="gif-link" title="Paste a direct GIF link">🔗 Paste link</button><button type="button" id="gif-up" title="Send a GIF from your device">📁 Upload GIF</button><button type="button" id="gif-key" title="Search all of KLIPY with a free API key">🔑 KLIPY search</button><span id="gif-n" style="margin-left:auto;font-size:11px;color:var(--muted)"></span><input type="file" id="gif-file" accept="image/gif" hidden></div>';
   const q = $g("gif-q"), grid = $g("gif-grid"), cnt = $g("gif-n");
   const isOpen = () => panel.style.display === "flex";
   function show(on){
@@ -6792,7 +6794,7 @@ body[data-theme="ios6"] #replybar *,body[data-theme="ios6"] #dmbar *{color:inher
 
   function send(url){
     const inp = $g("inp"); if(inp && inp.disabled) return;      // not connected yet
-    if(!GIF_RE.test(url)){ sys("That isn't a GIF link I can send (it must be a direct .gif link from Tenor, Giphy or Imgur)."); return; }
+    if(!GIF_RE.test(url)){ sys("That isn't a GIF link I can send (it must be a direct .gif link from KLIPY, Tenor, Giphy or Imgur)."); return; }
     show(false);
     postMsg(url, 1, 0, { gif: 1 });
   }
@@ -6804,25 +6806,28 @@ body[data-theme="ios6"] #replybar *,body[data-theme="ios6"] #dmbar *{color:inher
     im.src = vs[0];
     return im;
   }
-  async function tenor(t){
+  async function klipy(t){
     const k = getKey();
-    const url = "https://tenor.googleapis.com/v2/" + (t ? "search" : "featured") + "?key=" + encodeURIComponent(k) + "&client_key=los-purebreds&limit=24&media_filter=gif,tinygif&contentfilter=medium" + (t ? "&q=" + encodeURIComponent(t) : "");
+    const url = "https://api.klipy.com/api/v1/" + encodeURIComponent(k) + "/gifs/" + (t ? "search" : "trending") + "?per_page=24&customer_id=" + encodeURIComponent(getCid()) + (t ? "&q=" + encodeURIComponent(t) : "");
     const r = await fetch(url); if(!r.ok) throw new Error("http " + r.status);
     const j = await r.json();
-    return (j.results || []).map(x => { const f = x.media_formats || {}, full = f.gif && f.gif.url, pv = f.tinygif && f.tinygif.url; return full ? { u: full, p: pv || full, t: x.content_description || "" } : null; }).filter(Boolean);
+    if(j && j.result === false) throw new Error("klipy error");
+    const rows = (j && j.data && j.data.data) || [];
+    const gifUrl = (f, sz) => f && f[sz] && f[sz].gif && f[sz].gif.url;
+    return rows.map(x => { const f = x.file; if(!f) return null; const full = gifUrl(f, "md") || gifUrl(f, "sm") || gifUrl(f, "hd") || gifUrl(f, "xs"), pv = gifUrl(f, "sm") || gifUrl(f, "xs") || full; return full && GIF_RE.test(full) ? { u: full, p: pv, t: x.title || "" } : null; }).filter(Boolean);
   }
   let seq = 0;
   async function fill(){
     const t = q.value.trim(), my = ++seq;
     let list = null, msg = "";
-    if(getKey()){ try{ list = await tenor(t); }catch(e){ msg = "Tenor search didn't work (check your key). Showing the built-in GIFs."; } }
+    if(getKey()){ try{ list = await klipy(t); }catch(e){ msg = "KLIPY search didn't work (check your key). Showing the built-in GIFs."; } }
     if(my !== seq) return;
     if(!list){ const tl = t.toLowerCase(); list = GIFS.filter(g => !tl || (g.t + " " + g.k).toLowerCase().includes(tl)); }
     grid.replaceChildren();
     if(msg) grid.appendChild(note(msg));
-    if(!list.length) grid.appendChild(note("No GIFs match that." + (getKey() ? "" : " Tip: 🔑 Tenor search lets you search every GIF.")));
+    if(!list.length) grid.appendChild(note("No GIFs match that." + (getKey() ? "" : " Tip: 🔑 KLIPY search lets you search every GIF.")));
     let fails = 0;
-    list.forEach(g => grid.appendChild(thumb(g, () => { if(++fails === list.length) grid.prepend(note("GIFs can't load right now — Tenor may be blocked on this network or by an ad-blocker. You can still use 📁 Upload GIF or 🔗 Paste link.")); })));
+    list.forEach(g => grid.appendChild(thumb(g, () => { if(++fails === list.length) grid.prepend(note("GIFs can't load right now — KLIPY may be blocked on this network or by an ad-blocker. You can still use 📁 Upload GIF or 🔗 Paste link.")); })));
     cnt.textContent = list.length + " GIF" + (list.length === 1 ? "" : "s");
   }
   function toggle(){
@@ -6844,10 +6849,10 @@ body[data-theme="ios6"] #replybar *,body[data-theme="ios6"] #dmbar *{color:inher
 
   /* paste a direct GIF link */
   $g("gif-link").onclick = () => {
-    const v = (prompt("Paste a GIF link (Tenor, Giphy or Imgur).\nTip: right-click a GIF → Copy image address.") || "").trim();
+    const v = (prompt("Paste a GIF link (KLIPY, Tenor, Giphy or Imgur).\nTip: right-click a GIF → Copy image address.") || "").trim();
     if(!v) return;
     let u = v.split("#")[0].split("?")[0].replace(/^http:\/\//i, "https://");
-    if(!GIF_RE.test(u)){ sys("That doesn't look like a direct GIF link. It should end in .gif and come from Tenor, Giphy or Imgur — try right-click → Copy image address."); return; }
+    if(!GIF_RE.test(u)){ sys("That doesn't look like a direct GIF link. It should end in .gif and come from KLIPY, Tenor, Giphy or Imgur — try right-click → Copy image address."); return; }
     send(u);
   };
   /* send a GIF from your device (kept as a GIF, so it still moves) */
@@ -6862,9 +6867,9 @@ body[data-theme="ios6"] #replybar *,body[data-theme="ios6"] #dmbar *{color:inher
     r.onerror = () => sys("Couldn't read that GIF.");
     r.readAsDataURL(f);
   };
-  /* optional: a free Tenor API key turns on search across all of Tenor */
+  /* optional: a free KLIPY API key turns on search across all of KLIPY */
   $g("gif-key").onclick = () => {
-    const v = prompt("Optional: paste a free Tenor API key to search ALL of Tenor (get one at developers.google.com/tenor).\nLeave it empty to turn it off.", getKey());
+    const v = prompt("Optional: paste a free KLIPY API key to search ALL of KLIPY (get one at klipy.com/developers).\nLeave it empty to turn it off.", getKey());
     if(v === null) return;
     try{ if(v.trim()) localStorage.setItem(KEYN, v.trim()); else localStorage.removeItem(KEYN); }catch(e){}
     q.value = ""; fill();
