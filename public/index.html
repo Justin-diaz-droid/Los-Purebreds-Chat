@@ -617,18 +617,17 @@
 <div id="gate">
   <div class="gside">
     <h1>Los Purebred's</h1>
-    <p class="sub">Unification initiation</p>
-    <div id="gver">Version 0.3.7</div>
     <div class="logo lp"></div>
   </div>
   <div class="card">
     <label class="fld"><span>Room Code</span><input id="g-code" type="password" placeholder="Enter room code" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
     <label class="fld"><span>Your name</span><input id="g-name" type="text" placeholder="Pick a name" maxlength="12" autocomplete="off"></label>
-    <label class="fld" id="g-themefld"><span>Themes</span><select id="g-theme"><option value="imessage">iMessage</option><option value="ios6">iOS 6</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option><option value="material">Material You (Android)</option><option value="terminal">Terminal</option><option value="pornhub">Pornhub</option></select></label>
     <div id="gerr"></div>
     <button id="g-go">Join Chat</button>
     <a class="goback" href="https://docs.google.com/document/d/1oa90mU-jYczqySulirTvHqqNWTSaNwPGnnArgBdVGrs/edit?tab=t.pqncc0vmsgzp" rel="noopener">← Go back</a>
   </div>
+    <div id="gver">Version 0.3.8</div>
+  <label class="fld" id="g-themefld"><span>Themes</span><select id="g-theme"><option value="imessage">iMessage</option><option value="ios6">iOS 6</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option><option value="material">Material You (Android)</option><option value="terminal">Terminal</option><option value="pornhub">Pornhub</option></select></label>
 </div>
 
 <div id="sb">
@@ -4120,7 +4119,7 @@ label.plus.open{transform:rotate(45deg)}
   /* =============== gate: password field, secret admin button =============== */
   const lab=document.createElement("label"); lab.className="fld";
   lab.innerHTML='<span>Password <i style="text-transform:none;font-weight:400;opacity:.7">(required — a new name uses it to create its password)</i></span><input id="g-pw" type="password" autocomplete="current-password" placeholder="At least 4 characters">';
-  $("g-themefld").before(lab);
+  $("gerr").before(lab);
   $("g-pw").addEventListener("keydown",e=>{ if(e.key==="Enter") $("g-go").click(); });
 
   const adm=document.createElement("button"); adm.id="gadm"; adm.type="button"; adm.textContent="🛡"; adm.setAttribute("aria-label","Admin");
@@ -7271,5 +7270,27 @@ body[data-theme="ios6"] #replybar *,body[data-theme="ios6"] #dmbar *{color:inher
   renderAll();
 })();
 </script>
+<style id="gate-tweaks">
+/* login: version bottom-left, themes bottom-right, squarer boxes, glowing buttons */
+#gate#gate #gver{position:fixed;left:46px;right:auto;width:auto;bottom:15px;margin:0;text-align:left;font-size:12px;opacity:.7;z-index:2;pointer-events:none}
+#gate#gate #g-themefld{position:fixed;right:14px;bottom:12px;width:170px;margin:0;z-index:2;gap:4px}
+#gate#gate #g-themefld span{font-size:12px;text-align:left}
+#gate#gate #g-themefld select{height:36px;padding-top:6px;padding-bottom:6px}
+/* less round */
+#gate#gate .card{border-radius:12px !important}
+#gate#gate .gside h1{border-radius:8px}
+#gate#gate input,#gate#gate select,#gate#gate .fld input[type=password],#gate#gate button,#gate#gate #g-go{border-radius:6px !important}
+#gate#gate #gadm{border-radius:6px}
+#gate#gate .goback{border-radius:6px}
+/* hover glow */
+#gate#gate button,#gate#gate .goback{transition:box-shadow .18s ease,filter .18s ease,transform .15s ease}
+#gate#gate #g-go:hover{box-shadow:0 0 12px 2px rgba(47,123,246,.85),0 0 28px 6px rgba(47,123,246,.45);filter:brightness(1.12)}
+#gate#gate #gadm:hover{box-shadow:0 0 10px 2px rgba(255,255,255,.55)}
+#gate#gate #gadmok:hover{box-shadow:0 0 10px 2px rgba(255,255,255,.5)}
+#gate#gate .goback:hover{box-shadow:0 0 10px 2px rgba(255,255,255,.35);color:#fff}
+@media (max-width:640px){
+  #gate#gate #g-themefld{width:140px}
+}
+</style>
 </body>
 </html>
