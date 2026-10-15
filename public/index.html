@@ -600,7 +600,7 @@
   <div class="gside">
     <h1>Los Purebred's</h1>
     <p class="sub">Unification initiation</p>
-    <div id="gver">Version 0.3.4</div>
+    <div id="gver">Version 0.3.7</div>
     <div class="logo lp"></div>
   </div>
   <div class="card">
@@ -1005,13 +1005,15 @@ $("g-go").onclick = () => {
   if(code !== ROOM_CODE){ $("gerr").textContent = "Wrong room code."; return; }
   const n = $("g-name").value.trim();
   if(n){ usr = n; $("hi").value = n; save("chat_usr", n); updateYou(); }
-  setTheme($("g-theme").value);
-  rerender();
   window.__entering = true; $("gerr").textContent = "Connecting…"; $("g-go").disabled = true;
   clearTimeout(window.__enterT);
   window.__enterT = setTimeout(() => { if(window.__entering && window.__leave) window.__leave("Couldn't connect to the room. Try again."); }, 30000);
-  sys("Welcome to purebred-chat, HM:  RIP: Ryosuke 🕊️🪦🪽");
-  connect();
+  // let the browser paint "Connecting…" first, open the connection, and only then do the heavy redraw while the network works
+  requestAnimationFrame(() => setTimeout(() => {
+    sys("Welcome to purebred-chat, HM:  RIP: Ryosuke 🕊️🪦🪽");
+    connect();
+    setTimeout(() => { setTheme($("g-theme").value); rerender(); }, 0);
+  }, 0));
 };
 /* the join screen only closes once the host has accepted us (right name + password) */
 window.revealChat = function(){
@@ -1442,7 +1444,7 @@ function cleanPoll(p){
   if(!q || os.length < 2) return null;
   return { q, o: os, m: p.m ? 1 : 0, end: Math.max(0, Math.min(Date.now() + 8 * 864e5, +p.end || 0)) };
 }
-const GIF_RE = /^https:\/\/media[0-9]*\.tenor\.com\/(?:m\/)?[A-Za-z0-9_\-]+\/[A-Za-z0-9_\-]+\.gif$/;   // GIF messages carry a Tenor link, not image data
+const GIF_RE = /^https:\/\/(?:media\d*\.tenor\.com|c\.tenor\.com|media\d*\.giphy\.com|i\.giphy\.com|i\.imgur\.com)\/[A-Za-z0-9_\-.\/%~]{1,170}\.gif$/;   // GIF messages carry a Tenor link, not image data
 function cleanEntry(e){
   if(!e || typeof e !== "object" || !validId(e.i)) return null;
   const o = { i: e.i, v: +e.v || 0, ts: +e.ts || 0 };
@@ -1454,7 +1456,7 @@ function cleanEntry(e){
   }
   if(typeof e.u !== "string" || typeof e.b !== "string") return null;
   o.u = e.u.slice(0, 12); o.c = okUid(e.c) ? e.c : ""; o.f = okFont(e.f); o.d = okDev(e.d);
-  if(e.img && e.gif){ if(e.b.length > 200 || !GIF_RE.test(e.b)) return null; o.img = 1; o.gif = 1; }
+  if(e.img && e.gif){ if(e.b.length > 260 || !GIF_RE.test(e.b)) return null; o.img = 1; o.gif = 1; }
   else if(e.img){ if(!e.b.startsWith("data:image/") || e.b.length > 4500000) return null; o.img = 1; if(e.stk) o.stk = 1; }
   else if(e.aud){ if(!e.b.startsWith("data:audio/") || e.b.length > 1800000) return null; o.aud = 1; }
   else if(e.fl){ if(!/^data:[\w.+\-\/]*;base64,[A-Za-z0-9+\/=]*$/.test(e.b) || e.b.length > 3500000) return null; o.fl = 1; o.fn = cleanFn(e.fn); o.fz = Math.max(0, Math.min(1e8, +e.fz || 0)); }
@@ -3327,7 +3329,7 @@ label.plus.open{transform:rotate(45deg)}
   /* ---------- the + menu (photos · file · poll) ---------- */
   const plus = document.querySelector("label.plus");
   const menu = document.createElement("div"); menu.id = "plusmenu";
-  menu.innerHTML = '<button type="button" data-a="photo"><i>🖼️</i>Upload photos</button><button type="button" data-a="file"><i>📎</i>Upload a file</button><button type="button" data-a="poll"><i>📊</i>Create poll</button>';
+  menu.innerHTML = '<button type="button" data-a="photo"><i>🖼️</i>Upload photos</button><button type="button" data-a="gif"><i>🎞️</i>Send a GIF</button><button type="button" data-a="file"><i>📎</i>Upload a file</button><button type="button" data-a="poll"><i>📊</i>Create poll</button>';
   document.body.appendChild(menu);
   const closeMenu = () => { menu.classList.remove("open"); plus.classList.remove("open"); };
   plus.addEventListener("click", e => {
@@ -3337,7 +3339,7 @@ label.plus.open{transform:rotate(45deg)}
     if($$("attach") && $$("attach").classList.contains("on")){ window.__pbDirect = true; plus.click(); return; }   // panel open: close it
     if(menu.classList.contains("open")){ closeMenu(); return; }
     const gal = curCh === "gal";
-    menu.querySelectorAll('[data-a="file"],[data-a="poll"]').forEach(b => b.style.display = gal ? "none" : "");
+    menu.querySelectorAll('[data-a="file"],[data-a="poll"],[data-a="gif"]').forEach(b => b.style.display = gal ? "none" : "");
     const r = plus.getBoundingClientRect();
     menu.style.left = Math.max(8, Math.min(r.left, innerWidth - 230)) + "px"; menu.style.bottom = (innerHeight - r.top + 10) + "px";
     menu.classList.add("open"); plus.classList.add("open");
@@ -3348,6 +3350,7 @@ label.plus.open{transform:rotate(45deg)}
     if(a === "photo") pp.click();
     else if(a === "file") pf.click();
     else if(a === "poll") openPoll();
+    else if(a === "gif") setTimeout(() => { const g = document.getElementById("gif-btn"); if(g) g.click(); }, 0);
   });
   document.addEventListener("click", e => { if(menu.classList.contains("open") && !e.target.closest("#plusmenu") && !e.target.closest("label.plus")) closeMenu(); });
   document.addEventListener("keydown", e => { if(e.key === "Escape"){ closeMenu(); closePoll(); } });
@@ -5603,7 +5606,18 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
   function scanHigher(k){
     const cand = []; for(let j = k + 1; j < SLOTS; j++) if(!isDead(j)) cand.push(j);
     if(!cand.length) return Promise.resolve(-1);
-    return Promise.all(cand.map(probe)).then(rs => { for(let i = 0; i < cand.length; i++) if(rs[i] === "live") return cand[i]; return -1; });
+    return new Promise(res => {                  // lowest live room wins, but we don't wait for rooms that can no longer change the answer
+      const rs = new Array(cand.length); let fin = false;
+      const check = () => {
+        if(fin) return;
+        for(let i = 0; i < cand.length; i++){
+          if(rs[i] === undefined) return;       // still waiting on a lower room
+          if(rs[i] === "live"){ fin = true; res(cand[i]); return; }
+        }
+        fin = true; res(-1);
+      };
+      cand.forEach((j, i) => probe(j).then(r => { rs[i] = r; check(); }));
+    });
   }
 
   function commitHost(sock){
@@ -5733,16 +5747,20 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
       clearTimeout(window.__enterT);
       window.__enterT = setTimeout(() => { if(window.__entering && window.__leave) window.__leave("Couldn't connect to the room. Try again."); }, 60000);
     }
-    // PeerJS only carries voice / video calls now
-    let mp;
-    try { mp = new Peer(undefined, PEER_OPTS); mp.on("error", e => console.warn("call peer:", e && e.type)); }
-    catch(e){ mp = { id: "", open: false, connections: {}, on(){}, call(){ throw new Error("calls unavailable"); } }; }
-    const d0 = mp.destroy ? mp.destroy.bind(mp) : () => {};
-    mp.destroy = function(){ closeHubQuiet(); return d0(); };
-    peer = mp;
     const k = nextSlot(0);
-    openSlot(k < 0 ? 0 : k);
+    openSlot(k < 0 ? 0 : k);                      // the chat socket goes first so joining isn't held up by anything else
+    const tok = ++peerTok;
+    setTimeout(() => {                            // PeerJS only carries voice / video calls now, so it can start a moment later
+      if(tok !== peerTok) return;
+      let mp;
+      try { mp = new Peer(undefined, PEER_OPTS); mp.on("error", e => console.warn("call peer:", e && e.type)); }
+      catch(e){ mp = { id: "", open: false, connections: {}, on(){}, call(){ throw new Error("calls unavailable"); } }; }
+      const d0 = mp.destroy ? mp.destroy.bind(mp) : () => {};
+      mp.destroy = function(){ closeHubQuiet(); return d0(); };
+      peer = mp;
+    }, 0);
   };
+  let peerTok = 0;
 })();
 </script>
 <style>
@@ -6703,6 +6721,7 @@ body[data-theme="ios6"] #replybar *,body[data-theme="ios6"] #dmbar *{color:inher
       row.append(sv,cn); body.appendChild(row);
     }
     card.append(ban,body);
+    try{ if(window.__frProf) window.__frProf(body,id,name,mine); }catch(e){}
   }
   function open(id,name){ if(!id) return; shown=id; editing=false; card.dataset.nm=name||""; $p("profmod").classList.add("on"); paint(); }
   function close(){ $p("profmod").classList.remove("on"); editing=false; }
@@ -6736,52 +6755,129 @@ body[data-theme="ios6"] #replybar *,body[data-theme="ios6"] #dmbar *{color:inher
 #gif-foot{padding:6px 12px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
 #gif-foot a{color:var(--accent);text-decoration:none}
 </style>
+<style id="gif-css2">
+#gif-btn{display:none !important}   /* the GIF picker now lives in the + menu */
+#gif-foot{gap:6px;justify-content:flex-start;flex-wrap:wrap;align-items:center}
+#gif-foot button{border:none;background:var(--row);color:var(--text);border-radius:999px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer}
+#gif-foot button:hover{filter:brightness(1.2)}
+#gif-grid .gi.bad{min-height:64px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);cursor:default;text-align:center}
+#gif-grid .gnote{column-span:all;padding:10px 6px;font-size:12px;line-height:1.35;color:var(--muted);text-align:center}
+</style>
 <script id="gif-js">
 (function(){
-  /* Trevor GIFs from https://tenor.com/search/trevor-gifs  (add more entries here: u = Tenor media link, t = title, k = search words) */
+  /* Built-in Trevor GIFs (u = Tenor link, t = title, k = search words). Each one tries a few Tenor hosts before giving up. */
   const GIFS = [{"u": "https://media1.tenor.com/m/ZLWw_d_EghsAAAAd/focking-treva-after.gif", "t": "Focking Treva", "k": "after we collided focking treva trevor"}, {"u": "https://media1.tenor.com/m/AWtzN2nvWGkAAAAd/neville-trevor.gif", "t": "Neville & Trevor the toad", "k": "neville trevor toad harry potter"}, {"u": "https://media1.tenor.com/m/b5i21E5LnGkAAAAd/trevor-philips-gta5.gif", "t": "Trevor Philips", "k": "trevor philips gta gta5 gta v"}, {"u": "https://media1.tenor.com/m/ewG9oYJyg4EAAAAd/trevor-lore-1991.gif", "t": "New Trevor lore", "k": "trevor lore 1991"}, {"u": "https://media1.tenor.com/m/dVSOanB1zOwAAAAd/bye-trevor-trevor.gif", "t": "Bye Trevor", "k": "bye trevor goodbye dog"}];
-  const btn = document.getElementById("gif-btn"), panel = document.getElementById("gif-panel");
+  const $g = id => document.getElementById(id);
+  const btn = $g("gif-btn"), panel = $g("gif-panel");
   if(!btn || !panel) return;
-  panel.innerHTML = '<input type="text" id="gif-q" placeholder="Search Trevor GIFs" autocomplete="off"><div id="gif-grid"></div><div id="gif-foot"><span id="gif-n"></span><a href="https://tenor.com/search/trevor-gifs" target="_blank" rel="noopener noreferrer">via Tenor</a></div>';
-  const q = document.getElementById("gif-q"), grid = document.getElementById("gif-grid"), cnt = document.getElementById("gif-n");
+  const KEYN = "pb_tenorkey";
+  const getKey = () => { try{ return localStorage.getItem(KEYN) || ""; }catch(e){ return ""; } };
+
+  /* the same Tenor GIF lives on a few hosts; if one is blocked / 404s we try the others */
+  function variants(u){
+    const m = /^https:\/\/(?:media\d*|c)\.tenor\.com\/(?:m\/)?([A-Za-z0-9_\-]+)\/([A-Za-z0-9_\-]+\.gif)$/.exec(u);
+    if(!m) return [u];
+    return [...new Set([u, "https://media.tenor.com/" + m[1] + "/" + m[2], "https://media1.tenor.com/m/" + m[1] + "/" + m[2], "https://c.tenor.com/" + m[1] + "/" + m[2]])];
+  }
+
+  panel.innerHTML = '<input type="text" id="gif-q" placeholder="Search GIFs" autocomplete="off"><div id="gif-grid"></div>' +
+    '<div id="gif-foot"><button type="button" id="gif-link" title="Paste a direct GIF link">🔗 Paste link</button><button type="button" id="gif-up" title="Send a GIF from your device">📁 Upload GIF</button><button type="button" id="gif-key" title="Search all of Tenor with a free API key">🔑 Tenor search</button><span id="gif-n" style="margin-left:auto;font-size:11px;color:var(--muted)"></span><input type="file" id="gif-file" accept="image/gif" hidden></div>';
+  const q = $g("gif-q"), grid = $g("gif-grid"), cnt = $g("gif-n");
   const isOpen = () => panel.style.display === "flex";
   function show(on){
     if(typeof setShown === "function") setShown(panel, on, "flex"); else panel.style.display = on ? "flex" : "none";
     btn.classList.toggle("on", on);
   }
-  function fill(){
-    const t = q.value.trim().toLowerCase();
-    const list = GIFS.filter(g => !t || (g.t + " " + g.k).toLowerCase().includes(t));
+  function note(t){ const n = document.createElement("div"); n.className = "gnote"; n.textContent = t; return n; }
+
+  function send(url){
+    const inp = $g("inp"); if(inp && inp.disabled) return;      // not connected yet
+    if(!GIF_RE.test(url)){ sys("That isn't a GIF link I can send (it must be a direct .gif link from Tenor, Giphy or Imgur)."); return; }
+    show(false);
+    postMsg(url, 1, 0, { gif: 1 });
+  }
+  function thumb(g, onBad){
+    const im = document.createElement("img"); im.className = "gi"; im.alt = g.t || "GIF"; im.title = g.t || ""; im.decoding = "async"; im.draggable = false; im.referrerPolicy = "no-referrer";
+    const vs = variants(g.p || g.u); let i = 0;
+    im.onerror = () => { if(++i < vs.length){ im.src = vs[i]; return; } im.onerror = null; im.removeAttribute("src"); im.classList.add("bad"); im.dataset.bad = "1"; if(onBad) onBad(); };
+    im.onclick = () => { if(im.dataset.bad) return; const u = (g.p ? g.u : (im.currentSrc || g.u)); send(u); };
+    im.src = vs[0];
+    return im;
+  }
+  async function tenor(t){
+    const k = getKey();
+    const url = "https://tenor.googleapis.com/v2/" + (t ? "search" : "featured") + "?key=" + encodeURIComponent(k) + "&client_key=los-purebreds&limit=24&media_filter=gif,tinygif&contentfilter=medium" + (t ? "&q=" + encodeURIComponent(t) : "");
+    const r = await fetch(url); if(!r.ok) throw new Error("http " + r.status);
+    const j = await r.json();
+    return (j.results || []).map(x => { const f = x.media_formats || {}, full = f.gif && f.gif.url, pv = f.tinygif && f.tinygif.url; return full ? { u: full, p: pv || full, t: x.content_description || "" } : null; }).filter(Boolean);
+  }
+  let seq = 0;
+  async function fill(){
+    const t = q.value.trim(), my = ++seq;
+    let list = null, msg = "";
+    if(getKey()){ try{ list = await tenor(t); }catch(e){ msg = "Tenor search didn't work (check your key). Showing the built-in GIFs."; } }
+    if(my !== seq) return;
+    if(!list){ const tl = t.toLowerCase(); list = GIFS.filter(g => !tl || (g.t + " " + g.k).toLowerCase().includes(tl)); }
     grid.replaceChildren();
-    if(!list.length){ const n = document.createElement("div"); n.className = "none"; n.textContent = "No GIFs match that."; grid.appendChild(n); }
-    list.forEach(g => {
-      const im = document.createElement("img"); im.className = "gi"; im.src = g.u; im.alt = g.t; im.title = g.t; im.loading = "lazy"; im.decoding = "async"; im.draggable = false;
-      im.onclick = () => send(g);
-      grid.appendChild(im);
-    });
+    if(msg) grid.appendChild(note(msg));
+    if(!list.length) grid.appendChild(note("No GIFs match that." + (getKey() ? "" : " Tip: 🔑 Tenor search lets you search every GIF.")));
+    let fails = 0;
+    list.forEach(g => grid.appendChild(thumb(g, () => { if(++fails === list.length) grid.prepend(note("GIFs can't load right now — Tenor may be blocked on this network or by an ad-blocker. You can still use 📁 Upload GIF or 🔗 Paste link.")); })));
     cnt.textContent = list.length + " GIF" + (list.length === 1 ? "" : "s");
   }
-  function send(g){
-    const inp = document.getElementById("inp");
-    if(inp && inp.disabled) return;           // not connected yet
-    show(false);
-    postMsg(g.u, 1, 0, { gif: 1 });
-  }
   function toggle(){
-    const inp = document.getElementById("inp");
+    const inp = $g("inp");
     if(inp && inp.disabled) return;
     if(isOpen()){ show(false); return; }
-    const emo = document.getElementById("emo-panel");
+    const emo = $g("emo-panel");
     if(emo && emo.style.display === "flex" && typeof setShown === "function") setShown(emo, false, "flex");
     q.value = ""; fill(); show(true); q.focus();
   }
   btn.addEventListener("click", toggle);
   btn.addEventListener("keydown", e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); toggle(); } });
-  q.addEventListener("input", fill);
+  let tm = 0;
+  q.addEventListener("input", () => { clearTimeout(tm); tm = setTimeout(fill, getKey() ? 350 : 0); });
   document.addEventListener("click", e => { if(isOpen() && !panel.contains(e.target) && !btn.contains(e.target)) show(false); });
   document.addEventListener("keydown", e => { if(e.key === "Escape" && isOpen()) show(false); });
-  const emoBtn = document.getElementById("emo-btn");
+  const emoBtn = $g("emo-btn");
   if(emoBtn) emoBtn.addEventListener("click", () => { if(isOpen()) show(false); }, true);
+
+  /* paste a direct GIF link */
+  $g("gif-link").onclick = () => {
+    const v = (prompt("Paste a GIF link (Tenor, Giphy or Imgur).\nTip: right-click a GIF → Copy image address.") || "").trim();
+    if(!v) return;
+    let u = v.split("#")[0].split("?")[0].replace(/^http:\/\//i, "https://");
+    if(!GIF_RE.test(u)){ sys("That doesn't look like a direct GIF link. It should end in .gif and come from Tenor, Giphy or Imgur — try right-click → Copy image address."); return; }
+    send(u);
+  };
+  /* send a GIF from your device (kept as a GIF, so it still moves) */
+  $g("gif-up").onclick = () => $g("gif-file").click();
+  $g("gif-file").onchange = e => {
+    const f = e.target.files && e.target.files[0]; e.target.value = ""; if(!f) return;
+    if(!(f.type === "image/gif" || /\.gif$/i.test(f.name))){ sys("That file isn't a GIF."); return; }
+    if(f.size > 900 * 1024){ sys("That GIF is " + Math.round(f.size / 1024) + " KB — the max is about 900 KB so it can send and keep animating."); return; }
+    const inp = $g("inp"); if(inp && inp.disabled) return;
+    const r = new FileReader();
+    r.onload = () => { const u = String(r.result || ""); if(/^data:image\/gif;base64,/.test(u)){ show(false); postMsg(u, 1); } else sys("Couldn't read that GIF."); };
+    r.onerror = () => sys("Couldn't read that GIF.");
+    r.readAsDataURL(f);
+  };
+  /* optional: a free Tenor API key turns on search across all of Tenor */
+  $g("gif-key").onclick = () => {
+    const v = prompt("Optional: paste a free Tenor API key to search ALL of Tenor (get one at developers.google.com/tenor).\nLeave it empty to turn it off.", getKey());
+    if(v === null) return;
+    try{ if(v.trim()) localStorage.setItem(KEYN, v.trim()); else localStorage.removeItem(KEYN); }catch(e){}
+    q.value = ""; fill();
+  };
+
+  /* GIFs already in the chat: if the link's host fails, try the other Tenor hosts before showing a broken picture */
+  document.addEventListener("error", e => {
+    const im = e.target; if(!im || im.tagName !== "IMG" || !im.classList.contains("img")) return;
+    const src = im.getAttribute("src") || ""; if(!/^https:\/\/(?:media\d*|c)\.tenor\.com\//.test(src)) return;
+    const tried = (im.dataset.vt || "").split("|").filter(Boolean); tried.push(src); im.dataset.vt = tried.join("|");
+    const nx = variants(src).find(v => !tried.includes(v));
+    if(nx) im.src = nx; else im.alt = "GIF couldn't load";
+  }, true);
 })();
 </script>
 
@@ -6829,6 +6925,323 @@ body[data-theme="ios6"] #replybar *,body[data-theme="ios6"] #dmbar *{color:inher
   });
   window.__jump = { add(n){ unread += n || 1; update(); }, reset(){ unread = 0; hold = 0; update(); } };
   update();
+})();
+</script>
+<style id="fr-css">
+#sbfr{padding:6px 8px 0}
+#sbfr .sbh{display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--bar-text,var(--muted));opacity:.8;padding:6px 10px}
+#sbfr .sbh button{border:none;background:var(--row);color:var(--bar-text,var(--text));border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700;cursor:pointer;text-transform:none;letter-spacing:0}
+#sbfr .sbh .bd{display:inline-block;min-width:16px;padding:0 5px;margin-left:6px;border-radius:9px;background:var(--accent);color:var(--on-accent,#fff);font-size:10px;line-height:16px;text-align:center;letter-spacing:0}
+#sbfr .hint{font-size:12px;color:var(--bar-text,var(--muted));opacity:.7;padding:0 10px 6px}
+#sbfr .sub{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;opacity:.6;padding:4px 10px 2px;color:var(--bar-text,var(--muted))}
+#sbfr .fr{display:flex;align-items:center;gap:10px;padding:5px 10px;border-radius:8px;font-size:13px;color:var(--bar-text,var(--text))}
+#sbfr .fr.go{cursor:pointer}
+#sbfr .fr:hover{background:var(--row)}
+#sbfr .pav,#frmod .pav,.dmintro .pav{width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;background-size:cover;background-position:center;position:relative}
+#sbfr .pav .dot{position:absolute;right:-2px;bottom:-2px;width:9px;height:9px;border-radius:50%;border:2px solid var(--side,#222);background:#6b7280}
+#sbfr .pav .dot.on{background:#30d158}
+#sbfr .mid{flex:1;min-width:0}
+#sbfr .mid div,#sbfr .mid span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#sbfr .mid span{display:block;font-size:11px;opacity:.7}
+#sbfr .fr button{border:none;background:var(--row);color:inherit;width:24px;height:24px;border-radius:50%;cursor:pointer;font-size:12px;padding:0;flex-shrink:0}
+#sbfr .fr button.ok{background:var(--accent);color:var(--on-accent,#fff)}
+#frmod{display:none;position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:16px}
+#frmod.on{display:flex}
+#frmod .frcard{background:var(--side);color:var(--text);border:1px solid var(--line);border-radius:18px;padding:18px;width:min(380px,100%);max-height:85vh;display:flex;flex-direction:column;gap:10px;box-shadow:0 16px 50px rgba(0,0,0,.55)}
+#frmod h3{margin:0;font-size:18px}
+#frmod .frsub{font-size:12px;color:var(--muted);line-height:1.4}
+#frmod input[type=text]{padding:9px 12px;border-radius:8px;border:1px solid var(--line);background:var(--input);color:var(--text);font:inherit;font-size:14px;outline:none}
+#frlist{overflow-y:auto;min-height:60px;max-height:46vh;display:flex;flex-direction:column;gap:2px}
+#frlist .row{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:10px}
+#frlist .row:hover{background:var(--row)}
+#frlist .row .nm{flex:1;min-width:0;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#frlist .row .nm small{display:block;font-size:11px;color:var(--muted)}
+#frlist .row .st{font-size:11px;color:var(--muted)}
+#frlist .row .st.on{color:#30d158}
+#frmod button.b,#frlist button,.dmintro button,.frprof button{border:none;background:var(--row);color:var(--text);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer}
+#frmod button.b.pri,#frlist button.pri,.dmintro button.pri,.frprof button.pri{background:var(--accent);color:var(--on-accent,#fff)}
+#frmod button:disabled{opacity:.55;cursor:default}
+#frmod .empty{padding:14px 6px;text-align:center;font-size:13px;color:var(--muted)}
+.dmintro{align-self:stretch;flex-shrink:0;padding:14px 4px 16px;margin-bottom:6px;border-bottom:1px solid var(--line,rgba(127,127,127,.3));text-align:left;color:inherit}
+.dmintro .big{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;color:#fff;background-size:cover;background-position:center;margin-bottom:8px}
+.dmintro h3{margin:0 0 4px;font-size:22px;font-weight:800}
+.dmintro p{margin:0 0 4px;font-size:14px;opacity:.85;line-height:1.4}
+.dmintro .meta{margin:8px 0 2px;display:flex;flex-direction:column;gap:3px;font-size:13px;opacity:.9}
+.dmintro .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+#frtoast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;z-index:95;background:#1c1c1e;color:#fff;border:1px solid rgba(255,255,255,.15);border-radius:999px;padding:10px 18px;font-size:14px;font-weight:600;box-shadow:0 8px 28px rgba(0,0,0,.5);transition:opacity .2s,transform .2s;max-width:92vw;text-align:center}
+#frtoast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.frprof{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.frprof button{flex:1;min-width:110px;padding:10px}
+</style>
+<div id="frmod" role="dialog" aria-label="Add friends"><div class="frcard">
+  <h3>Add friends</h3>
+  <div class="frsub">Online or offline — people who are offline get your request the next time they're back.</div>
+  <input type="text" id="frq" placeholder="Search people" autocomplete="off" maxlength="12">
+  <div id="frlist"></div>
+  <button type="button" class="b" id="frclose">Close</button>
+</div></div>
+<div id="frtoast"></div>
+<script id="fr-js">
+(function(){
+  /* ===== Friends: friend requests that work for people who are online AND offline, plus Discord-style "friends since / chatting since" =====
+     Every friendship is one small record (pending / friends / removed). The host keeps all of them (like groups and DMs), hands them to people
+     when they connect, and every device keeps its own copy so a new host can be rebuilt from everybody's copies. Newest change wins. */
+  const $f = id => document.getElementById(id);
+  const KEY = "pb_fr2", DAY = 864e5;
+  let R = {};                                       // "<uidA>|<uidB>" (sorted) -> { a, b, an, bn, s: p|f|x, by, ts, since }
+  const claims = {};                                // host only: "we're friends" claims that need the other person to agree (used after a host change)
+  const key = (u, v) => u < v ? u + "|" + v : v + "|" + u;
+  function cleanRec(x){
+    if(!x || typeof x !== "object") return null;
+    const a = String(x.a || ""), b = String(x.b || "");
+    if(!okUid(a) || !okUid(b) || a === b || a > b) return null;
+    const s = x.s === "p" || x.s === "f" || x.s === "x" ? x.s : ""; if(!s) return null;
+    const by = String(x.by || ""); if(by !== a && by !== b) return null;
+    const now = Date.now(), ts = Math.min(now + 60000, Math.max(0, +x.ts || 0)); if(!ts) return null;
+    return { a, b, an: String(x.an || "").slice(0, 12), bn: String(x.bn || "").slice(0, 12), s, by, ts, since: Math.min(now + 60000, Math.max(0, +x.since || 0)) };
+  }
+  try{ const o = JSON.parse(load(KEY, "{}")) || {}; Object.keys(o).slice(0, 4000).forEach(k => { const r = cleanRec(o[k]); if(r && key(r.a, r.b) === k && !(r.s === "x" && Date.now() - r.ts > 30 * DAY)) R[k] = r; }); }catch(e){ R = {}; }
+  let saveT = 0;
+  const saveR = () => { clearTimeout(saveT); saveT = setTimeout(() => save(KEY, JSON.stringify(R)), 300); };
+  const involves = (r, u) => r.a === u || r.b === u;
+  const otherOf = r => r.a === uid ? r.b : r.a;
+  const fmtDate = ts => new Date(ts).toLocaleDateString([], { year: "numeric", month: "long", day: "numeric" });
+  const isOn = u => (lastRoster || []).some(e => e.c === u);
+  function nameOf(u, r){
+    const ro = (lastRoster || []).find(e => e.c === u); if(ro) return ro.n;
+    for(let i = logs.length - 1; i >= 0; i--){ const l = logs[i]; if(l.c === u && l.u) return l.u; if(l.to === u && l.tn) return l.tn; }
+    return r ? (r.a === u ? r.an : r.bn) || "Someone" : "Someone";
+  }
+  const relWith = u => R[key(uid, u)] || null;
+  function status(u){ const r = relWith(u); if(!r || r.s === "x") return "none"; if(r.s === "f") return "friend"; return r.by === uid ? "out" : "in"; }
+  function mineList(){ const o = []; for(const k in R){ const r = R[k]; if(involves(r, uid)) o.push(r); } return o; }
+  function firstTs(k){ let m = 0; for(const l of logs){ if(l.del || !l.ts) continue; if(dmKey(l) === k && (!m || l.ts < m)) m = l.ts; } return m; }
+
+  /* ---------- toast ---------- */
+  let tt = 0;
+  function toast(t){ const e = $f("frtoast"); e.textContent = t; e.classList.add("on"); clearTimeout(tt); tt = setTimeout(() => e.classList.remove("on"), 4200); }
+
+  /* ---------- applying a record (host and clients) ---------- */
+  function apply(rec, quiet){
+    const k = key(rec.a, rec.b), old = R[k];
+    if(old && old.ts >= rec.ts) return false;
+    R[k] = rec; saveR();
+    if(!quiet && involves(rec, uid)){
+      const nm = nameOf(otherOf(rec), rec);
+      if(rec.s === "p" && rec.by !== uid) toast("👋 " + nm + " sent you a friend request");
+      else if(rec.s === "f" && old && old.s === "p" && old.by === uid) toast("🎉 " + nm + " accepted your friend request");
+    }
+    return true;
+  }
+  function push(rec){ conns.forEach(x => { if(x.open && x.uid && involves(rec, x.uid)) { try{ x.send({ t: "FR", i: newId(), a: "rec", r: [rec] }); }catch(e){} } }); }
+  function commit(rec){ if(apply(rec, false)){ push(rec); renderAll(); } }
+
+  /* ---------- host: someone asks to do something ---------- */
+  function hostAct(me, meName, d){
+    const other = String(d.to || ""); if(!okUid(other) || other === me) return;
+    const k = key(me, other), cur = R[k], now = Math.max(Date.now(), cur ? cur.ts + 1 : 0);
+    const a = me < other ? me : other, b = me < other ? other : me;
+    const tn = String(d.tn || "").trim().slice(0, 12);
+    const nm = {}; nm[me] = String(meName || "").slice(0, 12); nm[other] = tn || (cur ? (cur.a === other ? cur.an : cur.bn) : "");
+    let rec = null;
+    if(d.k === "req"){
+      if(cur && cur.s === "f") return;
+      if(cur && cur.s === "p"){ if(cur.by === me) return; rec = { ...cur, an: nm[a] || cur.an, bn: nm[b] || cur.bn, s: "f", by: me, ts: now, since: now }; }   // they already asked you: you're friends now
+      else {
+        let n = 0; for(const x in R){ if(R[x].s === "p" && R[x].by === me) n++; }
+        if(n >= 40){ return; }
+        rec = { a, b, an: nm[a], bn: nm[b], s: "p", by: me, ts: now, since: 0 };
+      }
+    } else if(d.k === "acc"){
+      if(!cur || cur.s !== "p" || cur.by === me) return;
+      rec = { ...cur, an: nm[a] || cur.an, bn: nm[b] || cur.bn, s: "f", ts: now, since: now };
+    } else if(d.k === "rm"){
+      if(!cur || cur.s === "x") return;
+      rec = { ...cur, s: "x", by: me, ts: now };
+    } else return;
+    commit(rec);
+  }
+  /* ---------- host: a device (re)connected and shares what it knows ---------- */
+  function hostSync(me, from, d){
+    (Array.isArray(d.r) ? d.r : []).slice(0, 3000).forEach(x => {
+      const rec = cleanRec(x); if(!rec || !involves(rec, me)) return;
+      const k = key(rec.a, rec.b), cur = R[k];
+      if(cur && cur.ts >= rec.ts) return;
+      if(rec.s === "f"){
+        const ok = cur && cur.s === "p" && cur.by !== me;          // they accepted a request that was waiting
+        if(!ok){                                                    // otherwise both people must say so
+          const cl = claims[k] || (claims[k] = {}), o = rec.a === me ? rec.b : rec.a;
+          cl[me] = rec;
+          if(!cl[o]) return;
+          rec.ts = Math.max(rec.ts, cl[o].ts); rec.since = Math.min(rec.since || rec.ts, cl[o].since || rec.ts) || rec.ts;
+          delete claims[k];
+        }
+      }
+      if(apply(rec, true)) push(rec);
+    });
+    const mine = []; for(const k in R){ if(involves(R[k], me)) mine.push(R[k]); }
+    try{ from.send({ t: "FR", i: newId(), a: "rec", init: 1, r: mine }); }catch(e){}
+    renderAll();
+  }
+  function sendSync(conn){ try{ conn.send({ t: "FR", i: newId(), a: "sync", r: mineList() }); }catch(e){} }
+
+  /* ---------- what I do ---------- */
+  function act(k, to, tn){
+    tn = String(tn || "").slice(0, 12);
+    if(isHost) hostAct(uid, usr, { k, to, tn });
+    else if(conns.length) send({ t: "FR", i: newId(), a: "act", k, to, tn });
+    else toast("You're not connected yet.");
+  }
+
+  /* ---------- hook into the message handler ---------- */
+  const prev = handle;
+  handle = function(d, from){
+    if(d && typeof d === "object" && d.t === "FR" && validId(d.i)){
+      if(isHost){
+        if(!from || !from.ok2 || from.denied || !from.uid) return;
+        if(d.a === "act") hostAct(from.uid, from.userName, d);
+        else if(d.a === "sync") hostSync(from.uid, from, d);
+      } else if(d.a === "rec" && Array.isArray(d.r)){
+        let n = 0;
+        d.r.slice(0, 3000).forEach(x => { const rec = cleanRec(x); if(rec && involves(rec, uid)) apply(rec, !!d.init); });
+        if(d.init){ from.frOk = 1; n = mineList().filter(r => r.s === "p" && r.by !== uid).length; if(n) toast("👋 You have " + n + " friend request" + (n === 1 ? "" : "s")); }
+        renderAll();
+      }
+      return;
+    }
+    const r = prev.apply(this, arguments);
+    try{ if(!isHost && d && (d.t === "P" || d.t === "R") && from && !from.frOk && Date.now() - (from.frT || 0) > 2500){ from.frT = Date.now(); sendSync(from); } }catch(e){}
+    return r;
+  };
+
+  /* ---------- sidebar ---------- */
+  const sb = document.createElement("div"); sb.id = "sbfr";
+  const dm = $f("sbdm"); if(dm && dm.parentNode) dm.parentNode.insertBefore(sb, dm);
+  function mkAv(u, name, dot){
+    const av = document.createElement("div"); av.className = "pav"; paintAv(av, name);
+    if(dot){ const d = document.createElement("i"); d.className = "dot" + (isOn(u) ? " on" : ""); av.appendChild(d); }
+    return av;
+  }
+  function rowBtn(txt, title, cls, fn){ const b = document.createElement("button"); b.type = "button"; b.textContent = txt; b.title = title; if(cls) b.className = cls; b.onclick = ev => { ev.stopPropagation(); fn(); }; return b; }
+  function renderFr(){
+    if(!sb.isConnected) return;
+    const all = mineList(), inn = all.filter(r => r.s === "p" && r.by !== uid), out = all.filter(r => r.s === "p" && r.by === uid), fr = all.filter(r => r.s === "f");
+    const h = document.createElement("div"); h.className = "sbh";
+    const ht = document.createElement("span"); ht.textContent = "Friends — " + fr.length;
+    if(inn.length){ const bd = document.createElement("span"); bd.className = "bd"; bd.textContent = inn.length; ht.appendChild(bd); }
+    const nb = document.createElement("button"); nb.type = "button"; nb.textContent = "＋ Add"; nb.title = "Send a friend request"; nb.onclick = openAdd;
+    h.append(ht, nb);
+    const els = [h];
+    const sub = t => { const s = document.createElement("div"); s.className = "sub"; s.textContent = t; return s; };
+    if(inn.length){
+      els.push(sub("Requests for you"));
+      inn.sort((x, y) => y.ts - x.ts).forEach(r => { const u = otherOf(r), n = nameOf(u, r), row = document.createElement("div"); row.className = "fr";
+        const mid = document.createElement("div"); mid.className = "mid"; const a = document.createElement("div"); a.textContent = n; const b = document.createElement("span"); b.textContent = "wants to be friends · " + fmtDate(r.ts); mid.append(a, b);
+        row.append(mkAv(u, n, false), mid, rowBtn("✓", "Accept", "ok", () => act("acc", u, n)), rowBtn("✕", "Decline", "", () => act("rm", u, n))); els.push(row); });
+    }
+    if(out.length){
+      els.push(sub("Waiting for a reply"));
+      out.sort((x, y) => y.ts - x.ts).forEach(r => { const u = otherOf(r), n = nameOf(u, r), row = document.createElement("div"); row.className = "fr";
+        const mid = document.createElement("div"); mid.className = "mid"; const a = document.createElement("div"); a.textContent = n; const b = document.createElement("span"); b.textContent = (isOn(u) ? "online" : "offline — they'll see it when they're back") + " · sent " + fmtDate(r.ts); mid.append(a, b);
+        row.append(mkAv(u, n, true), mid, rowBtn("✕", "Cancel request", "", () => act("rm", u, n))); els.push(row); });
+    }
+    if(fr.length){
+      els.push(sub("Your friends"));
+      fr.sort((x, y) => (isOn(otherOf(y)) - isOn(otherOf(x))) || nameOf(otherOf(x), x).localeCompare(nameOf(otherOf(y), y))).forEach(r => { const u = otherOf(r), n = nameOf(u, r), row = document.createElement("div"); row.className = "fr go"; row.title = "Message " + n;
+        const mid = document.createElement("div"); mid.className = "mid"; const a = document.createElement("div"); a.textContent = n; const b = document.createElement("span"); b.textContent = (isOn(u) ? "online" : "offline") + " · friends since " + fmtDate(r.since || r.ts); mid.append(a, b);
+        row.append(mkAv(u, n, true), mid); row.onclick = () => openDM("d:" + u, n); els.push(row); });
+    }
+    if(!inn.length && !out.length && !fr.length){ const t = document.createElement("div"); t.className = "hint"; t.textContent = "Add friends — online or offline — and see how long you've been chatting."; els.push(t); }
+    sb.replaceChildren(...els);
+  }
+
+  /* ---------- "Add friends" window ---------- */
+  function openAdd(){ $f("frmod").classList.add("on"); $f("frq").value = ""; fillAdd(); setTimeout(() => $f("frq").focus(), 30); const s = $f("sb"); if(s) s.classList.remove("open"); }
+  function closeAdd(){ $f("frmod").classList.remove("on"); }
+  function btns(box, u, n, big){
+    const st = status(u), add = (t, cls, fn) => { const b = document.createElement("button"); b.type = "button"; b.textContent = t; if(cls) b.className = cls; b.onclick = ev => { ev.stopPropagation(); fn(); }; box.appendChild(b); };
+    if(st === "none") add("➕ Add friend", "pri", () => act("req", u, n));
+    else if(st === "out") add(big ? "Cancel request" : "Pending ✕", "", () => act("rm", u, n));
+    else if(st === "in"){ add("✓ Accept", "pri", () => act("acc", u, n)); add("✕ Decline", "", () => act("rm", u, n)); }
+    else add(big ? "Remove friend" : "Friends ✓", "", () => { if(!big || confirm("Remove " + n + " from your friends?")) act("rm", u, n); });
+  }
+  function fillAdd(){
+    const list = $f("frlist"), t = $f("frq").value.trim().toLowerCase();
+    const people = knownPeople([]).filter(p => !t || p.n.toLowerCase().includes(t));
+    list.replaceChildren();
+    if(!people.length){ const e = document.createElement("div"); e.className = "empty"; e.textContent = t ? "Nobody by that name." : "Nobody to add yet — people show up here once they've been in the chat."; list.appendChild(e); return; }
+    people.forEach(p => {
+      const row = document.createElement("div"); row.className = "row";
+      const av = document.createElement("div"); av.className = "pav"; paintAv(av, p.n);
+      const nm = document.createElement("div"); nm.className = "nm"; nm.textContent = p.n; const sm = document.createElement("small"); sm.className = "st" + (p.on ? " on" : ""); sm.textContent = p.on ? "online" : "offline"; nm.appendChild(sm);
+      row.append(av, nm); btns(row, p.c, p.n, false); list.appendChild(row);
+    });
+  }
+  $f("frq").addEventListener("input", fillAdd);
+  $f("frclose").onclick = closeAdd;
+  $f("frmod").addEventListener("mousedown", e => { if(e.target.id === "frmod") closeAdd(); });
+  document.addEventListener("keydown", e => { if(e.key === "Escape" && $f("frmod").classList.contains("on")) closeAdd(); });
+
+  /* ---------- start of a private chat / group (like Discord): who, since when ---------- */
+  function groupBorn(g){ const m = String(g.id || "").slice(1, -6), t = parseInt(m, 36); return t > 1.4e12 && t < Date.now() + DAY ? t : (g.v || 0); }
+  function paintIntro(){
+    const box = $f("box"); if(!box) return;
+    const old = box.querySelector(".dmintro");
+    if(curCh !== "dm" || !dmWith){ if(old) old.remove(); return; }
+    const isG = dmWith[0] === "g", id = dmWith.slice(2), first = firstTs(dmWith);
+    const g = isG ? groups[id] : null; if(isG && !g){ if(old) old.remove(); return; }
+    const u = isG ? "" : id, st = isG ? "" : status(u), rel = isG ? null : relWith(u), nm = isG ? g.n : (nameOf(u, rel) || dmNm);
+    const sig = [dmWith, nm, first, st, rel ? rel.ts : 0, isG ? (g.ic || "").length + ":" + g.m.length + ":" + g.v : ""].join("|");
+    if(old && old.dataset.sig === sig && old.parentNode === box && box.firstChild === old) return;
+    if(old) old.remove();
+    const el = document.createElement("div"); el.className = "dmintro"; el.dataset.sig = sig;
+    const big = document.createElement("div"); big.className = "big";
+    if(isG){ if(typeof setGroupIcon === "function") setGroupIcon(big, g.ic); else big.textContent = g.ic || "👥"; big.style.fontSize = "34px"; }
+    else paintAv(big, nm);
+    const h = document.createElement("h3"); h.textContent = nm;
+    const p = document.createElement("p"); p.textContent = isG ? "Welcome to the start of the " + nm + " group chat." : "This is the beginning of your direct message history with " + nm + ".";
+    const meta = document.createElement("div"); meta.className = "meta";
+    const line = t => { const d = document.createElement("div"); d.textContent = t; meta.appendChild(d); };
+    if(isG){ line("👥 " + g.m.length + " member" + (g.m.length === 1 ? "" : "s")); const born = groupBorn(g); if(born) line("🎈 Group created " + fmtDate(born)); }
+    else if(st === "friend") line("🤝 Friends since " + fmtDate(rel.since || rel.ts));
+    else if(st === "out") line("⏳ Friend request sent — they'll see it when they're online");
+    else if(st === "in") line("👋 " + nm + " wants to be your friend");
+    line(first ? "💬 Started chatting " + fmtDate(first) : "💬 No messages yet — say hi!");
+    el.append(big, h, p, meta);
+    if(!isG){ const acts = document.createElement("div"); acts.className = "acts"; btns(acts, u, nm, true); el.appendChild(acts); }
+    box.insertBefore(el, box.firstChild);
+  }
+  const _regroup = regroup;
+  regroup = function(){ try{ paintIntro(); }catch(e){ console.warn("intro", e); } return _regroup.apply(this, arguments); };
+
+  /* ---------- profile card: add friend / friends since / chatting since ---------- */
+  let lastProf = null;
+  window.__frProf = function(body, id, name, mine){
+    lastProf = mine ? null : { id, name };
+    if(mine || !okUid(id) || id === uid) return;
+    const st = status(id), r = relWith(id), first = firstTs("d:" + id);
+    const sec = document.createElement("div"); sec.className = "psec";
+    const h = document.createElement("h4"); h.textContent = "Friendship"; sec.appendChild(h);
+    const lines = [];
+    lines.push(st === "friend" ? "🤝 Friends since " + fmtDate(r.since || r.ts) : st === "out" ? "⏳ Friend request sent" : st === "in" ? "👋 Wants to be your friend" : "Not friends yet");
+    lines.push(first ? "💬 Chatting since " + fmtDate(first) : "💬 No private messages yet");
+    const p = document.createElement("p"); p.textContent = lines.join("\n"); sec.appendChild(p); body.appendChild(sec);
+    const row = document.createElement("div"); row.className = "frprof"; btns(row, id, name, true);
+    const m = document.createElement("button"); m.type = "button"; m.textContent = "💬 Message"; m.onclick = () => { const pm = $f("profmod"); if(pm) pm.classList.remove("on"); lastProf = null; openDM("d:" + id, name); };
+    row.appendChild(m); body.appendChild(row);
+  };
+  function repaintProfile(){ const pm = $f("profmod"); if(lastProf && pm && pm.classList.contains("on") && window.__pbProfile) window.__pbProfile(lastProf.id, lastProf.name); }
+
+  /* ---------- keep everything fresh ---------- */
+  function renderAll(){ try{ renderFr(); }catch(e){ console.warn("friends", e); } try{ paintIntro(); }catch(e){} try{ repaintProfile(); }catch(e){} if($f("frmod").classList.contains("on")) fillAdd(); }
+  const _ro = renderOnline;
+  renderOnline = function(){ const r = _ro.apply(this, arguments); try{ renderFr(); }catch(e){} return r; };
+  let lastSig = "";
+  setInterval(() => {
+    const s = uid + "#" + mineList().map(r => r.a + r.b + r.s + r.ts).join(",") + "#" + (lastRoster || []).map(e => e.c).join(",");
+    if(s !== lastSig){ lastSig = s; renderAll(); }
+  }, 2000);
+  renderAll();
 })();
 </script>
 </body>
