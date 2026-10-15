@@ -627,7 +627,7 @@
     <a class="goback" href="https://docs.google.com/document/d/1oa90mU-jYczqySulirTvHqqNWTSaNwPGnnArgBdVGrs/edit?tab=t.pqncc0vmsgzp" rel="noopener">← Go back</a>
   </div>
     <div id="gver">Version 0.3.8</div>
-  <label class="fld" id="g-themefld"><span>Themes</span><select id="g-theme"><option value="imessage">iMessage</option><option value="ios6">iOS 6</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option><option value="material">Material You (Android)</option><option value="terminal">Terminal</option><option value="pornhub">Pornhub</option></select></label>
+  <label class="fld" id="g-themefld"><span>Themes</span><select id="g-theme"><option value="imessage">iMessage</option><option value="ios6">iOS 6</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option><option value="material">Material You (Android)</option><option value="terminal">Terminal</option></select></label>
 </div>
 
 <div id="sb">
@@ -678,7 +678,7 @@
       </div>
       <div class="stg-card"><h3>🎨 Appearance</h3>
         <label>Theme</label>
-        <select id="theme"><option value="imessage">iMessage</option><option value="ios6">iOS 6</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option><option value="material">Material You (Android)</option><option value="terminal">Terminal</option><option value="pornhub">Pornhub</option></select>
+        <select id="theme"><option value="imessage">iMessage</option><option value="ios6">iOS 6</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option><option value="material">Material You (Android)</option><option value="terminal">Terminal</option></select>
         <label>Wallpaper &amp; accent color (also tints top bar, message bar &amp; left bar)</label><input type="color" id="wcol" value="#000000">
         <label>Wallpaper image (syncs to your other devices)</label>
         <div class="stg-row"><button id="wimg" type="button" class="btn">Choose image</button><button id="wreset" type="button" class="btn alt">Reset wallpaper</button><input type="file" id="wfile" accept="image/*" style="display:none"></div>
@@ -742,9 +742,9 @@ let usr = "User", peer = null, conns = [], isHost = false, logs = [];
 /* private DM state */
 let dmWith = "", dmNm = "", chipT = null;
 let seen = {}; try { seen = JSON.parse(load("dm_seen", "{}")) || {}; } catch(e){ seen = {}; }
-const PH = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage",ios6:"iMessage",material:"Text message",terminal:"enter message…",pornhub:"Type a message"};
-const THEMES = ["imessage","ios6","discord","whatsapp","tiktok","roblox","instagram","twitter","material","terminal","pornhub"];
-const CHNAME = {discord:"# purebred-chat",whatsapp:"WhatsApp Group",tiktok:"TikTok Inbox",roblox:"Roblox Chat",instagram:"Instagram Direct",twitter:"Twitter Messages",imessage:"iMessage Channel",ios6:"Messages",material:"Messages",terminal:"/dev/purebred",pornhub:"Members Chat"};
+const PH = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage",ios6:"iMessage",material:"Text message",terminal:"enter message…"};
+const THEMES = ["imessage","ios6","discord","whatsapp","tiktok","roblox","instagram","twitter","material","terminal"];
+const CHNAME = {discord:"# purebred-chat",whatsapp:"WhatsApp Group",tiktok:"TikTok Inbox",roblox:"Roblox Chat",instagram:"Instagram Direct",twitter:"Twitter Messages",imessage:"iMessage Channel",ios6:"Messages",material:"Messages",terminal:"/dev/purebred"};
 let draft = null, stgOpen = false, pvLoaded = false, pvq = 0;
 const shownKeys = new Set();
 let groups = {};
@@ -805,11 +805,11 @@ const myDevice = detectDevice();
 
 /* ---------- theme ---------- */
 function setTheme(t){
-  if(!["imessage","ios6","discord","whatsapp","tiktok","roblox","instagram","twitter","material","terminal","pornhub"].includes(t)) t = "imessage";
+  if(!["imessage","ios6","discord","whatsapp","tiktok","roblox","instagram","twitter","material","terminal"].includes(t)) t = "imessage";
   document.body.dataset.theme = t;
   $("theme").value = t; $("g-theme").value = t;
-  $("chname").textContent = {discord:"# purebred-chat",whatsapp:"WhatsApp Group",tiktok:"TikTok Inbox",roblox:"Roblox Chat",instagram:"Instagram Direct",twitter:"Twitter Messages",imessage:"iMessage Channel",ios6:"Messages",material:"Messages",terminal:"/dev/purebred",pornhub:"Members Chat"}[t];
-  $("inp").placeholder = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage",ios6:"iMessage",material:"Text message",terminal:"enter message…",pornhub:"Type a message"}[t];
+  $("chname").textContent = {discord:"# purebred-chat",whatsapp:"WhatsApp Group",tiktok:"TikTok Inbox",roblox:"Roblox Chat",instagram:"Instagram Direct",twitter:"Twitter Messages",imessage:"iMessage Channel",ios6:"Messages",material:"Messages",terminal:"/dev/purebred"}[t];
+  $("inp").placeholder = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage",ios6:"iMessage",material:"Text message",terminal:"enter message…"}[t];
   save("chat_theme", t); if(curCh === "dm") updateDmBar();
   applyWall();
   restyleAll();
@@ -6391,7 +6391,7 @@ body[data-theme="material"][style*="--accent"] #chtabs button.on{background:var(
 })();
 </script>
 
-<style id="pornhub-css">
+<style id="theme-fixes-css">
 /* ---- readable text over any wallpaper (fixes too-dark / too-light text in every theme) ---- */
 body:not([data-theme="terminal"]):not([data-theme="roblox"]) .lbl,
 body .msg.sys,body .tsep,body .edited,body #typing:not(:empty),body .msg.lastmine .col::after,body .me.lastmine .col::after{color:var(--cx-muted,var(--muted)) !important}
@@ -6404,36 +6404,6 @@ body[data-theme="material"] .peer .bubble{color:var(--m-on-surf)}
 body[data-theme="terminal"] .bubble,body[data-theme="terminal"] .me .bubble,body[data-theme="terminal"] .peer .bubble,body[data-theme="terminal"] #box[style*="url("] .msg .bubble{background:transparent !important;background-image:none !important;box-shadow:none !important;border:none !important;padding:0 !important}
 body[data-theme="terminal"] #box[style*="url("] .msg .bubble,body[data-theme="terminal"] #box[style*="url("] .msg .lbl{text-shadow:0 0 3px #000,0 0 6px #000,0 1px 2px #000}
 body[data-theme="terminal"] #box[style*="url("] .msg .lbl{background:transparent}
-/* ---- Pornhub theme: black + orange ---- */
-body[data-theme="pornhub"]{
-  --bg:#000; --side:#0d0d0d; --row:#1b1b1b; --input:#1b1b1b; --line:#2b2b2b;
-  --text:#fff; --muted:#b0b0b0; --accent:#ff9000; --on-accent:#000; --me:#ff9000; --peer:#1f1f1f; --r:8px; --r-sm:6px;
-  color-scheme:dark; font-family:Arial,"Helvetica Neue",Helvetica,sans-serif,"Noto Color Emoji","Apple Color Emoji";
-}
-body[data-theme="pornhub"] #sb{border-right:1px solid #2b2b2b}
-body[data-theme="pornhub"] .hdr-sb{font-size:0 !important;display:flex;align-items:center;padding:20px 16px;border-bottom:2px solid #ff9000}
-body[data-theme="pornhub"] .hdr-sb::before{content:"Chat rooms";font-size:20px;font-weight:800;color:#ff9000}
-body[data-theme="pornhub"] .row-ch{margin:2px 8px;border-radius:8px;border-left:3px solid transparent !important}
-body[data-theme="pornhub"] .row-ch.active{background:#1b1b1b;border-left-color:#ff9000 !important;color:#fff}
-body[data-theme="pornhub"] .av-sb{background:#ff9000;color:#000;border-radius:8px}
-body[data-theme="pornhub"] .av-sb.lp{border-radius:8px}
-body[data-theme="pornhub"] #hdr{border-bottom:2px solid #ff9000;background:var(--bar,#0d0d0d)}
-body[data-theme="pornhub"] #chtabs{background:#1b1b1b;border-radius:8px}
-body[data-theme="pornhub"] #chtabs button{border-radius:6px;font-weight:700}
-body[data-theme="pornhub"] #chtabs button.on{background:#ff9000;color:#000}
-body[data-theme="pornhub"] .bubble{border-radius:8px}
-body[data-theme="pornhub"] .me .bubble{background:#ff9000;color:#000}
-body[data-theme="pornhub"] .peer .bubble{background:#1f1f1f;color:#fff}
-body[data-theme="pornhub"] .lbl{color:#ff9000 !important;font-weight:700}
-body[data-theme="pornhub"] #tray{background:var(--bar,#0d0d0d);border-top:1px solid #2b2b2b}
-body[data-theme="pornhub"] .pill{background:#1b1b1b;border:1px solid #2b2b2b;border-radius:8px}
-body[data-theme="pornhub"] .plus{background:#1b1b1b;color:#ff9000;border-radius:8px}
-body[data-theme="pornhub"] #sendbtn{background:#ff9000;color:#000;border-radius:6px}
-body[data-theme="pornhub"] .goback,body[data-theme="pornhub"] #dmbar button{border-radius:6px}
-body[data-theme="pornhub"] #dmbar #callbtn{background:#ff9000 !important;color:#000 !important}
-body[data-theme="pornhub"] .stg-btn{color:#ff9000}
-body[data-theme="pornhub"] .stg-card,body[data-theme="pornhub"] #gate .card{border-radius:10px}
-body[data-theme="pornhub"] #gate .logo{background:#ff9000;color:#000}
 </style>
 <style id="applying-css">
 #applying{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(0,0,0,.55);color:#fff;font:600 16px system-ui,sans-serif;opacity:0;pointer-events:none;transition:opacity .15s}
