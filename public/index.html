@@ -254,7 +254,7 @@
   body.in-gal .img{max-width:min(300px,70vw);max-height:300px;object-fit:cover}
   #galnote{display:none;flex:1;color:var(--bar-text,var(--muted));font-size:14px}
   body.in-gal #galnote{display:block}
-  body.in-gal #emo-btn,body.in-gal .pill,body.in-gal #emo-panel,body.in-gal #emo-sug{display:none !important}
+  body.in-gal #emo-btn,body.in-gal #gif-btn,body.in-gal #gif-panel,body.in-gal .pill,body.in-gal #emo-panel,body.in-gal #emo-sug{display:none !important}
   .tsep{display:none}
   body.in-gal .tsep{display:none !important}
 
@@ -600,7 +600,7 @@
   <div class="gside">
     <h1>Los Purebred's</h1>
     <p class="sub">Unification initiation</p>
-    <div id="gver">Version 0.3.1</div>
+    <div id="gver">Version 0.3.4</div>
     <div class="logo lp"></div>
   </div>
   <div class="card">
@@ -695,8 +695,8 @@
   <div id="tray">
     <label for="fi" class="plus">+</label>
     <input type="file" id="fi" accept="image/*" style="display:none" disabled>
-    <span id="emo-btn" title="Emoji">😊</span><span id="sp-btn" title="Send as spoiler (blurred until clicked)">🙈</span>
-    <div id="emo-panel"></div>
+    <span id="emo-btn" title="Emoji">😊</span><span id="sp-btn" title="Send as spoiler (blurred until clicked)">🙈</span><span id="gif-btn" title="Send a GIF" role="button" tabindex="0">GIF</span>
+    <div id="emo-panel"></div><div id="gif-panel"></div>
     <div id="emo-sug"></div>
     <div class="pill"><input type="text" id="inp" placeholder="Message" disabled><button id="sendbtn" type="button" title="Send" aria-label="Send"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>
     <div id="galnote">📷 Image Gallery is photos only — tap + to post one.</div>
@@ -1442,6 +1442,7 @@ function cleanPoll(p){
   if(!q || os.length < 2) return null;
   return { q, o: os, m: p.m ? 1 : 0, end: Math.max(0, Math.min(Date.now() + 8 * 864e5, +p.end || 0)) };
 }
+const GIF_RE = /^https:\/\/media[0-9]*\.tenor\.com\/(?:m\/)?[A-Za-z0-9_\-]+\/[A-Za-z0-9_\-]+\.gif$/;   // GIF messages carry a Tenor link, not image data
 function cleanEntry(e){
   if(!e || typeof e !== "object" || !validId(e.i)) return null;
   const o = { i: e.i, v: +e.v || 0, ts: +e.ts || 0 };
@@ -1453,7 +1454,8 @@ function cleanEntry(e){
   }
   if(typeof e.u !== "string" || typeof e.b !== "string") return null;
   o.u = e.u.slice(0, 12); o.c = okUid(e.c) ? e.c : ""; o.f = okFont(e.f); o.d = okDev(e.d);
-  if(e.img){ if(!e.b.startsWith("data:image/") || e.b.length > 4500000) return null; o.img = 1; if(e.stk) o.stk = 1; }
+  if(e.img && e.gif){ if(e.b.length > 200 || !GIF_RE.test(e.b)) return null; o.img = 1; o.gif = 1; }
+  else if(e.img){ if(!e.b.startsWith("data:image/") || e.b.length > 4500000) return null; o.img = 1; if(e.stk) o.stk = 1; }
   else if(e.aud){ if(!e.b.startsWith("data:audio/") || e.b.length > 1800000) return null; o.aud = 1; }
   else if(e.fl){ if(!/^data:[\w.+\-\/]*;base64,[A-Za-z0-9+\/=]*$/.test(e.b) || e.b.length > 3500000) return null; o.fl = 1; o.fn = cleanFn(e.fn); o.fz = Math.max(0, Math.min(1e8, +e.fz || 0)); }
   else if(e.poll){ const pl = cleanPoll(e.poll); if(!pl || e.b.length >= 300) return null; o.poll = pl; }
@@ -1769,7 +1771,7 @@ function setChannel(c){
   $("sb").classList.remove("open");
   updateDmBar(); renderDMList();
   regroup();
-  const b = $("box"); b.scrollTop = b.scrollHeight;
+  const b = $("box"); b.scrollTop = b.scrollHeight; if(window.__jump) window.__jump.reset();
   b.classList.remove("swap"); void b.offsetWidth; b.classList.add("swap"); setTimeout(() => b.classList.remove("swap"), 300);
 }
 $("ch-main").onclick = () => setChannel("main");
@@ -1800,6 +1802,7 @@ function postMsg(b, img, aud, extra){
   if(extra){
     if(curCh === "gal"){ sys("The gallery is for photos only."); return; }
     if(extra.stk) o.stk = 1;
+    if(extra.gif) o.gif = 1;
     if(extra.fl){ o.fl = 1; o.fn = cleanFn(extra.fn); o.fz = extra.fz || 0; delete o.f; }
     if(extra.poll){ o.poll = cleanPoll(extra.poll); if(!o.poll) return; delete o.f; }
   }
@@ -2000,6 +2003,7 @@ function renderRow(m, animate){
   if(m.to && m.to !== uid && m.c !== uid) return;   // not our DM
   if(m.g && !isMember(m.g)) return;                  // not our group
   const box = $("box"), mine = isMine(m);
+  const wasNear = box.scrollHeight - box.scrollTop - box.clientHeight < 120;   // were they reading the latest messages?
   const w = document.createElement("div");
   w.className = "msg " + (mine ? "me" : "peer"); w.id = m.i;
   w.dataset.ts = m.ts || 0; w.dataset.uid = m.c || ""; w.dataset.user = m.u; w.dataset.ch = m.ch || ""; if(m.to || m.g) w.dataset.dm = dmKey(m);
@@ -2016,7 +2020,7 @@ function renderRow(m, animate){
   const wrap = document.createElement("div"); wrap.className = "bwrap";
   if(m.img){
     const im = document.createElement("img"); im.className = "img" + (m.stk ? " stk" : ""); im.decoding = "async"; im.alt = "Photo";
-    if(box.scrollHeight - box.scrollTop - box.clientHeight < 240) im.onload = () => { box.scrollTop = box.scrollHeight; };   // keep the chat pinned to the bottom while photos load
+    if(!animate || mine || wasNear) im.onload = () => { if(box.scrollHeight - box.scrollTop - box.clientHeight < im.offsetHeight + 160) box.scrollTop = box.scrollHeight; };   // keep the chat pinned to the bottom while photos load (not if they scrolled away)
     im.src = m.b; wrap.appendChild(im);
   } else if(m.fl){
     wrap.appendChild(window.buildFileCard ? window.buildFileCard(m) : document.createTextNode("📎 " + (m.fn || "file")));
@@ -2055,8 +2059,17 @@ function renderRow(m, animate){
   });
 
   const nxt = m.ts ? [...box.querySelectorAll(".msg[data-ts]")].find(r => +r.dataset.ts > m.ts) : null;
-  if(nxt) box.insertBefore(w, nxt); else { box.appendChild(w); box.scrollTop = box.scrollHeight; }
+  if(nxt) box.insertBefore(w, nxt);
+  else {
+    box.appendChild(w);
+    if(!animate || mine || wasNear) box.scrollTop = box.scrollHeight;        // history loading, your own message, or you were already at the bottom
+    else if(window.__jump && visibleHere(w)) window.__jump.add(1);          // reading further up: stay put, the arrow shows what's new
+  }
   queueRegroup();
+}
+function visibleHere(el){                       // is this row part of the chat the person is looking at right now?
+  const d = el.dataset;
+  return curCh === "dm" ? ((d.ch === "dm" || d.ch === "grp") && d.dm === dmWith) : curCh === "gal" ? d.ch === "gal" : curCh === "shame" ? d.ch === "shame" : !d.ch;
 }
 
 function applyToDom(l){
@@ -2070,8 +2083,10 @@ function applyToDom(l){
   if(l.edited) setEditedTag(bub.parentNode, true);
 }
 function rerender(){
+  const bx = $("box"), far = bx.scrollHeight - bx.scrollTop - bx.clientHeight >= 120, keep = bx.scrollTop;
   document.querySelectorAll("#box .msg[data-ts]").forEach(e => e.remove());
   logs.forEach(m => renderRow(m)); renderDMList();
+  if(far) bx.scrollTop = keep;
   queueRegroup();
 }
 
@@ -2087,7 +2102,7 @@ function fmtStamp(ts){
 }
 function regroup(){
   const box = $("box"), gal = curCh === "gal";
-  const near = box.scrollHeight - box.scrollTop - box.clientHeight < 140;
+  const near = box.scrollHeight - box.scrollTop - box.clientHeight < 120;
   box.querySelectorAll(".tsep").forEach(e => e.remove());
   const vis = [...box.children].filter(e => {
     if(!e.classList.contains("msg")) return false;
@@ -2154,8 +2169,10 @@ function setMyStyle(){
   send({ t: "B", i: newId(), c: uid, bc: myBc, bi: myBi, v });
 }
 function sys(t){
+  const b = $("box"), near = b.scrollHeight - b.scrollTop - b.clientHeight < 120;
   const d = document.createElement("div"); d.className = "msg sys"; d.textContent = "System: " + t;
-  $("box").appendChild(d); $("box").scrollTop = $("box").scrollHeight;
+  b.appendChild(d);
+  if(near) b.scrollTop = b.scrollHeight; else if(window.__jump) window.__jump.add(1);
   queueRegroup();
 }
 
@@ -3549,6 +3566,38 @@ label.plus.open{transform:rotate(45deg)}
   }
   let reg=cleanReg((()=>{try{return JSON.parse(load("pb_reg","{}"));}catch(e){return {};}})());
   const saveReg=()=>save("pb_reg",JSON.stringify(reg));
+
+  /* =============== word blacklist (admins manage it; the host enforces it; only admins ever receive the list) =============== */
+  const blFold=s=>String(s==null?"":s).normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+  const blTokens=s=>blFold(s).split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  const blEntry=s=>{ const star=/\*\s*$/.test(String(s==null?"":s)); const t=blTokens(s).join(" ").slice(0,40); return t?(star?t+"*":t):""; };   // "word", "two words", or "pref*" (anything starting with pref)
+  let blw=[]; try{ blw=JSON.parse(load("pb_blw","[]")).map(blEntry).filter(Boolean).slice(0,200); }catch(e){ blw=[]; }
+  const saveBL=()=>save("pb_blw",JSON.stringify(blw));
+  function blHit(text){
+    if(!blw.length||typeof text!=="string") return false;
+    const toks=blTokens(text); if(!toks.length) return false;
+    const joined=" "+toks.join(" ");
+    return blw.some(w=>w.endsWith("*")?joined.includes(" "+w.slice(0,-1)):(joined+" ").includes(" "+w+" "));
+  }
+  function blPush(){ conns.forEach(c=>{ if(c.ok2&&c.admin&&c.open){ try{ c.send({t:"BL",i:newId(),w:blw}); }catch(e){} } }); try{ renderBL(); }catch(e){} }
+  const BL_MSG="🚫 Your message wasn't sent: it contains a word that isn't allowed here.";
+  function blFilter(d,from){        // host side: drop blocked text from a client's message batch; true = nothing left to relay
+    if(!blw.length) return false;
+    const gone=[]; let hit=false, first="";
+    d.e=d.e.filter(e=>{
+      if(!e||typeof e!=="object"||e.del||e.img||e.aud||e.fl||e.poll||typeof e.b!=="string") return true;
+      const cur=logs.find(l=>l.i===e.i);
+      if(cur&&cur.b===e.b) return true;                  // text unchanged (reactions etc.)
+      if(!blHit(e.b)) return true;
+      hit=true;
+      if(cur){ try{ from.send({t:"Y",i:newId(),e:[Object.assign({},cur,{v:Math.max(Date.now(),(+cur.v||0)+1)})]}); }catch(x){} }   // blocked edit: put their old text back
+      else { gone.push(e.i); if(!first) first=e.b; }
+      return false;
+    });
+    if(hit){ try{ from.send({t:"E",i:newId(),msg:BL_MSG}); }catch(e){} }
+    if(gone.length){ try{ from.send({t:"BLK",i:newId(),ids:gone.slice(0,50),x:first.slice(0,2000)}); }catch(e){} }
+    return !d.e.length;
+  }
   const areg=()=>({t:"A",i:newId(),acc:reg.acc,bans:reg.bans,mutes:reg.mutes,mods:reg.mods,adms:adminNames(),hid:reg.hid,mto:reg.mto,mao:reg.mao,tn:reg.tn,ce:reg.ce,cls:reg.cls,clr:reg.clr,clg:reg.clg,muteAll:reg.muteAll,v:reg.v});
   function adminNames(){ const a=conns.filter(c=>c.ok2&&c.admin&&c.userName).map(c=>low(c.userName)); if(adminMode&&usr) a.push(low(usr)); return [...new Set(a)]; }
   reg.muteAll=false;
@@ -3706,6 +3755,15 @@ label.plus.open{transform:rotate(45deg)}
     else if(m.a==="modtroll"){
       reg.mto=!!m.off; commit();
       say(reg.mto?"⛔ Mod trolls are OFF. Mods can't use trolls.":"✅ Mod trolls are ON (30-second cooldown for mods).");
+    }
+    else if(m.a==="bladd"){
+      const w=blEntry(m.w); if(!w) return say("Type a word or phrase first.");
+      if(blw.includes(w)) return say("That's already on the blacklist.");
+      if(blw.length>=200) return say("The blacklist is full (200 entries).");
+      blw.push(w); saveBL(); blPush(); say("🚫 Added to the blacklist.");
+    }
+    else if(m.a==="bldel"){
+      const w=blEntry(m.w); blw=blw.filter(x=>x!==w); saveBL(); blPush(); say("Removed from the blacklist.");
     }
     else if(m.a==="setpw"){
       procW({n:m.name,v:m.v},{admin:true,reply:r=>say(r.ok?("Password "+(m.v===""?"removed":"set")+" for "+m.name+"."):r.msg)});
@@ -3904,10 +3962,13 @@ label.plus.open{transform:rotate(45deg)}
 
   /* =============== message routing (wraps the existing handler) =============== */
   const _postMsg=postMsg;
-  postMsg=function(){ if(!adminMode&&(reg.muteAll||reg.mutes.includes(low(usr)))){ sys("You're muted by an admin."); return; } return _postMsg.apply(this,arguments); };
+  postMsg=function(b,img,aud,extra){ if(!adminMode&&(reg.muteAll||reg.mutes.includes(low(usr)))){ sys("You're muted by an admin."); return; }
+    if(isHost&&!adminMode&&!img&&!aud&&!(extra&&(extra.fl||extra.poll))&&blHit(b)){ sys(BL_MSG); return; }
+    return _postMsg.apply(this,arguments); };
   const _sendText=sendText;
   sendText=function(){
     if(!adminMode&&(reg.muteAll||reg.mutes.includes(low(usr)))){ sys("You're muted by an admin."); return; }
+    if(isHost&&!adminMode&&blHit($("inp").value)){ sys(BL_MSG); return; }   // keep what they typed so they can edit it
     return _sendText();
   };
   window.__leave=leaveRoom;
@@ -3944,13 +4005,14 @@ label.plus.open{transform:rotate(45deg)}
         const changed=first||(from.userName&&low(nm)!==low(from.userName));
         if(d.k===ADMIN_KEY) from.admin=true;
         if(changed){ const why=nameBlocked(nm,from,d.h); if(why) return deny(from,why); }
-        if(first){ from.ok2=true; from.pwh=String(d.h||""); from.send(areg()); { const tl=trLeft(nm); if(tl>0) from.send({t:"TC",i:newId(),s:tl}); const pr=prefsDB[low(nm)]; if(pr) from.send({t:"PV",i:newId(),p:pr}); } if(from.admin) from.send({t:"AR",i:newId(),list:[...archive.values()]}); }
+        if(first){ from.ok2=true; from.pwh=String(d.h||""); from.send(areg()); { const tl=trLeft(nm); if(tl>0) from.send({t:"TC",i:newId(),s:tl}); const pr=prefsDB[low(nm)]; if(pr) from.send({t:"PV",i:newId(),p:pr}); } if(from.admin){ from.send({t:"AR",i:newId(),list:[...archive.values()]}); from.send({t:"BL",i:newId(),w:blw}); } }
       }
       else if(!from.ok2) return;
       else if(!from.admin&&from.userName&&!own(reg.acc,low(from.userName))) return deny(from,"setpw");
       else if(d.t==="Y"&&!from.admin&&(reg.muteAll||reg.mutes.includes(low(from.userName)))){
         try{ from.send({t:"E",i:newId(),msg:"You're muted by an admin."}); }catch(e){} return;
       }
+      else if(d.t==="Y"&&!from.admin&&Array.isArray(d.e)&&blFilter(d,from)){ return; }
       else if(d.t==="N"){
         if(!from.admin&&reg.mutes.includes(low(from.userName))){ const nl=low(String(d.b||"")); if(nl&&!reg.mutes.includes(nl)){ reg.mutes.push(nl); commit(); } }
         if(!from.admin){                        // renaming: the password moves to the new name
@@ -3986,6 +4048,14 @@ label.plus.open{transform:rotate(45deg)}
       if(d.t==="TR"){ runFx(d.k); return; }
       if(d.t==="TC"){ trCd=Date.now()+Math.min(60,Math.max(0,+d.s||0))*1000; return; }
       if(d.t==="SS"){ ssApply(d); return; }
+      if(d.t==="BL"){ if(adminMode&&Array.isArray(d.w)){ blw=d.w.map(blEntry).filter(Boolean).slice(0,200); try{ renderBL(); }catch(e){} } return; }
+      if(d.t==="BLK"){
+        const ids=new Set((Array.isArray(d.ids)?d.ids:[]).filter(validId));
+        const n=logs.length; logs=logs.filter(l=>!(ids.has(l.i)&&l.c===uid));
+        if(logs.length!==n){ persist(); rerender(); }
+        const inp=$("inp"); if(inp&&!inp.value&&typeof d.x==="string") inp.value=d.x.slice(0,2000);
+        return;
+      }
       if(d.t==="AR"){
         if(adminMode&&Array.isArray(d.list)) d.list.slice(0,400).forEach(raw=>{
           const o=_cleanEntry(raw); if(!o||o.to||o.g||o.del||o.b==null) return;
@@ -4201,7 +4271,7 @@ label.plus.open{transform:rotate(45deg)}
   function mk(tag,cls,txt){ const e=document.createElement(tag); if(cls) e.className=cls; if(txt!=null) e.textContent=txt; return e; }
   function renderAdminLists(){
     if(!$("amod")||!$("amod").classList.contains("open")) return;
-    renderMods();
+    renderMods(); try{ renderBL(); }catch(e){}
     $("ammall").textContent=reg.muteAll?"🔊 Unmute everyone":"🔇 Mute everyone (except admins)";
     const on=$("amon"); on.replaceChildren();
     (lastRoster||[]).forEach(e=>{
@@ -4224,6 +4294,19 @@ label.plus.open{transform:rotate(45deg)}
     const bn=$("ambn"); bn.replaceChildren();
     if(!reg.bans.length) bn.appendChild(mk("div","none","No banned names."));
     reg.bans.forEach(n=>{ const r=mk("div","arow"); r.append(mk("span","an",n)); const b=mk("button","","Unban"); b.onclick=()=>adminDo({a:"unban",name:n}); r.appendChild(b); bn.appendChild(r); });
+  }
+  /* ---- 🚫 word blacklist: tucked away in a collapsed submenu ---- */
+  { const st=document.createElement("style"); st.textContent="#ambl>summary{cursor:pointer;font-weight:700;font-size:14px;padding:4px 0;user-select:none}#ambl[open]>summary{margin-bottom:6px}#ambl .bl-note{font-size:12px;opacity:.7;margin-top:6px}"; document.head.appendChild(st);
+    const sec=document.createElement("div");
+    sec.innerHTML='<details id="ambl"><summary>🚫 Word blacklist</summary><div class="aform"><input id="amblw" type="text" maxlength="40" placeholder="Word or phrase to block" autocomplete="off"><button class="abtn red" type="button" id="amblb">Add</button></div><div class="bl-note">Messages containing a listed word are blocked for everyone except admins, and the sender is told it wasn\u2019t sent (never which word). Matches whole words, case and accents ignored. Add <b>*</b> at the end to match anything starting with it (e.g. <b>spam*</b>). Only admins can see this list.</div><div id="amblist" style="margin-top:8px"></div></details>';
+    $("amb").appendChild(sec);
+    const addBL=()=>{ const v=$("amblw").value; if(!blEntry(v)){ note("Type a word or phrase first."); return; } adminDo({a:"bladd",w:v}); $("amblw").value=""; };
+    $("amblb").onclick=addBL; $("amblw").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); addBL(); } }); }
+  function renderBL(){
+    const l=$("amblist"); if(!l) return; l.replaceChildren();
+    if(!blw.length) l.appendChild(mk("div","none","No blocked words yet."));
+    blw.forEach(w=>{ const r=mk("div","arow"); r.append(mk("span","an",w)); const b=mk("button","","Remove"); b.onclick=()=>adminDo({a:"bldel",w}); r.appendChild(b); l.appendChild(r); });
+    const sm=$("ambl")&&$("ambl").querySelector("summary"); if(sm) sm.textContent="🚫 Word blacklist"+(blw.length?" ("+blw.length+")":"");
   }
   ab.onclick=()=>{ am.classList.add("open"); note(""); $("amch").value=curCh==="gal"?"gal":curCh==="shame"?"shame":curCh==="draw"?"draw":"main"; renderAdminLists(); };
   $("amx").onclick=()=>am.classList.remove("open");
@@ -6636,6 +6719,116 @@ body[data-theme="ios6"] #replybar *,body[data-theme="ios6"] #dmbar *{color:inher
     const o=t.closest&&t.closest("#online .oav");
     if(o){ const nm=(o.title||"").split(" · ")[0]; const id=nm===usr?uid:uidOf(nm); if(id){ e.stopPropagation(); open(id,nm); } }
   },true);
+})();
+</script>
+
+<style id="gif-css">
+#gif-btn{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;height:22px;padding:0 6px;border:2px solid currentColor;border-radius:6px;font-size:11px;font-weight:800;letter-spacing:.5px;line-height:1;cursor:pointer;user-select:none;-webkit-user-select:none;opacity:.75;color:var(--bar-text,var(--text));transition:opacity .15s,transform .2s cubic-bezier(.34,1.56,.64,1),background .15s}
+#gif-btn:hover,#gif-btn.on{opacity:1;transform:scale(1.1);background:var(--row)}
+#gif-btn:active{transform:scale(.93)}
+#gif-panel{display:none;flex-direction:column;position:absolute;bottom:62px;left:20px;width:min(380px,92vw);height:min(420px,60vh);background:var(--side);color:var(--text);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.45);z-index:7;overflow:hidden}
+#gif-q{margin:10px 10px 6px;padding:9px 14px;border:1px solid var(--line);border-radius:8px;font-size:14px;color:var(--text);background:var(--input);outline:none;width:auto;min-width:0}
+#gif-q:focus{border-color:var(--accent)}
+#gif-grid{flex:1;min-height:0;overflow-y:auto;columns:2;column-gap:6px;padding:4px 10px 8px}
+#gif-grid .gi{display:block;width:100%;margin:0 0 6px;border-radius:8px;cursor:pointer;background:var(--row);break-inside:avoid;min-height:60px;object-fit:cover;outline:2px solid transparent;transition:outline-color .12s,transform .15s}
+#gif-grid .gi:hover{outline-color:var(--accent);transform:scale(1.02)}
+#gif-grid .none{column-span:all;padding:24px 8px;text-align:center;font-size:13px;color:var(--muted)}
+#gif-foot{padding:6px 12px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+#gif-foot a{color:var(--accent);text-decoration:none}
+</style>
+<script id="gif-js">
+(function(){
+  /* Trevor GIFs from https://tenor.com/search/trevor-gifs  (add more entries here: u = Tenor media link, t = title, k = search words) */
+  const GIFS = [{"u": "https://media1.tenor.com/m/ZLWw_d_EghsAAAAd/focking-treva-after.gif", "t": "Focking Treva", "k": "after we collided focking treva trevor"}, {"u": "https://media1.tenor.com/m/AWtzN2nvWGkAAAAd/neville-trevor.gif", "t": "Neville & Trevor the toad", "k": "neville trevor toad harry potter"}, {"u": "https://media1.tenor.com/m/b5i21E5LnGkAAAAd/trevor-philips-gta5.gif", "t": "Trevor Philips", "k": "trevor philips gta gta5 gta v"}, {"u": "https://media1.tenor.com/m/ewG9oYJyg4EAAAAd/trevor-lore-1991.gif", "t": "New Trevor lore", "k": "trevor lore 1991"}, {"u": "https://media1.tenor.com/m/dVSOanB1zOwAAAAd/bye-trevor-trevor.gif", "t": "Bye Trevor", "k": "bye trevor goodbye dog"}];
+  const btn = document.getElementById("gif-btn"), panel = document.getElementById("gif-panel");
+  if(!btn || !panel) return;
+  panel.innerHTML = '<input type="text" id="gif-q" placeholder="Search Trevor GIFs" autocomplete="off"><div id="gif-grid"></div><div id="gif-foot"><span id="gif-n"></span><a href="https://tenor.com/search/trevor-gifs" target="_blank" rel="noopener noreferrer">via Tenor</a></div>';
+  const q = document.getElementById("gif-q"), grid = document.getElementById("gif-grid"), cnt = document.getElementById("gif-n");
+  const isOpen = () => panel.style.display === "flex";
+  function show(on){
+    if(typeof setShown === "function") setShown(panel, on, "flex"); else panel.style.display = on ? "flex" : "none";
+    btn.classList.toggle("on", on);
+  }
+  function fill(){
+    const t = q.value.trim().toLowerCase();
+    const list = GIFS.filter(g => !t || (g.t + " " + g.k).toLowerCase().includes(t));
+    grid.replaceChildren();
+    if(!list.length){ const n = document.createElement("div"); n.className = "none"; n.textContent = "No GIFs match that."; grid.appendChild(n); }
+    list.forEach(g => {
+      const im = document.createElement("img"); im.className = "gi"; im.src = g.u; im.alt = g.t; im.title = g.t; im.loading = "lazy"; im.decoding = "async"; im.draggable = false;
+      im.onclick = () => send(g);
+      grid.appendChild(im);
+    });
+    cnt.textContent = list.length + " GIF" + (list.length === 1 ? "" : "s");
+  }
+  function send(g){
+    const inp = document.getElementById("inp");
+    if(inp && inp.disabled) return;           // not connected yet
+    show(false);
+    postMsg(g.u, 1, 0, { gif: 1 });
+  }
+  function toggle(){
+    const inp = document.getElementById("inp");
+    if(inp && inp.disabled) return;
+    if(isOpen()){ show(false); return; }
+    const emo = document.getElementById("emo-panel");
+    if(emo && emo.style.display === "flex" && typeof setShown === "function") setShown(emo, false, "flex");
+    q.value = ""; fill(); show(true); q.focus();
+  }
+  btn.addEventListener("click", toggle);
+  btn.addEventListener("keydown", e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); toggle(); } });
+  q.addEventListener("input", fill);
+  document.addEventListener("click", e => { if(isOpen() && !panel.contains(e.target) && !btn.contains(e.target)) show(false); });
+  document.addEventListener("keydown", e => { if(e.key === "Escape" && isOpen()) show(false); });
+  const emoBtn = document.getElementById("emo-btn");
+  if(emoBtn) emoBtn.addEventListener("click", () => { if(isOpen()) show(false); }, true);
+})();
+</script>
+
+<style id="jump-css">
+#jump-btn{position:fixed;z-index:6;width:42px;height:42px;margin:0;padding:0;border-radius:50%;border:1px solid var(--line);background:var(--bar,var(--row));color:var(--bar-text,var(--text));display:none;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.4);transform:translateX(-50%);animation:jumpin .18s ease-out}
+#jump-btn.on{display:flex}
+#jump-btn:hover{filter:brightness(1.15)}
+#jump-btn:active{transform:translateX(-50%) scale(.92)}
+#jump-btn .jb{position:absolute;top:-7px;right:-7px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--accent);color:var(--on-accent,#fff);font-size:11px;font-weight:700;line-height:18px;text-align:center;display:none;box-sizing:border-box}
+@keyframes jumpin{from{opacity:0;margin-top:10px}to{opacity:1;margin-top:0}}
+</style>
+<script id="jump-js">
+(function(){
+  /* "jump to latest" arrow: shows up when you've scrolled away from the newest messages */
+  const box = document.getElementById("box"); if(!box) return;
+  const btn = document.createElement("button"); btn.id = "jump-btn"; btn.type = "button";
+  btn.title = "Jump to latest message"; btn.setAttribute("aria-label", "Jump to latest message");
+  btn.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg><span class="jb"></span>';
+  document.body.appendChild(btn);
+  const jb = btn.querySelector(".jb");
+  let unread = 0, hold = 0;
+  const dist = () => box.scrollHeight - box.scrollTop - box.clientHeight;
+  function place(){
+    const r = box.getBoundingClientRect();
+    if(!r.width || !r.height) return false;
+    btn.style.left = (r.left + r.width / 2) + "px";
+    btn.style.top = (r.bottom - 42 - 14) + "px";
+    return true;
+  }
+  function update(){
+    const d = dist();
+    if(d < 60) unread = 0;
+    jb.textContent = unread > 99 ? "99+" : String(unread); jb.style.display = unread ? "block" : "none";
+    const visible = place();
+    const on = visible && Date.now() > hold && d >= 60 && (unread > 0 || d > (btn.classList.contains("on") ? 120 : 240));
+    btn.classList.toggle("on", on);
+  }
+  box.addEventListener("scroll", update, { passive: true });
+  window.addEventListener("resize", update);
+  if(window.ResizeObserver) new ResizeObserver(update).observe(box);
+  setInterval(update, 700);
+  btn.addEventListener("click", () => {
+    unread = 0; hold = Date.now() + 700; btn.classList.remove("on");
+    box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });
+  });
+  window.__jump = { add(n){ unread += n || 1; update(); }, reset(){ unread = 0; hold = 0; update(); } };
+  update();
 })();
 </script>
 </body>
