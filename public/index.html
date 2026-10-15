@@ -5,9 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Los-Purebreds-Chat</title>
 <link id="fav" rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%92%AC%3C/text%3E%3C/svg%3E">
-<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue&family=Dancing+Script&family=Lobster&family=Orbitron&family=Pacifico&family=Press+Start+2P&family=Roboto+Mono&display=swap">
+<link rel="preconnect" href="https://purebred-chat.226739.workers.dev" crossorigin>
+<link rel="dns-prefetch" href="https://purebred-chat.226739.workers.dev">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<script>
+/* Nothing here blocks the first paint: PeerJS (voice/video calls only) and the Google fonts are fetched once the page has loaded.
+   Chat itself runs over the WebSocket, and text just swaps to the web fonts when they arrive. */
+(function(){
+  var FONTS = [
+    "https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap",
+    "https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue&family=Dancing+Script&family=Lobster&family=Orbitron&family=Pacifico&family=Press+Start+2P&family=Roboto+Mono&display=swap",
+    "https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;600;700&display=swap"
+  ];
+  function go(){
+    var sc = document.createElement("script"); sc.async = true; sc.src = "https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"; document.head.appendChild(sc);
+    FONTS.forEach(function(h){ var l = document.createElement("link"); l.rel = "stylesheet"; l.href = h; document.head.appendChild(l); });
+  }
+  if(document.readyState === "complete") go(); else window.addEventListener("load", go);
+})();
+</script>
 <style>
   :root{
     --bg:#000; --side:#1c1c1e; --line:#2c2c2e; --row:#2c2c2e; --accent:#0a84ff;
@@ -592,7 +610,7 @@
   @media (hover:hover){#stg .btn:hover,.seg button:hover{transform:scale(1.05)}.stg-x:hover{transform:scale(1.15)}}
   #stg .btn:active,.stg-x:active,.seg button:active{transform:scale(.94)}
 </style>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;600;700&display=swap" rel="stylesheet">
+
 </head>
 <body data-theme="imessage">
 
@@ -5405,7 +5423,7 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
       const f = q.shift();
       if(!f){ busy = false; return; }
       try { f(); } catch(e){}
-      setTimeout(run, 150);
+      setTimeout(run, 50);
     })();
   };
 
@@ -5541,9 +5559,9 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
   const slotRoom = k => k ? ROOM_ID + "-r" + (k + 1) : ROOM_ID;
   const hubUrl = k => BASE + "?room=" + encodeURIComponent(slotRoom(k));
   const MAX_FRAME = 900000;
-  const GHOST_MS = 10000;      // connected, but the host never said a word
-  const HELLO_MS = 15000;      // relay accepted nothing at all
-  const PROBE_MS = 5000;       // looking for a live room next door
+  const GHOST_MS = 6000;       // connected, but the host never said a word
+  const HELLO_MS = 9000;       // relay accepted nothing at all
+  const PROBE_MS = 2500;       // looking for a live room next door
   const DEAD_MS = 180000;      // remember "this room's host is a ghost" for a while
   const QUIET_MS = 40000;      // client: ping the host after this much silence
   const PONG_MS = 20000;       // client: host must answer a ping within this long
@@ -5750,15 +5768,18 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     const k = nextSlot(0);
     openSlot(k < 0 ? 0 : k);                      // the chat socket goes first so joining isn't held up by anything else
     const tok = ++peerTok;
-    setTimeout(() => {                            // PeerJS only carries voice / video calls now, so it can start a moment later
+    let pt = 0;
+    const mkPeer = () => {                        // PeerJS only carries voice / video calls now; it loads after the page, so wait for it if needed
       if(tok !== peerTok) return;
+      if(typeof Peer === "undefined" && pt++ < 40){ setTimeout(mkPeer, 250); return; }
       let mp;
       try { mp = new Peer(undefined, PEER_OPTS); mp.on("error", e => console.warn("call peer:", e && e.type)); }
       catch(e){ mp = { id: "", open: false, connections: {}, on(){}, call(){ throw new Error("calls unavailable"); } }; }
       const d0 = mp.destroy ? mp.destroy.bind(mp) : () => {};
       mp.destroy = function(){ closeHubQuiet(); return d0(); };
       peer = mp;
-    }, 0);
+    };
+    setTimeout(mkPeer, 0);
   };
   let peerTok = 0;
 })();
@@ -6773,7 +6794,8 @@ body[data-theme="ios6"] #replybar *,body[data-theme="ios6"] #dmbar *{color:inher
   const KEYN = "pb_klipykey";
   const CIDN = "pb_klipycid";
   const getCid = () => { try{ let c = localStorage.getItem(CIDN); if(!c){ c = "pb" + Math.random().toString(36).slice(2, 12) + Date.now().toString(36); localStorage.setItem(CIDN, c); } return c; }catch(e){ return "pb-anon"; } };
-  const getKey = () => { try{ return localStorage.getItem(KEYN) || ""; }catch(e){ return ""; } };
+  const DEFAULT_KEY = "iF36ghmj5UEzZbWNW4a2n3pqETRwkHzwR11l6zcp9RYEDdbxd7S23ml2eWkGmmBQ";   // built-in KLIPY key so everyone gets GIF search without pasting one
+  const getKey = () => { try{ return localStorage.getItem(KEYN) || DEFAULT_KEY; }catch(e){ return DEFAULT_KEY; } };
 
   /* the same Tenor GIF lives on a few hosts; if one is blocked / 404s we try the others */
   function variants(u){
@@ -6869,7 +6891,7 @@ body[data-theme="ios6"] #replybar *,body[data-theme="ios6"] #dmbar *{color:inher
   };
   /* optional: a free KLIPY API key turns on search across all of KLIPY */
   $g("gif-key").onclick = () => {
-    const v = prompt("Optional: paste a free KLIPY API key to search ALL of KLIPY (get one at klipy.com/developers).\nLeave it empty to turn it off.", getKey());
+    const v = prompt("Optional: paste a free KLIPY API key to search ALL of KLIPY (get one at klipy.com/developers).\nLeave it empty to use the built-in key.", getKey());
     if(v === null) return;
     try{ if(v.trim()) localStorage.setItem(KEYN, v.trim()); else localStorage.removeItem(KEYN); }catch(e){}
     q.value = ""; fill();
