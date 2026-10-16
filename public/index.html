@@ -1,6 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<style id="boot-css">
+html.booting #gate,html.autoload #gate{visibility:hidden;animation:bootfail 0s 45s forwards}
+@keyframes bootfail{to{visibility:visible}}
+#autoload{display:none;position:fixed;inset:0;z-index:2147483000;align-items:center;justify-content:center;background:#0e0e10;opacity:1;transition:opacity .35s ease}
+html.autoload #autoload{display:flex;animation:alfail 0s 45s forwards}
+html.autoload.al-out #autoload{opacity:0;pointer-events:none}
+@keyframes alfail{to{opacity:0;visibility:hidden;pointer-events:none}}
+#autoload .al-card{display:flex;flex-direction:column;align-items:center;gap:10px;min-width:230px;padding:28px 34px;border-radius:14px;background:#2a2a2d;border:1px solid #3d3d41;box-shadow:0 18px 50px rgba(0,0,0,.55);color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;text-align:center;animation:alpop .4s cubic-bezier(.22,1,.36,1)}
+#autoload .al-card b{font-size:18px;font-weight:700;letter-spacing:.2px}
+#autoload .al-card span{font-size:13px;color:#a0a0a8}
+#autoload .al-spin{width:38px;height:38px;border-radius:50%;border:4px solid rgba(255,255,255,.14);border-top-color:#2f7bf6;animation:alspin .8s linear infinite;margin-bottom:4px}
+@keyframes alspin{to{transform:rotate(360deg)}}
+@keyframes alpop{from{opacity:0;transform:scale(.92) translateY(10px)}to{opacity:1;transform:none}}
+</style>
+<script>(function(){try{var d=document.documentElement,L=localStorage;d.classList.add("booting");
+if(L.getItem("pb_code")==="lospurebrochat"&&L.getItem("pb_pwh")&&(L.getItem("chat_usr")||"User")!=="User")d.classList.add("autoload");}catch(e){}})();</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Los-Purebreds-Chat</title>
@@ -613,6 +629,7 @@
 
 </head>
 <body data-theme="imessage">
+<div id="autoload" role="status" aria-live="polite"><div class="al-card"><div class="al-spin"></div><b>Auto loading…</b><span id="al-sub">Signing you in</span></div></div>
 
 <div id="gate">
   <div class="gside">
@@ -626,7 +643,7 @@
     <button id="g-go">Join Chat</button>
     <a class="goback" href="https://docs.google.com/document/d/1oa90mU-jYczqySulirTvHqqNWTSaNwPGnnArgBdVGrs/edit?tab=t.pqncc0vmsgzp" rel="noopener">← Go back</a>
   </div>
-    <div id="gver">Version 0.3.8</div>
+    <div id="gver">Version 1.0</div>
   <label class="fld" id="g-themefld"><span>Themes</span><select id="g-theme"><option value="imessage">iMessage</option><option value="ios6">iOS 6</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option><option value="material">Material You (Android)</option><option value="terminal">Terminal</option></select></label>
 </div>
 
@@ -645,6 +662,7 @@
     <button class="stg-btn" id="opts-btn" type="button" aria-expanded="false">☰ Options ▾</button>
     <button class="stg-btn" id="stg-toggle">⚙️ Settings</button>
     <button class="stg-btn" id="cl-open" type="button">📝 What's new</button>
+    <button class="stg-btn" id="sb-dock" type="button" title="Move this bar to the bottom of the screen">⬇ Move bar to bottom</button>
 
   </div>
 </div>
@@ -907,7 +925,8 @@ function applyBars(){
 const isMobile = () => window.matchMedia("(max-width:600px)").matches;
 function updateArrows(){
   const sbShown = isMobile() ? $("sb").classList.contains("open") : load("hide_sb", "0") !== "1";
-  $("sb-arrow").textContent = sbShown ? "‹" : "›";
+  const bot = document.body.classList.contains("sb-bottom") && !isMobile();
+  $("sb-arrow").textContent = bot ? (sbShown ? "⌄" : "⌃") : (sbShown ? "‹" : "›");
   $("hdr-arrow").textContent = load("hide_hdr", "0") === "1" ? "▼" : "▲";
 }
 $("sb-arrow").onclick = () => {
@@ -2122,32 +2141,35 @@ function fmtStamp(ts){
 function regroup(){
   const box = $("box"), gal = curCh === "gal";
   const near = box.scrollHeight - box.scrollTop - box.clientHeight < 120;
-  box.querySelectorAll(".tsep").forEach(e => e.remove());
+  const setC = (e, c, on) => { if(e.classList.contains(c) !== !!on) e.classList.toggle(c, !!on); };   // only touch the DOM when something changed
   const vis = [...box.children].filter(e => {
     if(!e.classList.contains("msg")) return false;
-    e.classList.remove("first", "last", "lastmine");
     if(e.classList.contains("sys")) return true;
     const show = curCh === "dm" ? ((e.dataset.ch === "dm" || e.dataset.ch === "grp") && e.dataset.dm === dmWith) : curCh === "gal" ? e.dataset.ch === "gal" : curCh === "shame" ? e.dataset.ch === "shame" : !e.dataset.ch;
-    e.classList.toggle("off", !show);
+    setC(e, "off", !show);
     return show;
   });
   const same = (a, b) => a && b && !a.classList.contains("sys") && !b.classList.contains("sys") &&
     a.dataset.uid === b.dataset.uid && a.dataset.user === b.dataset.user && Math.abs(+b.dataset.ts - +a.dataset.ts) < 120000;
-  let lastTs = 0, mineEl = null;
+  let lastTs = 0, mineEl = null; const want = [];
   vis.forEach((e, k) => {
+    e._f = e._l = e._m = 0;
     if(e.classList.contains("sys")) return;
-    if(gal){ e.classList.add("first", "last"); return; }
-    if(!same(vis[k - 1], e)) e.classList.add("first");
-    if(!same(e, vis[k + 1])) e.classList.add("last");
+    if(gal){ e._f = e._l = 1; return; }
+    if(!same(vis[k - 1], e)) e._f = 1;
+    if(!same(e, vis[k + 1])) e._l = 1;
     const ts = +e.dataset.ts;
-    if(ts && ts - lastTs > 15 * 60000){
-      const s = document.createElement("div"); s.className = "tsep"; s.textContent = fmtStamp(ts);
-      box.insertBefore(s, e);
-    }
+    if(ts && ts - lastTs > 15 * 60000) want.push([e, fmtStamp(ts)]);
     if(ts) lastTs = ts;
     if(e.classList.contains("me") && !e.querySelector(".img")) mineEl = e;
   });
-  if(mineEl && !gal) mineEl.classList.add("lastmine");
+  if(mineEl && !gal) mineEl._m = 1;
+  vis.forEach(e => { setC(e, "first", e._f); setC(e, "last", e._l); setC(e, "lastmine", e._m); });
+  const have = [...box.querySelectorAll(".tsep")];
+  if(!(have.length === want.length && have.every((t, i) => t.nextElementSibling === want[i][0] && t.textContent === want[i][1]))){
+    have.forEach(t => t.remove());
+    want.forEach(([e, t]) => { const d = document.createElement("div"); d.className = "tsep"; d.textContent = t; box.insertBefore(d, e); });
+  }
   document.body.classList.toggle("has-peers", conns.length > 0);
   if(near) box.scrollTop = box.scrollHeight;
 }
@@ -3286,7 +3308,7 @@ label.plus.open{transform:rotate(45deg)}
     if(key[0] === "d"){ m.ch = "dm"; m.to = key.slice(2); } else if(key[0] === "g"){ m.ch = "grp"; m.g = key.slice(2); } else m.ch = key;
     routeTyping(m, null);
   }
-  setInterval(() => { reportRead(); renderSeen(); }, 1200);
+  tick(() => { reportRead(); renderSeen(); }, 1200);
   document.addEventListener("visibilitychange", reportRead); window.addEventListener("focus", reportRead);
   const rrCard = document.createElement("div"); rrCard.className = "stg-card";
   rrCard.innerHTML = '<h3>👁 Read receipts</h3><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="rrchk" style="width:auto;margin:0"> Let people see when I\'ve read their messages</label><div class="stg-note">Shows “Seen” under a message once the other person has read it.</div>';
@@ -3577,8 +3599,8 @@ label.plus.open{transform:rotate(45deg)}
     }
     if(r.ce&&typeof r.ce==="object"){
       let tot=0;
-      Object.keys(r.ce).slice(0,60).forEach(k=>{
-        const x=r.ce[k]; if(!/^[a-z0-9_]{2,20}$/.test(k)||!x||typeof x!=="object"||!okCImg(x.im)||tot+x.im.length>700000) return;
+      Object.keys(r.ce).slice(0,150).forEach(k=>{
+        const x=r.ce[k]; if(!/^[a-z0-9_]{2,20}$/.test(k)||!x||typeof x!=="object"||!okCImg(x.im)||tot+x.im.length>2000000) return;
         tot+=x.im.length; o.ce[k]={k:x.k==="s"?"s":"e",im:x.im,by:String(x.by||"").slice(0,12).toLowerCase()};
       });
     }
@@ -3795,7 +3817,7 @@ label.plus.open{transform:rotate(45deg)}
     const say=t=>f.reply&&f.reply({t:"E",i:newId(),msg:t});
     const name=f.conn?f.conn.userName:usr;
     if(f.conn&&(!f.conn.ok2||f.conn.denied)) return;
-    if(!reg.mods.includes(low(name))) return say("You're not a moderator.");
+    if(!reg.mods.includes(low(name))){ if(m.a==="ce"&&m.op==="del") return ceOp(m,f,false,say,name); return say("You're not a moderator."); }   // ex-mods can still remove stickers they made
     if(m.a==="announce"){
       if(reg.mao) return say("Admins have turned mod announcements off");
       const text=String(m.text||"").trim().slice(0,300), dur=annDur(m.dur), col=annCol(m.col); if(!text) return say("Type an announcement first.");
@@ -3918,7 +3940,7 @@ label.plus.open{transform:rotate(45deg)}
     sys("🔄 Your theme & wallpaper were synced from your other device.");
   }
   setInterval(()=>{                            // watch for changes on this device and share them
-    if($("gate").style.display!=="none"||window.__entering||!peer) return;
+    if(document.hidden||$("gate").style.display!=="none"||window.__entering||!peer) return;
     if(window.__pbResync){ if(!isHost&&!conns.some(c=>c.open)) return; window.__pbResync=false; lastJSON=null; }   // new host: share my look again
     const cur=JSON.stringify(collectPrefs());
     if(lastJSON===null){                       // first look after joining: upload what this device already had
@@ -3935,12 +3957,13 @@ label.plus.open{transform:rotate(45deg)}
     if(!/^[a-z0-9_]{2,20}$/.test(nm)) return say("Names are 2–20 letters, numbers or _.");
     if(m.op==="del"){
       const c=reg.ce[nm]; if(!c) return say("There's no :"+nm+": to remove.");
-      if(!isAdm&&c.by!==l) return say("Mods can only remove the ones they added.");
+      if(!isAdm&&c.by!==l) return say("Only the person who made :"+nm+": (or an admin) can remove it.");
       delete reg.ce[nm]; commit(); return say("🗑 Removed :"+nm+":.");
     }
     if(EMOJI_MAP[nm]) return say("That name is already used by a normal emoji — pick another.");
     if(reg.ce[nm]) return say(":"+nm+": already exists.");
-    if(Object.keys(reg.ce).length>=40) return say("The limit is 40 custom emojis + stickers.");
+    if(Object.keys(reg.ce).length>=150) return say("The limit is 150 custom emojis + stickers.");
+    if(Object.values(reg.ce).reduce((a,c)=>a+c.im.length,0)+String(m.im||"").length>2000000) return say("Out of space for pictures — remove a few big stickers first.");
     if(!isAdm){ const h=f.conn||modSelf, now=Date.now(); if(now-(h.ceAt||0)<3000) return say("Slow down a little."); h.ceAt=now; }
     const c=cleanReg({ce:{[nm]:{k:m.ty,im:m.im,by:l}}}).ce[nm];
     if(!c) return say("That picture is too big or isn't a valid image.");
@@ -4009,7 +4032,7 @@ label.plus.open{transform:rotate(45deg)}
     if(isHost){
       if(from.denied) return;
       if(d.t==="Y"&&Array.isArray(d.e)&&from.ok2&&!from.admin){      // only admins and mods may delete other people's public messages
-        const isMod=reg.mods.includes(low(from.userName)); let blocked=false, shameBlocked=false;
+        const isMod=reg.mods.includes(low(from.userName)); let blocked=false, shameBlocked=false, stkBlocked=false;
         d.e=d.e.filter(e=>{                      // Hall of Shame: mods post, admins delete
           if(!e) return true; const cur=logs.find(l=>l.i===e.i);
           if(!(e.ch==="shame"||(cur&&cur.ch==="shame"))) return true;
@@ -4017,8 +4040,9 @@ label.plus.open{transform:rotate(45deg)}
           if(!ok) shameBlocked=true; return ok;
         });
         if(shameBlocked){ try{ from.send({t:"E",i:newId(),msg:"Hall of Shame: only mods and admins can post there, and only admins can delete."}); }catch(e){} }
-        d.e=d.e.filter(e=>{ if(!e||!e.del||e.to||e.g) return true; const cur=logs.find(l=>l.i===e.i); if(!cur||!cur.c||cur.c===from.uid||isMod) return true; blocked=true; return false; });
+        d.e=d.e.filter(e=>{ if(!e||!e.del||e.to||e.g) return true; const cur=logs.find(l=>l.i===e.i); if(cur&&cur.stk&&cur.c&&cur.c!==from.uid){ stkBlocked=true; return false; } if(!cur||!cur.c||cur.c===from.uid||isMod) return true; blocked=true; return false; });
         if(blocked){ try{ from.send({t:"E",i:newId(),msg:"Only mods and admins can delete other people's messages."}); }catch(e){} }
+        if(stkBlocked){ try{ from.send({t:"E",i:newId(),msg:"Stickers can only be deleted by the person who sent them (or an admin)."}); }catch(e){} }
       }
       if(d.t==="P"){
         const nm=String(d.u||"").slice(0,12), first=!from.ok2;
@@ -4483,12 +4507,13 @@ label.plus.open{transform:rotate(45deg)}
       if(isHost) setHidden(l,want);
       else if(Date.now()-lastTH>3000){ lastTH=Date.now(); send({t:"TH",i:newId(),h:want}); }
     }
-    setInterval(()=>{ syncTag(); tagAll(); },800);
+    tick(()=>{ syncTag(); tagAll(); },800);
   })();
 
   /* =============== Hall of Shame: typing is for mods + admins only =============== */
   (function(){
     window.__pbAdm=()=>adminMode;
+    window.__pbIsMod=function(conn){ if(!conn) return adminMode||amMod(); return !!conn.admin||reg.mods.includes(low(conn.userName)); };   // admin or approved mod (tier lists use this)
     const canPost=()=>adminMode||amMod();
     function updShame(){
       const inp=$("inp"); if(!inp) return;
@@ -4602,6 +4627,7 @@ label.plus.open{transform:rotate(45deg)}
     css.textContent=".cemo{width:1.45em;height:1.45em;vertical-align:-.32em;object-fit:contain;margin:0 1px}"
       +".bubble.jumbo .cemo{width:46px;height:46px;vertical-align:middle}"
       +".img.stk{max-width:150px;max-height:150px;cursor:default;background:none;border-radius:0}"
+      +".stpick{position:relative}.cedel{position:absolute;top:2px;right:2px;width:20px;height:20px;border:none;border-radius:50%;background:rgba(0,0,0,.7);color:#fff;font-size:11px;line-height:20px;padding:0;cursor:pointer;display:none}.stpick:hover .cedel{display:block}@media(hover:none){.cedel{display:block}}"
       +"#emo-grid span.cepick{width:40px;height:40px}#emo-grid span.cepick img{width:28px;height:28px;object-fit:contain;pointer-events:none}"
       +"#emo-grid span.stpick{width:78px;height:78px}#emo-grid span.stpick img{width:68px;height:68px;object-fit:contain;pointer-events:none}"
       +"#emo-grid .sech{width:100%;font-size:11px;font-weight:700;color:#5f6368;padding:6px 6px 2px;text-transform:uppercase;letter-spacing:.5px}"
@@ -4650,6 +4676,11 @@ label.plus.open{transform:rotate(45deg)}
         st.forEach(n=>{ const sp=document.createElement("span"); sp.className="stpick"; const im=document.createElement("img"); im.src=ce[n].im; im.alt=":"+n+":"; sp.appendChild(im);
           sp.onmouseenter=()=>{ foot.textContent="Sticker :"+n+":"; };
           sp.onclick=()=>{ if(window.__rxPick) return; setShown($("emo-panel"),false,"flex"); postMsg(ce[n].im,1,0,{stk:1}); };
+          if(adminMode||ce[n].by===low(usr)){        // only the maker (or an admin) sees the remove button
+            const x=document.createElement("button"); x.type="button"; x.className="cedel"; x.textContent="✕"; x.title="Remove this sticker (only you or an admin can)";
+            x.onclick=ev=>{ ev.stopPropagation(); if(!confirm("Remove the sticker :"+n+": for everyone?")) return; const m={a:"ce",op:"del",nm:n}; if(adminMode) adminDo(m); else modDo(m); };
+            sp.appendChild(x);
+          }
           grid.appendChild(sp); }); }
     }
     ct.onclick=()=>{ [...tabs.children].forEach(t=>t.classList.toggle("on",t===ct)); $("emo-q").value=""; title.textContent="Custom"; fillCE(); grid.scrollTop=0; foot.textContent=Object.keys(reg.ce||{}).length+" custom"; };
@@ -4816,7 +4847,8 @@ label.plus.open{transform:rotate(45deg)}
     let act=wrap.querySelector(":scope > .act");
     if(!act){ act=document.createElement("div"); act.className="act"; wrap.appendChild(act); }
     const mkb=(txt,title,fn)=>{ const b=document.createElement("button"); b.type="button"; b.className="adm"; b.title=title; b.setAttribute("aria-label",title); b.textContent=txt; b.style.fontSize="13px"; b.onclick=ev=>{ ev.stopPropagation(); fn(); }; return b; };
-    if(!w.dataset.dm&&!(w.dataset.ch==="shame"&&!adminMode)) act.appendChild(mkb("🗑","Delete this message from "+name+" (admin)",()=>{ if(confirm("Delete this message from "+name+" for everyone?")) deleteMsg(w.id); }));
+    const inPriv=!!w.dataset.dm;                                   // a DM or group chat message
+    if((!inPriv||adminMode)&&!(w.dataset.ch==="shame"&&!adminMode)) act.appendChild(mkb("🗑","Delete this message from "+name+" (admin)",()=>{ if(confirm("Delete this message from "+name+(inPriv?" for everyone in this chat?":" for everyone?"))) deleteMsg(w.id); }));
     if(!u||!adminMode){ return; }
     act.appendChild(mkb("🦵","Kick "+name+" (they can rejoin)",()=>{ if(confirm("Kick "+name+"? They can rejoin.")) adminDo({a:"kick",u}); }));
     act.appendChild(mkb("🔇","Mute / unmute "+name,()=>adminDo({a:reg.mutes.includes(low(name))?"unmute":"mute",name})));
@@ -5093,11 +5125,37 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
 .dcur i{display:block;width:12px;height:12px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.45)}
 .dcur span{position:absolute;left:14px;top:8px;font-size:11px;font-weight:600;background:rgba(0,0,0,.72);color:#fff;padding:1px 7px;border-radius:999px;white-space:nowrap}
 .dcur.dr i{transform:scale(1.35)}
+#draw{position:relative}
+.dsel{background:var(--row);color:var(--text);border:none;border-radius:999px;padding:7px 10px;font-size:13px;font-weight:600;max-width:210px;cursor:pointer}
+.dtag{font-size:12px;color:var(--bar-text,var(--muted));white-space:nowrap}
+.dtag.pv{color:var(--accent);font-weight:600}
+#dshgrp{display:none;align-items:center;gap:6px}
+#dshgrp.on{display:inline-flex}
+.dchk{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--bar-text,var(--text));cursor:pointer;user-select:none}
+.dchk input{accent-color:var(--accent)}
+#dpre{display:inline-flex;gap:3px;margin-right:2px}
+.dth{width:28px;height:28px;border:none;border-radius:50%;background:var(--row);color:var(--text);cursor:pointer;padding:0;display:inline-flex;align-items:center;justify-content:center}
+.dth i{display:block;border-radius:50%;background:currentColor}
+.dth.on{background:var(--accent);color:var(--on-accent,#fff)}
+#dprev{display:inline-flex;align-items:center;justify-content:center;width:36px;height:32px}
+#dprev i{display:block;border-radius:50%;border:1px solid var(--line);box-shadow:0 0 0 1px rgba(0,0,0,.15)}
+#dloupe{position:absolute;display:none;align-items:center;gap:6px;pointer-events:none;background:rgba(0,0,0,.8);color:#fff;border-radius:999px;padding:4px 10px 4px 5px;font-size:11px;font-weight:700;z-index:5;white-space:nowrap}
+#dloupe i{width:22px;height:22px;border-radius:50%;border:2px solid #fff;display:block}
+#dinvp{position:absolute;top:56px;left:14px;z-index:30;width:min(340px,calc(100% - 28px));max-height:72%;overflow:auto;background:var(--side,#222);color:var(--text);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.45);padding:12px;display:none}
+.dprow{display:flex;align-items:center;gap:8px;padding:4px 0}
+.dprow b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;font-size:13px}
+.dph{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:12px 0 2px}
+.dpn{font-size:12px;color:var(--muted);line-height:1.45;margin-top:12px}
 </style>
 <script id="draw-js">
 (function(){
   const $$ = id => document.getElementById(id);
   const W = 1600, H = 900;
+  const MAXM = 12, MAXJ = 8;                      // most people on one private board · most private boards you can be in
+  const myBid = "p" + uid;                        // everybody owns exactly one private board: "p" + their id
+  const okBid = b => typeof b === "string" && /^p[A-Za-z0-9_-]{1,40}$/.test(b) && b !== "p__proto__";
+  const ownerOf = b => b.slice(1);
+  const jget = (k, fb) => { try { const v = JSON.parse(load(k, "")); return v && typeof v === "object" ? v : fb; } catch(e){ return fb; } };
 
   /* ---------- UI: sidebar row, header tab, board ---------- */
   const row = document.createElement("div"); row.className = "row-ch"; row.id = "ch-draw";
@@ -5107,15 +5165,56 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
   $$("chtabs").appendChild(tab);
 
   const COLORS = ["#111111","#ffffff","#ef4444","#f97316","#facc15","#22c55e","#14b8a6","#3b82f6","#8b5cf6","#ec4899","#92400e","#9ca3af"];
+  const SHAPES = { line: "╱ Line", arrow: "➜ Arrow", rect: "▭ Rectangle", ellipse: "◯ Ellipse", tri: "△ Triangle", star: "★ Star" };
+  const FILLABLE = new Set(["rect", "ellipse", "tri", "star"]);
+  const PRESETS = [2, 6, 14, 28];
   const board = document.createElement("div"); board.id = "draw";
-  board.innerHTML = '<div id="dtools"><button class="dbtn on" id="dpen" type="button" title="Pen">✏️ Pen</button><button class="dbtn" id="dfill" type="button" title="Paint bucket: click a closed area to fill it">🪣 Fill</button><button class="dbtn" id="der" type="button" title="Eraser">🧽 Eraser</button><span class="dsep"></span><div id="dpal"></div><input type="color" id="dcolor" value="#3b82f6" title="Custom color"><span class="dsep"></span><span id="dsz"><input type="range" id="dsize" min="1" max="40" value="6"><b id="dszv">6</b></span><span class="dsep"></span><button class="dbtn" id="dundo" type="button" title="Undo (Ctrl+Z)">↩ Undo</button><button class="dbtn" id="dredo" type="button" title="Redo (Ctrl+Y)" disabled>↪ Redo</button><button class="dbtn" id="dsave" type="button">💾 Save</button><button class="dbtn red" id="dclr" type="button">🗑 Clear</button><span id="dwho"></span></div><div id="dwrap"><div id="dstage"><canvas id="dcv" width="' + W + '" height="' + H + '"></canvas><div id="dcur"></div></div></div>';
+  board.innerHTML = `
+    <div id="dtools">
+      <select id="dboard" class="dsel" title="Which drawing board"></select>
+      <span id="dtag" class="dtag"></span>
+      <button class="dbtn" id="dinv" type="button" title="Invite people into your private board">👥 Invite</button>
+      <span class="dsep"></span>
+      <button class="dbtn on" id="dpen" type="button" title="Pen">✏️ Pen</button>
+      <button class="dbtn" id="dfill" type="button" title="Paint bucket: click a closed area to fill it">🪣 Fill</button>
+      <button class="dbtn" id="dshape" type="button" title="Shapes: drag on the board (hold Shift for straight lines / even shapes)">🔷 Shapes</button>
+      <span id="dshgrp"><select id="dshsel" class="dsel" title="Shape">${Object.keys(SHAPES).map(k => `<option value="${k}">${SHAPES[k]}</option>`).join("")}</select><label class="dchk" title="Fill the shape in"><input type="checkbox" id="dshfill"> Filled</label></span>
+      <button class="dbtn" id="dpick" type="button" title="Color dropper: click any spot on the board to copy its color">💧 Dropper</button>
+      <button class="dbtn" id="dscr" type="button" title="Pick a color from anywhere on your screen" style="display:none">🖥</button>
+      <button class="dbtn" id="der" type="button" title="Eraser">🧽 Eraser</button>
+      <span class="dsep"></span>
+      <div id="dpal"></div><input type="color" id="dcolor" value="#111111" title="Custom color">
+      <span class="dsep"></span>
+      <span id="dsz"><span id="dpre">${PRESETS.map(n => `<button type="button" class="dth" data-n="${n}" title="Thickness ${n}"><i style="width:${Math.max(3, Math.min(n, 18))}px;height:${Math.max(3, Math.min(n, 18))}px"></i></button>`).join("")}</span><input type="range" id="dsize" min="1" max="60" value="6" title="Thickness ( [ and ] keys )"><b id="dszv">6</b><span id="dprev" title="Brush preview"><i></i></span></span>
+      <span class="dsep"></span>
+      <button class="dbtn" id="dundo" type="button" title="Undo (Ctrl+Z)">↩ Undo</button><button class="dbtn" id="dredo" type="button" title="Redo (Ctrl+Y)" disabled>↪ Redo</button><button class="dbtn" id="dsave" type="button">💾 Save</button><button class="dbtn red" id="dclr" type="button">🗑 Clear</button>
+      <span id="dwho"></span>
+    </div>
+    <div id="dinvp"></div>
+    <div id="dwrap"><div id="dstage"><canvas id="dcv" width="${W}" height="${H}"></canvas><div id="dcur"></div><div id="dloupe"><i></i><b></b></div></div></div>`;
   $$("box").after(board);
-  const cv = $$("dcv"), cx = cv.getContext("2d", { willReadFrequently: true }), stage = $$("dstage");
+  const cv = $$("dcv"), cx = cv.getContext("2d"), stage = $$("dstage");
   cx.lineCap = "round"; cx.lineJoin = "round";
 
-  /* ---------- state ---------- */
-  let strokes = [], byId = new Map(), gone = new Set(), clr = 0, mine = [], redoS = [];
-  let tool = "pen", color = COLORS[0], size = 6, cur = null, pend = [], flushT = 0, persistT = 0, whoT = 0, lastC = 0;
+  /* ---------- boards: the public one + private ones (each keeps its own strokes) ---------- */
+  const mk = id => ({ id, strokes: [], byId: new Map(), gone: new Set(), clr: 0, mine: [], redoS: [], unread: 0, srAt: 0 });
+  const states = new Map([["", mk("")]]);
+  const P = states.get("");                      // the public board
+  let S = P;                                     // the board on screen
+  let joined = jget("pb_pvj", {});               // private boards other people invited me to: id -> owner's name
+  let members = jget("pb_pvm", []);              // people I invited to MY private board: [{u, n}]
+  if(!Array.isArray(members)) members = [];
+  members = members.filter(m => m && okUid(m.u) && m.u !== uid).slice(0, MAXM).map(m => ({ u: m.u, n: String(m.n || "Friend").slice(0, 12) }));
+  Object.keys(joined).forEach(b => { if(!okBid(b) || b === myBid) delete joined[b]; else joined[b] = String(joined[b] || "Someone").slice(0, 12); });
+  states.set(myBid, mk(myBid));
+  Object.keys(joined).forEach(b => states.set(b, mk(b)));
+  const pboards = {};                            // HOST ONLY: owner id -> Set of member ids (the owner re-announces it, so a new host learns it)
+  pboards[uid] = new Set(members.map(m => m.u));
+  const saveJoined = () => save("pb_pvj", JSON.stringify(joined));
+  const saveMembers = () => save("pb_pvm", JSON.stringify(members));
+
+  let tool = "pen", prevTool = "pen", color = COLORS[0], size = 6, shapeKind = "line", shapeFill = false;
+  let cur = null, shp = null, base = null, pend = [], flushT = 0, persistT = 0, whoT = 0, lastC = 0;
   const okId = s => typeof s === "string" && /^[A-Za-z0-9_-]{4,60}$/.test(s);
   const okCol = c => typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c);
   const cl = (v, a, b) => Math.min(b, Math.max(a, Math.round(+v || 0)));
@@ -5123,26 +5222,28 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
 
   function cleanStroke(s){
     if(!s || typeof s !== "object" || !okId(s.id) || !okCol(s.c) || !Array.isArray(s.p)) return null;
-    const fill = s.t === "f", p = [];
-    for(let i = 0; i + 1 < s.p.length && p.length < (fill ? 2 : 8000); i += 2) p.push(cl(s.p[i], 0, W - 1), cl(s.p[i + 1], 0, H - 1));
-    if(!p.length) return null;
+    const fill = s.t === "f", shape = s.t === "h", p = [];
+    if(shape && !SHAPES[s.sh]) return null;
+    for(let i = 0; i + 1 < s.p.length && p.length < (fill ? 2 : shape ? 4 : 8000); i += 2) p.push(cl(s.p[i], 0, W - 1), cl(s.p[i + 1], 0, H - 1));
+    if(!p.length || (shape && p.length < 4)) return null;
     const o = { id: s.id, o: okUid(s.o) ? s.o : "", n: String(s.n || "").slice(0, 12), c: s.c, w: cl(s.w, 1, 80), ts: +s.ts || 0, p };
     if(fill) o.t = "f";
+    if(shape){ o.t = "h"; o.sh = s.sh; o.fl = s.fl ? 1 : 0; }
     return o;
   }
-  function reindex(){ byId = new Map(strokes.map(s => [s.id, s])); }
-  function addStroke(s){          // keeps strokes ordered by time so every browser replays the same picture
-    let lo = 0, hi = strokes.length;
-    while(lo < hi){ const m = (lo + hi) >> 1, a = strokes[m]; if(a.ts < s.ts || (a.ts === s.ts && a.id <= s.id)) lo = m + 1; else hi = m; }
-    strokes.splice(lo, 0, s); byId.set(s.id, s); return lo === strokes.length - 1;
+  function reindex(st){ st.byId = new Map(st.strokes.map(s => [s.id, s])); }
+  function addStroke(st, s){          // keeps strokes ordered by time so every browser replays the same picture
+    let lo = 0, hi = st.strokes.length;
+    while(lo < hi){ const m = (lo + hi) >> 1, a = st.strokes[m]; if(a.ts < s.ts || (a.ts === s.ts && a.id <= s.id)) lo = m + 1; else hi = m; }
+    st.strokes.splice(lo, 0, s); st.byId.set(s.id, s); return lo === st.strokes.length - 1;
   }
-  function cap(){
-    let pts = 0; for(let i = strokes.length - 1; i >= 0; i--) pts += strokes[i].p.length;
-    while(strokes.length > 1500 || (pts > 150000 && strokes.length > 1)){ pts -= strokes[0].p.length; strokes.shift(); }
-    reindex();
+  function cap(st){
+    let pts = 0; for(let i = st.strokes.length - 1; i >= 0; i--) pts += st.strokes[i].p.length;
+    while(st.strokes.length > 1500 || (pts > 150000 && st.strokes.length > 1)){ pts -= st.strokes[0].p.length; st.strokes.shift(); }
+    reindex(st);
   }
 
-  /* ---------- painting (pen strokes + paint bucket) ---------- */
+  /* ---------- painting (pen strokes, paint bucket, shapes) ---------- */
   function floodFill(x0, y0, hex){
     const img = cx.getImageData(0, 0, W, H), d = img.data, u = new Uint32Array(d.buffer);
     const i0 = (y0 * W + x0) * 4, tr = d[i0], tg = d[i0 + 1], tb = d[i0 + 2];
@@ -5170,9 +5271,37 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     }
     cx.putImageData(img, 0, 0);
   }
+  function paintShape(s){
+    const [x1, y1, x2, y2] = s.p, lx = Math.min(x1, x2), rx = Math.max(x1, x2), ty = Math.min(y1, y2), by = Math.max(y1, y2);
+    cx.strokeStyle = s.c; cx.fillStyle = s.c; cx.lineWidth = s.w; cx.lineCap = "round"; cx.lineJoin = "round";
+    cx.beginPath();
+    if(s.sh === "line" || s.sh === "arrow"){
+      cx.moveTo(x1, y1); cx.lineTo(x2, y2);
+      if(s.sh === "arrow"){
+        const a = Math.atan2(y2 - y1, x2 - x1), L = Math.max(16, s.w * 4);
+        cx.moveTo(x2, y2); cx.lineTo(x2 - L * Math.cos(a - 0.5), y2 - L * Math.sin(a - 0.5));
+        cx.moveTo(x2, y2); cx.lineTo(x2 - L * Math.cos(a + 0.5), y2 - L * Math.sin(a + 0.5));
+      }
+      cx.stroke(); return;
+    }
+    if(s.sh === "rect") cx.rect(lx, ty, rx - lx, by - ty);
+    else if(s.sh === "ellipse") cx.ellipse((lx + rx) / 2, (ty + by) / 2, Math.max(1, (rx - lx) / 2), Math.max(1, (by - ty) / 2), 0, 0, Math.PI * 2);
+    else if(s.sh === "tri"){ cx.moveTo((lx + rx) / 2, ty); cx.lineTo(rx, by); cx.lineTo(lx, by); cx.closePath(); }
+    else if(s.sh === "star"){
+      const mx = (lx + rx) / 2, my = (ty + by) / 2, ax = (rx - lx) / 2, ay = (by - ty) / 2;
+      for(let i = 0; i < 10; i++){
+        const a = -Math.PI / 2 + i * Math.PI / 5, k = i % 2 ? 0.42 : 1, px = mx + Math.cos(a) * ax * k, py = my + Math.sin(a) * ay * k;
+        if(i) cx.lineTo(px, py); else cx.moveTo(px, py);
+      }
+      cx.closePath();
+    }
+    if(s.fl) cx.fill();
+    cx.stroke();
+  }
   function paint(s, i0){
     if(s.t === "f"){ floodFill(s.p[0], s.p[1], s.c); return; }
-    const p = s.p; cx.strokeStyle = s.c; cx.fillStyle = s.c; cx.lineWidth = s.w;
+    if(s.t === "h"){ paintShape(s); return; }
+    const p = s.p; cx.strokeStyle = s.c; cx.fillStyle = s.c; cx.lineWidth = s.w; cx.lineCap = "round"; cx.lineJoin = "round";
     if(p.length === 2){ cx.beginPath(); cx.arc(p[0], p[1], s.w / 2, 0, 6.2832); cx.fill(); return; }
     const st = Math.max(0, i0 - 2);
     cx.beginPath(); cx.moveTo(p[st], p[st + 1]);
@@ -5181,7 +5310,7 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
   }
   function redraw(){
     cx.fillStyle = "#fff"; cx.fillRect(0, 0, W, H);
-    strokes.forEach(s => paint(s, 0));
+    S.strokes.forEach(s => paint(s, 0));
   }
   redraw();
 
@@ -5190,48 +5319,73 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     try { const r = indexedDB.open("purebred-board", 1); r.onupgradeneeded = () => r.result.createObjectStore("kv"); r.onsuccess = () => res(r.result); r.onerror = () => res(null); }
     catch(e){ res(null); }
   });
-  function snapForSave(){ cap(); return { clr, strokes: strokes.slice(), gone: [...gone].slice(-1500) }; }
-  async function saveNow(){
+  const dirty = new Set();
+  const dkey = st => st.id ? "board:" + st.id : "board";
+  async function saveAll(){
     clearTimeout(persistT); persistT = 0;
-    const o = snapForSave();
+    const list = [...dirty]; dirty.clear();
     const db = await dbP;
-    if(db){ try { db.transaction("kv", "readwrite").objectStore("kv").put(o, "board"); } catch(e){} }
-    try { localStorage.setItem("pb_board", JSON.stringify({ clr: o.clr, strokes: o.strokes.slice(-150), gone: [] })); } catch(e){}   // small backup copy
+    for(const st of list){
+      cap(st);
+      const o = { clr: st.clr, strokes: st.strokes.slice(), gone: [...st.gone].slice(-1500) };
+      if(db){ try { db.transaction("kv", "readwrite").objectStore("kv").put(o, dkey(st)); } catch(e){} }
+      if(!st.id){ try { localStorage.setItem("pb_board", JSON.stringify({ clr: o.clr, strokes: o.strokes.slice(-150), gone: [] })); } catch(e){} }   // small backup copy of the public board
+    }
   }
-  function persistSoon(){ clearTimeout(persistT); persistT = setTimeout(saveNow, 600); }
-  async function loadSaved(){
-    try { const b = JSON.parse(load("pb_board", "{}")); if(b && typeof b === "object") merge(b); } catch(e){}
+  function persistSoon(st){ dirty.add(st); clearTimeout(persistT); persistT = setTimeout(saveAll, 600); }
+  async function dropSaved(st){ const db = await dbP; if(db){ try { db.transaction("kv", "readwrite").objectStore("kv").delete(dkey(st)); } catch(e){} } }
+  async function loadBoard(st){
+    if(!st.id){ try { const b = JSON.parse(load("pb_board", "{}")); if(b && typeof b === "object") merge(st, b); } catch(e){} }
     const db = await dbP; if(!db) return;
     try {
-      const q = db.transaction("kv").objectStore("kv").get("board");
-      q.onsuccess = () => { if(q.result && typeof q.result === "object") merge(q.result); };
+      const q = db.transaction("kv").objectStore("kv").get(dkey(st));
+      q.onsuccess = () => { if(q.result && typeof q.result === "object") merge(st, q.result); };
     } catch(e){}
   }
-  window.addEventListener("pagehide", saveNow);
-  document.addEventListener("visibilitychange", () => { if(document.visibilityState === "hidden") saveNow(); });
+  window.addEventListener("pagehide", saveAll);
+  document.addEventListener("visibilitychange", () => { if(document.visibilityState === "hidden") saveAll(); });
 
   /* ---------- sharing ---------- */
-  function sendD(o){ o.t = "D"; o.i = newId(); o.f = uid; o.n = usr; send(o); }
-  function snapObj(){ cap(); return { t: "D", i: newId(), k: "snap", clr, strokes: strokes.slice(), gone: [...gone].slice(-1500) }; }
-  function sendSnap(conn){ (window.heavy || (f => f()))(() => { try { if(conn.open) conn.send(snapObj()); } catch(e){} }); }
-  function merge(sn){
+  // the HOST decides who can see a private board: it only passes its messages to the owner and the people the owner invited
+  function targetsOf(b){ const o = ownerOf(b), s = new Set([o]), pb = pboards[o]; if(pb) pb.forEach(u => s.add(u)); return s; }
+  function routeHost(d, fromConn){            // returns true when the host itself should also apply the message
+    const set = targetsOf(d.b); if(!set.has(d.f)) return false;
+    let only = set;
+    if(d.to){ if(!okUid(d.to) || !set.has(d.to)) return false; only = new Set([d.to]); }
+    conns.forEach(x => { if(x !== fromConn && x.open && x.uid && x.uid !== d.f && only.has(x.uid)) x.send(d); });
+    return only.has(uid) && d.f !== uid;
+  }
+  function relayTo(u, d, fromConn){
+    if(u === uid){ applyPriv(d, d.b); return; }
+    conns.forEach(x => { if(x !== fromConn && x.open && x.uid === u) x.send(d); });
+  }
+  function sendD(o, bid){
+    if(bid === undefined) bid = S.id;
+    o.t = "D"; o.i = newId(); o.f = uid; o.n = usr; if(bid) o.b = bid;
+    if(bid && isHost) routeHost(o, null); else send(o);
+    return o;
+  }
+  const snapBody = st => { cap(st); return { k: "snap", clr: st.clr, strokes: st.strokes.slice(), gone: [...st.gone].slice(-1500) }; };
+  function snapObj(st){ return Object.assign({ t: "D", i: newId() }, snapBody(st)); }
+  function sendSnap(conn){ (window.heavy || (f => f()))(() => { try { if(conn.open) conn.send(snapObj(P)); } catch(e){} }); }
+  function merge(st, sn){
     let changed = false;
     const nc = +sn.clr || 0;
-    if(nc > clr){ clr = nc; strokes = strokes.filter(s => s.ts > clr); gone.clear(); changed = true; }
-    (Array.isArray(sn.gone) ? sn.gone : []).slice(0, 3000).forEach(g => { if(okId(g) && !gone.has(g)){ gone.add(g); if(byId.has(g)) changed = true; } });
-    if(changed){ strokes = strokes.filter(s => !gone.has(s.id)); reindex(); }
+    if(nc > st.clr){ st.clr = nc; st.strokes = st.strokes.filter(s => s.ts > st.clr); st.gone.clear(); changed = true; }
+    (Array.isArray(sn.gone) ? sn.gone : []).slice(0, 3000).forEach(g => { if(okId(g) && !st.gone.has(g)){ st.gone.add(g); if(st.byId.has(g)) changed = true; } });
+    if(changed){ st.strokes = st.strokes.filter(s => !st.gone.has(s.id)); reindex(st); }
     (Array.isArray(sn.strokes) ? sn.strokes : []).slice(0, 2000).forEach(raw => {
-      const s = cleanStroke(raw); if(!s || s.ts <= clr || gone.has(s.id) || byId.has(s.id)) return;
-      addStroke(s); changed = true;
+      const s = cleanStroke(raw); if(!s || s.ts <= st.clr || st.gone.has(s.id) || st.byId.has(s.id)) return;
+      addStroke(st, s); changed = true;
     });
-    if(changed){ cap(); redraw(); persistSoon(); }
+    if(changed){ cap(st); if(st === S) redraw(); persistSoon(st); }
     return changed;
   }
   function who(t){ const e = $$("dwho"); e.textContent = t; clearTimeout(whoT); whoT = setTimeout(() => { e.textContent = ""; }, 1800); }
-  function rm(id){ if(!byId.has(id)) return; strokes = strokes.filter(s => s.id !== id); gone.add(id); reindex(); redraw(); persistSoon(); }
-  function applyClr(t){ clr = Math.max(clr, t); strokes = strokes.filter(s => s.ts > clr); gone.clear(); mine = []; redoS = []; reindex(); redraw(); persistSoon(); updBtns(); }
+  function rm(st, id){ if(!st.byId.has(id)) return; st.strokes = st.strokes.filter(s => s.id !== id); st.gone.add(id); reindex(st); if(st === S) redraw(); persistSoon(st); }
+  function applyClr(st, t){ st.clr = Math.max(st.clr, t); st.strokes = st.strokes.filter(s => s.ts > st.clr); st.gone.clear(); st.mine = []; st.redoS = []; reindex(st); if(st === S){ redraw(); updBtns(); } persistSoon(st); }
 
-  /* ---------- everyone's cursors ---------- */
+  /* ---------- everyone's cursors (only people on the board you're looking at) ---------- */
   const curs = new Map();
   function showCursor(f, n, x, y, drawing){
     let c = curs.get(f);
@@ -5240,105 +5394,333 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     c.el.firstChild.style.background = colorFor(n); c.el.lastChild.textContent = n; c.el.classList.toggle("dr", !!drawing); c.t = Date.now();
   }
   function hideCursor(f){ const c = curs.get(f); if(c){ c.el.remove(); curs.delete(f); } }
-  setInterval(() => { if(!curs.size) return; const now = Date.now(); curs.forEach((c, f) => { if(now - c.t > 2500) hideCursor(f); }); }, 700);
+  tick(() => { if(!curs.size) return; const now = Date.now(); curs.forEach((c, f) => { if(now - c.t > 2500) hideCursor(f); }); }, 700);
 
-  function onDraw(d, fromConn){
+  /* one handler for drawing messages on any board; returns false when the message is bad */
+  function applyMsg(st, d, nm){
+    const cs = st === S;
+    const flag = () => { if(!cs && st.id && !st.unread){ st.unread = 1; buildSelect(); } };
+    if(d.k === "c"){
+      if(cs){ if(d.off) hideCursor(d.f); else showCursor(d.f, nm, cl(d.x, 0, W), cl(d.y, 0, H), d.d); }
+      return true;
+    }
+    if(d.k === "p"){
+      if(!okId(d.s) || !okCol(d.c) || !Array.isArray(d.pts) || !d.pts.length || d.pts.length > 400) return false;
+      const ts = +d.ts || 0; if(ts <= st.clr || st.gone.has(d.s)) return false;
+      let s = st.byId.get(d.s), atEnd = true;
+      const old = s ? s.p.length : 0;
+      if(!s){ s = { id: d.s, o: d.f, n: nm, c: d.c, w: cl(d.w, 1, 80), ts, p: [] }; atEnd = addStroke(st, s); }
+      else if(s.o !== d.f || s.t) return false;
+      for(let i = 0; i + 1 < d.pts.length && s.p.length < 8000; i += 2) s.p.push(cl(d.pts[i], 0, W), cl(d.pts[i + 1], 0, H));
+      if(cs){ if(atEnd) paint(s, old); else redraw(); who("✏️ " + nm + " is drawing…"); } else flag();
+      persistSoon(st); return true;
+    }
+    if(d.k === "s"){                           // a finished stroke / fill / shape
+      const s = cleanStroke(d.s); if(!s || s.ts <= st.clr || st.gone.has(s.id) || st.byId.has(s.id)) return false;
+      s.o = d.f; s.n = nm; const atEnd = addStroke(st, s);
+      if(cs){ if(atEnd) paint(s, 0); else redraw(); who((s.t === "f" ? "🪣 " : s.t === "h" ? "🔷 " : "✏️ ") + nm + (s.t === "f" ? " filled an area" : s.t === "h" ? " drew a shape" : " drew")); } else flag();
+      persistSoon(st); return true;
+    }
+    if(d.k === "u"){
+      if(!okId(d.s)) return false; const s = st.byId.get(d.s);
+      if(s && s.o !== d.f) return false;
+      rm(st, d.s); if(!cs) flag(); return true;
+    }
+    if(d.k === "clr"){
+      const t = +d.ts || 0; if(t > Date.now() + 60000) return false;
+      applyClr(st, t || Date.now()); if(cs) who("🗑 " + nm + " cleared the board"); else flag();
+      return true;
+    }
+    return false;
+  }
+
+  /* ----- the public board (works exactly like before) ----- */
+  function onPub(d, fromConn){
     const host = isHost;
     if(d.k === "snap"){
-      if(host){ if(fromConn.snapIn) return; fromConn.snapIn = 1; if(merge(d)) send(snapObj(), fromConn); }
+      if(host){ if(fromConn.snapIn) return; fromConn.snapIn = 1; if(merge(P, d)) send(snapObj(P), fromConn); }
       else {
-        const had = strokes.length > 0;
-        merge(d);
-        if(had && strokes.length){ const o = snapObj(); try { conns.forEach(c => c.open && c.send(o)); } catch(e){} }   // give the host anything it was missing
+        const had = P.strokes.length > 0;
+        merge(P, d);
+        if(had && P.strokes.length){ const o = snapObj(P); try { conns.forEach(c => c.open && c.send(o)); } catch(e){} }   // give the host anything it was missing
       }
       return;
     }
     if(!okUid(d.f) || d.f === uid) return;
-    const nm = String(d.n || "Someone").slice(0, 12);
-    if(d.k === "c"){
-      if(d.off) hideCursor(d.f); else showCursor(d.f, nm, cl(d.x, 0, W), cl(d.y, 0, H), d.d);
+    if(!applyMsg(P, d, String(d.n || "Someone").slice(0, 12))) return;
+    if(host) send(d, fromConn);                // relay to everyone else
+  }
+
+  /* ----- private boards ----- */
+  function setMembers(owner, mem){
+    const set = new Set();
+    (Array.isArray(mem) ? mem : []).slice(0, MAXM).forEach(u => { if(okUid(u) && u !== owner) set.add(u); });
+    pboards[owner] = set;
+  }
+  function onPriv(d, b, fromConn){
+    const owner = ownerOf(b);
+    if(isHost){
+      const fu = d.f; if(!okUid(fu)) return;
+      const k = d.k;
+      if(k === "pm"){ if(fu === owner) setMembers(owner, d.mem); return; }
+      if(k === "pi" || k === "pk"){
+        if(fu !== owner || !okUid(d.to) || d.to === owner) return;
+        const set = pboards[owner] || (pboards[owner] = new Set());
+        if(k === "pi"){ if(!set.has(d.to) && set.size >= MAXM) return; set.add(d.to); } else set.delete(d.to);
+        relayTo(d.to, d, fromConn); return;
+      }
+      if(k === "pl"){ const set = pboards[owner]; if(!set || !set.has(fu)) return; set.delete(fu); relayTo(owner, d, fromConn); return; }
+      if(k === "clr" && fu !== owner) return;                       // only the owner wipes a private board
+      if(!routeHost(d, fromConn)) return;                           // not allowed, or the host isn't one of the people on it
     }
-    else if(d.k === "p"){
-      if(!okId(d.s) || !okCol(d.c) || !Array.isArray(d.pts) || !d.pts.length || d.pts.length > 400) return;
-      const ts = +d.ts || 0; if(ts <= clr || gone.has(d.s)) return;
-      let s = byId.get(d.s), atEnd = true;
-      const old = s ? s.p.length : 0;
-      if(!s){ s = { id: d.s, o: d.f, n: nm, c: d.c, w: cl(d.w, 1, 80), ts, p: [] }; atEnd = addStroke(s); }
-      else if(s.o !== d.f || s.t === "f") return;
-      for(let i = 0; i + 1 < d.pts.length && s.p.length < 8000; i += 2) s.p.push(cl(d.pts[i], 0, W), cl(d.pts[i + 1], 0, H));
-      if(atEnd) paint(s, old); else redraw();
-      who("✏️ " + nm + " is drawing…"); persistSoon();
+    applyPriv(d, b);
+  }
+  function applyPriv(d, b){
+    const owner = ownerOf(b), k = d.k, mine = owner === uid;
+    if(k === "pi"){ if(d.f === owner && !mine) joinBoard(b, d.n); return; }
+    if(k === "pk"){ if(d.f === owner && joined[b]) leaveBoard(b, "removed"); return; }
+    if(k === "pl"){ if(mine) dropMember(d.f); return; }
+    const st = states.get(b); if(!st) return;                       // not my board and I wasn't invited: ignore
+    if(!okUid(d.f) || d.f === uid) return;
+    if(d.to && d.to !== uid) return;
+    if(k === "snap"){ merge(st, d); return; }
+    if(k === "sr"){                                                 // somebody (re)joined and wants the picture
+      const ownerOn = mine || (lastRoster || []).some(e => e.c === owner);
+      if(st.strokes.length && (mine || !ownerOn)){ const to = d.f; setTimeout(() => sendD(Object.assign(snapBody(st), { to }), b), 100 + Math.random() * 300); }
+      return;
     }
-    else if(d.k === "s"){                     // a finished stroke / fill (fills and redo arrive this way)
-      const s = cleanStroke(d.s); if(!s || s.ts <= clr || gone.has(s.id) || byId.has(s.id)) return;
-      s.o = d.f; s.n = nm; addStroke(s); redraw();
-      who((s.t === "f" ? "🪣 " : "✏️ ") + nm + (s.t === "f" ? " filled an area" : " drew")); persistSoon();
+    applyMsg(st, d, String(d.n || "Someone").slice(0, 12));
+  }
+  function requestSync(st){
+    if(!st || !st.id || (!isHost && !conns.length) || Date.now() - st.srAt < 8000) return;
+    st.srAt = Date.now(); sendD({ k: "sr" }, st.id);
+  }
+  function announceMembers(){
+    if(!members.length) return;
+    if(isHost) pboards[uid] = new Set(members.map(m => m.u));
+    else if(conns.length) sendD({ k: "pm", mem: members.map(m => m.u) }, myBid);
+  }
+  function afterConnect(){ announceMembers(); Object.keys(joined).forEach(b => requestSync(states.get(b))); if(S.id) requestSync(S); }
+  setInterval(() => { if(!isHost && conns.length) announceMembers(); }, 20000);
+
+  function invite(u, n){
+    if(!okUid(u) || u === uid || members.some(m => m.u === u) || members.length >= MAXM) return;
+    members.push({ u, n: String(n || "Friend").slice(0, 12) }); saveMembers();
+    if(isHost){ (pboards[uid] || (pboards[uid] = new Set())).add(u); relayTo(u, { t: "D", i: newId(), f: uid, n: usr, b: myBid, k: "pi", to: u }, null); }
+    else sendD({ k: "pi", to: u }, myBid);
+    const st = states.get(myBid);
+    if(st.strokes.length) setTimeout(() => sendD(Object.assign(snapBody(st), { to: u }), myBid), 300);   // give them what's already drawn
+    renderInvp(); chrome();
+  }
+  function removeMember(u){
+    members = members.filter(m => m.u !== u); saveMembers();
+    if(isHost){ if(pboards[uid]) pboards[uid].delete(u); relayTo(u, { t: "D", i: newId(), f: uid, n: usr, b: myBid, k: "pk", to: u }, null); }
+    else sendD({ k: "pk", to: u }, myBid);
+    renderInvp(); chrome();
+  }
+  function dropMember(u){            // someone left my board
+    const m = members.find(x => x.u === u); if(!m) return;
+    members = members.filter(x => x.u !== u); saveMembers(); if(pboards[uid]) pboards[uid].delete(u);
+    sys("🔒 " + m.n + " left your private drawing board."); renderInvp(); chrome();
+  }
+  function joinBoard(b, nm){
+    const first = !joined[b];
+    if(first && Object.keys(joined).length >= MAXJ) return;
+    joined[b] = String(nm || "Someone").slice(0, 12); saveJoined();
+    if(!states.has(b)){ const st = mk(b); states.set(b, st); loadBoard(st); }
+    buildSelect(); chrome();
+    if(first){
+      sys("🔒 " + joined[b] + " invited you to their private drawing board. Open the 🎨 Draw tab and pick it from the board list.");
+      invNote = 1; paintNote();
     }
-    else if(d.k === "u"){
-      if(!okId(d.s)) return; const s = byId.get(d.s);
-      if(s && s.o !== d.f) return;
-      rm(d.s);
-    }
-    else if(d.k === "clr"){ const t = +d.ts || 0; if(t > Date.now() + 60000) return; applyClr(t || Date.now()); who("🗑 " + nm + " cleared the board"); }
-    else return;
-    if(host) send(d, fromConn);              // relay to everyone else
+    setTimeout(() => requestSync(states.get(b)), 500);
+  }
+  function leaveBoard(b, why){
+    const nm = joined[b] || "Someone", st = states.get(b);
+    delete joined[b]; saveJoined();
+    if(st){ states.delete(b); dirty.delete(st); dropSaved(st); if(S === st) openBoard(""); }
+    buildSelect();
+    if(why === "removed") sys("🔒 " + nm + " removed you from their private drawing board.");
+  }
+  function leaveByMe(b){
+    const o = ownerOf(b);
+    if(isHost){ if(pboards[o]) pboards[o].delete(uid); relayTo(o, { t: "D", i: newId(), f: uid, n: usr, b, k: "pl" }, null); }
+    else sendD({ k: "pl" }, b);
+    leaveBoard(b, "left");
   }
 
   const _h = handle;
   handle = function(d, from){
     if(d && typeof d === "object" && d.t === "D"){
       if(!validId(d.i)) return;
+      if(d.b !== undefined && !okBid(d.b)) return;
       if(isHost){
         if(!from.ok2 || from.denied || !from.uid) return;
-        if(window.__pbMuted && window.__pbMuted(from.userName, from) && d.k !== "c") return;
-        if(d.k !== "snap"){ d.f = from.uid; d.n = String(from.userName || "").slice(0, 12); }
-        onDraw(d, from);
-      } else onDraw(d, null);
+        if(window.__pbMuted && window.__pbMuted(from.userName, from) && d.k !== "c" && d.k !== "pl" && d.k !== "pm") return;
+        d.f = from.uid; d.n = String(from.userName || "").slice(0, 12);
+        if(d.b !== undefined) onPriv(d, d.b, from); else onPub(d, from);
+      } else {
+        if(d.b !== undefined) onPriv(d, d.b, null); else onPub(d, null);
+      }
       return;
     }
     _h(d, from);
-    if(isHost && d && d.t === "P" && from.ok2 && !from.denied && !from.bsent){ from.bsent = 1; sendSnap(from); }   // newcomer gets the current board
+    if(isHost && d && d.t === "P" && from.ok2 && !from.denied && !from.bsent){ from.bsent = 1; sendSnap(from); }   // newcomer gets the current public board
+    if(!isHost && d && d.t === "R") setTimeout(afterConnect, 900);
   };
+
+  /* ---------- board picker + invite panel ---------- */
+  let invNote = 0;
+  function paintNote(){
+    const sub = row.querySelector(".csub"); if(sub) sub.textContent = invNote ? "🔒 New invite!" : "Draw together";
+    tab.textContent = invNote ? "🎨 Draw •" : "🎨 Draw";
+  }
+  const dot = st => st && st.unread ? " ●" : "";
+  function buildSelect(){
+    const sel = $$("dboard"), v = S.id; sel.replaceChildren();
+    const add = (val, txt) => { const o = document.createElement("option"); o.value = val; o.textContent = txt; sel.appendChild(o); };
+    add("", "🌐 Public board");
+    add(myBid, "🔒 My private board" + dot(states.get(myBid)));
+    Object.keys(joined).forEach(b => add(b, "🔒 " + joined[b] + "'s board" + dot(states.get(b))));
+    sel.value = v;
+  }
+  function chrome(){
+    const priv = !!S.id, own = S.id === myBid;
+    $$("dinv").style.display = priv ? "" : "none";
+    $$("dinv").textContent = own ? "👥 Invite" : "👥 Members";
+    $$("dclr").style.display = (!priv || own) ? "" : "none";             // only the owner can wipe a private board
+    const t = $$("dtag"); t.className = "dtag" + (priv ? " pv" : "");
+    t.textContent = !priv ? "🌐 Everyone can see & draw here"
+      : own ? (members.length ? "🔒 Private · you + " + members.length + " invited" : "🔒 Private · only you can see this")
+      : "🔒 " + (joined[S.id] || "Someone") + "'s private board";
+  }
+  function abortDraw(){
+    if(cur) end();
+    if(shp){ cx.drawImage(base, 0, 0); shp = null; base = null; }
+  }
+  function openBoard(id){
+    if(!states.has(id)) id = "";
+    abortDraw();
+    S = states.get(id); S.unread = 0;
+    curs.forEach((c, f) => hideCursor(f));
+    redraw(); buildSelect(); chrome(); updBtns();
+    cv.classList.remove("swapin"); void cv.offsetWidth; cv.classList.add("swapin");
+    $$("dinvp").style.display = "none";
+    if(id){ requestSync(S); if(id === myBid) announceMembers(); }
+  }
+  $$("dboard").onchange = e => openBoard(e.target.value);
+
+  const invp = $$("dinvp");
+  function rowEl(name, btnTxt, fn, red){
+    const r = document.createElement("div"); r.className = "dprow";
+    const b = document.createElement("b"); b.textContent = name; r.appendChild(b);
+    if(btnTxt){ const x = document.createElement("button"); x.type = "button"; x.className = "dbtn" + (red ? " red" : ""); x.textContent = btnTxt; x.onclick = fn; r.appendChild(x); }
+    return r;
+  }
+  function renderInvp(){
+    if(invp.style.display !== "block") return;
+    const y = invp.scrollTop; invp.replaceChildren();
+    const h = (t) => { const e = document.createElement("div"); e.className = "dph"; e.textContent = t; return e; };
+    const top = document.createElement("div"); top.className = "dprow";
+    const tt = document.createElement("b"); tt.textContent = S.id === myBid ? "🔒 Your private board" : "🔒 " + (joined[S.id] || "Private") + "'s board"; tt.style.fontSize = "14px";
+    const cx2 = document.createElement("button"); cx2.type = "button"; cx2.className = "dbtn"; cx2.textContent = "✕"; cx2.onclick = () => { invp.style.display = "none"; };
+    top.append(tt, cx2); invp.appendChild(top);
+    if(S.id === myBid){
+      invp.appendChild(h("In your board"));
+      invp.appendChild(rowEl(usr + " (you)"));
+      if(!members.length){ const n = document.createElement("div"); n.className = "dpn"; n.style.marginTop = "2px"; n.textContent = "Just you so far."; invp.appendChild(n); }
+      members.forEach(m => invp.appendChild(rowEl(m.n, "Remove", () => removeMember(m.u), true)));
+      invp.appendChild(h("Invite someone who's online"));
+      const seen = new Set(), cand = [];
+      (lastRoster || []).forEach(e => { if(e && e.c && okUid(e.c) && e.c !== uid && !seen.has(e.c) && !members.some(m => m.u === e.c)){ seen.add(e.c); cand.push(e); } });
+      if(!cand.length){ const n = document.createElement("div"); n.className = "dpn"; n.style.marginTop = "2px"; n.textContent = members.length >= MAXM ? "Your board is full." : "Nobody else is online right now."; invp.appendChild(n); }
+      else cand.forEach(e => invp.appendChild(rowEl(e.n, members.length >= MAXM ? "" : "Invite", () => invite(e.c, e.n))));
+      const note = document.createElement("div"); note.className = "dpn";
+      note.textContent = "Only you and the people you invite can see or draw on this board. Everyone else can't open it. Your drawing travels through the room's host device, which passes it on only to the people on this board.";
+      invp.appendChild(note);
+    } else {
+      invp.appendChild(h("Owner"));
+      invp.appendChild(rowEl(joined[S.id] || "Someone"));
+      invp.appendChild(rowEl("Leave this board", "Leave", () => { if(confirm("Leave " + (joined[S.id] || "this") + "'s private board? You'll need a new invite to come back.")){ invp.style.display = "none"; leaveByMe(S.id); } }, true));
+    }
+    invp.scrollTop = y;
+  }
+  $$("dinv").onclick = () => { invp.style.display = invp.style.display === "block" ? "none" : "block"; renderInvp(); };
+  tick(() => { if(invp.style.display === "block") renderInvp(); }, 2500);
+  document.addEventListener("pointerdown", e => { if(invp.style.display === "block" && !invp.contains(e.target) && e.target !== $$("dinv")) invp.style.display = "none"; });
 
   /* ---------- tools ---------- */
   const pal = $$("dpal");
   COLORS.forEach(c => {
     const b = document.createElement("button"); b.type = "button"; b.className = "dsw" + (c === color ? " on" : ""); b.style.background = c; b.dataset.c = c; b.title = c;
-    b.onclick = () => setColor(c); pal.appendChild(b);
+    b.onclick = () => useColor(c); pal.appendChild(b);
   });
-  function setColor(c){ color = c; if(tool === "erase") setTool("pen"); pal.querySelectorAll(".dsw").forEach(b => b.classList.toggle("on", b.dataset.c === c)); }
+  function updPrev(){
+    const i = $$("dprev").firstChild, d = Math.max(3, Math.min(size, 30));
+    i.style.width = i.style.height = d + "px"; i.style.background = tool === "erase" ? "#fff" : color;
+    $$("dszv").textContent = size; $$("dsize").value = size;
+    document.querySelectorAll(".dth").forEach(b => b.classList.toggle("on", +b.dataset.n === size));
+  }
+  function useColor(hex){
+    color = hex.toLowerCase(); if(tool === "erase") setTool("pen");
+    $$("dcolor").value = color;
+    pal.querySelectorAll(".dsw").forEach(b => b.classList.toggle("on", b.dataset.c.toLowerCase() === color));
+    updPrev();
+  }
   function setTool(t){
+    if(t === "pick" && tool !== "pick") prevTool = tool;
     tool = t;
-    $$("dpen").classList.toggle("on", t === "pen"); $$("dfill").classList.toggle("on", t === "fill"); $$("der").classList.toggle("on", t === "erase");
+    [["dpen", "pen"], ["dfill", "fill"], ["dshape", "shape"], ["dpick", "pick"], ["der", "erase"]].forEach(([id, n]) => $$(id).classList.toggle("on", t === n));
+    $$("dshgrp").classList.toggle("on", t === "shape");
     cv.style.cursor = t === "fill" ? "cell" : "crosshair";
+    if(t !== "pick") $$("dloupe").style.display = "none";
+    updPrev();
   }
   $$("dpen").onclick = () => setTool("pen");
   $$("dfill").onclick = () => setTool("fill");
+  $$("dshape").onclick = () => setTool("shape");
+  $$("dpick").onclick = () => setTool(tool === "pick" ? prevTool : "pick");
   $$("der").onclick = () => setTool("erase");
-  $$("dcolor").oninput = e => { pal.querySelectorAll(".dsw").forEach(b => b.classList.remove("on")); color = e.target.value; if(tool === "erase") setTool("pen"); };
-  $$("dsize").oninput = e => { size = +e.target.value; $$("dszv").textContent = size; };
+  $$("dshsel").onchange = e => { shapeKind = e.target.value; setTool("shape"); };
+  $$("dshfill").onchange = e => { shapeFill = e.target.checked; };
+  $$("dcolor").oninput = e => useColor(e.target.value);
+  $$("dsize").oninput = e => { size = +e.target.value; updPrev(); };
+  document.querySelectorAll(".dth").forEach(b => { b.onclick = () => { size = +b.dataset.n; updPrev(); }; });
+  if(window.EyeDropper){
+    const sb = $$("dscr"); sb.style.display = "";
+    sb.onclick = async () => { try { const r = await new EyeDropper().open(); if(/^#[0-9a-f]{6}$/i.test(r.sRGBHex)) useColor(r.sRGBHex); } catch(e){} };
+  }
+  function sample(x, y){ const d = cx.getImageData(x, y, 1, 1).data; return "#" + [d[0], d[1], d[2]].map(v => v.toString(16).padStart(2, "0")).join(""); }
 
-  function updBtns(){ $$("dredo").disabled = !redoS.length; $$("dundo").disabled = !mine.some(id => byId.has(id)); }
+  function updBtns(){ $$("dredo").disabled = !S.redoS.length; $$("dundo").disabled = !S.mine.some(id => S.byId.has(id)); }
   function undo(){
-    while(mine.length){
-      const id = mine.pop(), s = byId.get(id);
-      if(s){ redoS.push(JSON.parse(JSON.stringify(s))); sendD({ k: "u", s: id }); rm(id); break; }
+    while(S.mine.length){
+      const id = S.mine.pop(), s = S.byId.get(id);
+      if(s){ S.redoS.push(JSON.parse(JSON.stringify(s))); sendD({ k: "u", s: id }); rm(S, id); break; }
     }
     updBtns();
   }
   function redo(){
-    const o = redoS.pop(); if(!o) return;
+    const o = S.redoS.pop(); if(!o) return;
     const s = Object.assign({}, o, { id: mkId(), ts: Date.now(), o: uid, n: usr });     // comes back on top as a fresh stroke
-    addStroke(s); mine.push(s.id); redraw(); sendD({ k: "s", s }); persistSoon(); updBtns();
+    if(addStroke(S, s)) paint(s, 0); else redraw(); S.mine.push(s.id); sendD({ k: "s", s }); persistSoon(S); updBtns();
   }
   $$("dundo").onclick = undo; $$("dredo").onclick = redo;
-  $$("dclr").onclick = () => { if(!confirm("Clear the whole drawing board for everyone?")) return; const t = Date.now(); applyClr(t); sendD({ k: "clr", ts: t }); };
+  const clearBoard = () => { const t = Date.now(); applyClr(S, t); sendD({ k: "clr", ts: t }); };
+  $$("dclr").onclick = () => { if(!confirm(S.id ? "Clear your private board for everyone on it?" : "Clear the whole drawing board for everyone?")) return; clearBoard(); };
   $$("dsave").onclick = () => cv.toBlob(b => {
-    if(!b) return; const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = "purebred-drawing.png";
+    if(!b) return; const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = S.id ? "purebred-private-drawing.png" : "purebred-drawing.png";
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   });
   document.addEventListener("keydown", e => {
-    if(!document.body.classList.contains("in-draw") || !(e.ctrlKey || e.metaKey)) return;
+    if(!document.body.classList.contains("in-draw")) return;
+    const tg = e.target, typing = tg && (tg.tagName === "TEXTAREA" || (tg.tagName === "INPUT" && tg.type !== "range" && tg.type !== "checkbox"));
+    if(!(e.ctrlKey || e.metaKey)){
+      if(typing) return;
+      if(e.key === "[" ){ size = Math.max(1, size - (size > 12 ? 4 : 1)); updPrev(); }
+      else if(e.key === "]"){ size = Math.min(60, size + (size >= 12 ? 4 : 1)); updPrev(); }
+      return;
+    }
     const k = e.key.toLowerCase();
     if(k === "z" && !e.shiftKey){ e.preventDefault(); undo(); }
     else if(k === "y" || (k === "z" && e.shiftKey)){ e.preventDefault(); redo(); }
@@ -5356,24 +5738,57 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     sendD({ k: "c", x, y, d: drawing ? 1 : 0 });
   }
   const muteCheck = () => { if(window.__pbMuted && window.__pbMuted(usr)){ sys("You're muted by an admin."); return true; } return false; };
+  function shapeEnd(x, y, shift){
+    let x2 = x, y2 = y;
+    if(shift){
+      const dx = x - shp.x1, dy = y - shp.y1;
+      if(shapeKind === "line" || shapeKind === "arrow"){ const a = Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) * Math.PI / 4, L = Math.hypot(dx, dy); x2 = shp.x1 + Math.cos(a) * L; y2 = shp.y1 + Math.sin(a) * L; }
+      else { const m = Math.max(Math.abs(dx), Math.abs(dy)); x2 = shp.x1 + (dx < 0 ? -m : m); y2 = shp.y1 + (dy < 0 ? -m : m); }
+    }
+    return [cl(x2, 0, W - 1), cl(y2, 0, H - 1)];
+  }
+  function finishShape(){
+    if(!shp) return; const s0 = shp; shp = null;
+    cx.drawImage(base, 0, 0); base = null;
+    if(Math.abs(s0.x2 - s0.x1) + Math.abs(s0.y2 - s0.y1) < 4) return;       // just a click: no shape
+    const s = { id: mkId(), o: uid, n: usr, c: color, w: size, ts: Date.now(), t: "h", sh: shapeKind, fl: shapeFill && FILLABLE.has(shapeKind) ? 1 : 0, p: [s0.x1, s0.y1, s0.x2, s0.y2] };
+    if(addStroke(S, s)) paint(s, 0); else redraw();
+    S.mine.push(s.id); sendD({ k: "s", s }); persistSoon(S); updBtns();
+  }
   cv.addEventListener("pointerdown", e => {
-    if(e.button > 0 || cur) return;
+    if(e.button > 0 || cur || shp) return;
+    const [x, y] = pt(e);
+    if(tool === "pick"){ e.preventDefault(); useColor(sample(x, y)); setTool(prevTool === "pick" || prevTool === "erase" ? "pen" : prevTool); return; }
     if(muteCheck()) return;
     e.preventDefault();
-    const [x, y] = pt(e);
-    redoS = [];
+    S.redoS = [];
     if(tool === "fill"){
       const s = { id: mkId(), o: uid, n: usr, c: color, w: 1, ts: Date.now(), t: "f", p: [x, y] };
-      addStroke(s); mine.push(s.id); redraw(); sendD({ k: "s", s }); persistSoon(); updBtns(); return;
+      if(addStroke(S, s)) paint(s, 0); else redraw(); S.mine.push(s.id); sendD({ k: "s", s }); persistSoon(S); updBtns(); return;
     }
     try { cv.setPointerCapture(e.pointerId); } catch(x2){}
+    if(tool === "shape"){
+      base = document.createElement("canvas"); base.width = W; base.height = H; base.getContext("2d").drawImage(cv, 0, 0);
+      shp = { x1: x, y1: y, x2: x, y2: y }; updBtns(); return;
+    }
     cur = { id: mkId(), o: uid, n: usr, c: tool === "erase" ? "#ffffff" : color, w: tool === "erase" ? Math.min(80, size * 2.5) : size, ts: Date.now(), p: [x, y] };
-    mine.push(cur.id);
-    if(addStroke(cur)) paint(cur, 0); else redraw();
+    S.mine.push(cur.id);
+    if(addStroke(S, cur)) paint(cur, 0); else redraw();
     pend = [x, y]; flush(); updBtns();
   });
   cv.addEventListener("pointermove", e => {
-    const [hx, hy] = pt(e); sendCursor(hx, hy, !!cur);
+    const [hx, hy] = pt(e); sendCursor(hx, hy, !!cur || !!shp);
+    if(tool === "pick"){
+      const r = cv.getBoundingClientRect(), hex = sample(hx, hy), lp = $$("dloupe");
+      lp.style.display = "flex"; lp.style.left = (e.clientX - r.left + 16) + "px"; lp.style.top = (e.clientY - r.top - 40) + "px";
+      lp.firstChild.style.background = hex; lp.lastChild.textContent = hex.toUpperCase();
+    }
+    if(shp){
+      [shp.x2, shp.y2] = shapeEnd(hx, hy, e.shiftKey);
+      cx.drawImage(base, 0, 0);
+      paintShape({ c: color, w: size, sh: shapeKind, fl: shapeFill && FILLABLE.has(shapeKind) ? 1 : 0, p: [shp.x1, shp.y1, shp.x2, shp.y2] });
+      return;
+    }
     if(!cur) return;
     const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
     const old = cur.p.length;
@@ -5385,9 +5800,11 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     });
     if(cur.p.length > old){ paint(cur, old); if(!flushT) flushT = setTimeout(flush, 45); }
   });
-  const end = () => { if(!cur) return; flush(); cur = null; persistSoon(); };
-  cv.addEventListener("pointerup", end); cv.addEventListener("pointercancel", end);
-  cv.addEventListener("pointerleave", () => { if(!cur){ lastC = 0; sendD({ k: "c", off: 1 }); } });
+  function end(){ if(!cur) return; flush(); cur = null; persistSoon(S); }
+  const up = () => { if(shp) finishShape(); else end(); };
+  cv.addEventListener("pointerup", up);
+  cv.addEventListener("pointercancel", () => { if(shp){ cx.drawImage(base, 0, 0); shp = null; base = null; } else end(); });
+  cv.addEventListener("pointerleave", () => { $$("dloupe").style.display = "none"; if(!cur && !shp){ lastC = 0; sendD({ k: "c", off: 1 }); } });
 
   /* ---------- fit the canvas to the pane (16:9) ---------- */
   function fit(){
@@ -5404,11 +5821,13 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     _sc(c);
     document.body.classList.toggle("in-draw", c === "draw");
     $$("ch-draw").classList.toggle("active", c === "draw");
-    if(c === "draw") setTimeout(fit, 0);
+    if(c === "draw"){ setTimeout(fit, 0); if(invNote){ invNote = 0; paintNote(); } }
+    else invp.style.display = "none";
   };
 
-  window.__pbBoardClear = () => { const t = Date.now(); applyClr(t); sendD({ k: "clr", ts: t }); };
-  updBtns(); loadSaved();
+  window.__pbBoardClear = () => { const t = Date.now(); applyClr(P, t); sendD({ k: "clr", ts: t }, ""); };   // admin panel: clears the PUBLIC board only
+  buildSelect(); chrome(); updPrev(); updBtns();
+  states.forEach(st => loadBoard(st));
 })();
 </script>
 <script id="lag-fix">
@@ -6914,7 +7333,7 @@ body[data-theme="ios6"] #replybar *,body[data-theme="ios6"] #dmbar *{color:inher
   box.addEventListener("scroll", update, { passive: true });
   window.addEventListener("resize", update);
   if(window.ResizeObserver) new ResizeObserver(update).observe(box);
-  setInterval(update, 700);
+  tick(update, 700);
   btn.addEventListener("click", () => {
     unread = 0; hold = Date.now() + 700; btn.classList.remove("on");
     box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });
@@ -7262,5 +7681,755 @@ body[data-theme="ios6"] #replybar *,body[data-theme="ios6"] #dmbar *{color:inher
   #gate#gate #g-themefld{width:140px}
 }
 </style>
+<style id="dock-css">
+#sb-dock{display:block}
+.stg-sb.opts-closed button#sb-dock.stg-btn{display:block !important}
+@media(min-width:601px){
+  body.sb-bottom{flex-direction:column}
+  body.sb-bottom #main{order:1;flex:1 1 0;min-height:0;width:100%}
+  body.sb-bottom #sb{order:2;width:100%;height:92px;flex-direction:row;align-items:stretch;justify-content:flex-start;border-right:none;border-top:1px solid var(--line);overflow:hidden}
+  body.sb-bottom #sb > *{min-width:0}
+  body.sb-bottom #sb > div:first-child{display:flex;flex-direction:row;align-items:center;gap:4px;flex:1 1 0;min-width:0;overflow-x:auto;overflow-y:hidden;padding:0 8px}
+  body.sb-bottom .hdr-sb{display:none}
+  body.sb-bottom .row-ch{flex-shrink:0;padding:8px 12px;border-left-width:0;border-bottom:3px solid transparent;border-radius:10px}
+  body.sb-bottom .row-ch.active{border-bottom-color:var(--accent)}
+  body.sb-bottom .row-ch:not(.active){border-bottom-color:transparent}
+  body.sb-bottom .row-ch .csub{display:inline-block;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:top}
+  body.sb-bottom #sbroster,body.sb-bottom #sbdm{display:flex;flex-direction:row;align-items:center;gap:4px;padding:0 0 0 8px;margin-left:6px;max-height:none;overflow:visible;flex-shrink:0;border-left:1px solid var(--line)}
+  body.sb-bottom #sbroster > div,body.sb-bottom #sbdm > div{display:flex;flex-direction:row;align-items:center;gap:4px}
+  body.sb-bottom #sbroster .sbh,body.sb-bottom #sbdm .sbh{white-space:nowrap;gap:8px}
+  body.sb-bottom #sbdm .hint{display:none}
+  body.sb-bottom #sbroster .prow,body.sb-bottom #sbdm .prow{flex-shrink:0;white-space:nowrap}
+  body.sb-bottom .stg-sb{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;align-content:center;gap:2px 12px;padding:6px 14px;border-top:none;border-left:1px solid var(--line);flex:0 0 auto;max-width:44%;overflow-y:auto}
+  body.sb-bottom #sb-arrow{top:auto;bottom:76px;left:50%;transform:translateX(-50%);width:54px;height:16px;border-radius:0 0 10px 10px;font-size:14px;z-index:60}
+  body.sb-bottom.hide-sb #sb-arrow{left:50%;bottom:0;border-radius:10px 10px 0 0}
+  body.sb-bottom.hide-sb #sb{display:flex !important;width:100%;height:0;opacity:0;visibility:hidden;pointer-events:none;border-top-width:0}
+}
+@media(max-width:600px){
+  body.sb-bottom #sb{top:auto;bottom:0;left:0;right:0;width:auto;max-height:70vh;transform:translateY(105%);border-right:none;border-top:1px solid var(--line)}
+  body.sb-bottom #sb.open{transform:none;box-shadow:0 -8px 30px rgba(0,0,0,.5)}
+  body.sb-bottom #sb.open ~ #sb-arrow{left:0}
+}
+</style>
+<style id="anim-css">
+/* ---- speed: don't lay out / paint chat messages that are scrolled out of view ---- */
+body:not(.in-gal) #box > .msg{content-visibility:auto;contain-intrinsic-size:auto 56px}
+/* ---- motion: transform + opacity only, so it stays on the GPU ---- */
+@keyframes dpop{0%{transform:scale(.86)}60%{transform:scale(1.08)}100%{transform:scale(1)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.dbtn.on,.dth.on{animation:dpop .28s cubic-bezier(.2,.9,.3,1.2)}
+.dbtn:active,.dth:active,.dsw:active,.stg-btn:active,.row-ch:active,#sendbtn:active,#chtabs button:active{transform:scale(.93)}
+.dsw{transition:transform .18s cubic-bezier(.34,1.56,.64,1),box-shadow .15s}
+.dsw.on{transform:scale(1.18)}
+#dinvp[style*="block"]{animation:popIn .2s cubic-bezier(.2,.9,.3,1.1);transform-origin:top left}
+.dprow{animation:rowIn .24s cubic-bezier(.2,.9,.3,1) backwards}
+#dloupe{animation:popIn .12s ease-out}
+#dcv.swapin{animation:boxIn .26s cubic-bezier(.2,.9,.3,1)}
+.dcur{animation:fadeIn .15s ease-out}
+.tsep{animation:fadeIn .3s ease-out}
+#chtabs button{transition:background .2s,transform .2s cubic-bezier(.34,1.56,.64,1)}
+body.sb-switch #main,body.sb-switch #sb{animation:slideUp .3s cubic-bezier(.2,.9,.3,1)}
+@media(min-width:601px){body.sb-bottom #sb{transition:height .28s cubic-bezier(.2,.9,.3,1),opacity .2s,visibility 0s}}
+#sb-dock{transition:transform .2s cubic-bezier(.34,1.56,.64,1)}
+</style>
+<script id="dock-js">
+(function(){
+  const b = document.getElementById("sb-dock"); if(!b) return;
+  function apply(on){
+    document.body.classList.toggle("sb-bottom", on);
+    b.textContent = on ? "⬅ Move bar to left" : "⬇ Move bar to bottom";
+    b.title = on ? "Move this bar back to the left side" : "Move this bar to the bottom of the screen";
+    try { localStorage.setItem("pb_sbpos", on ? "b" : "l"); } catch(e){}
+    if(typeof updateArrows === "function") updateArrows();
+    document.body.classList.add("sb-switch"); clearTimeout(apply.t); apply.t = setTimeout(() => document.body.classList.remove("sb-switch"), 320);
+  }
+  b.onclick = e => { e.stopPropagation(); apply(!document.body.classList.contains("sb-bottom")); };
+  let on = false; try { on = localStorage.getItem("pb_sbpos") === "b"; } catch(e){}
+  apply(on);
+})();
+</script>
+<script id="logout-autojoin">
+(function(){
+  /* ---- Settings: Log out button ---- */
+  const card = document.createElement("div"); card.className = "stg-card";
+  card.innerHTML = '<h3>🚪 Account</h3><div class="stg-note">Signs you out on this device and takes you back to the sign-in screen. You\'ll need your password to get back in.</div><div class="stg-row"><button id="logoutbtn" type="button" class="btn" style="background:#ff453a;color:#fff">Log out</button></div>';
+  document.querySelector(".stg-scroll").appendChild(card);
+  document.getElementById("logoutbtn").onclick = () => {
+    if(!confirm("Log out and go back to the sign-in screen?")) return;
+    try { myPwH = ""; } catch(e){}
+    ["pb_pwh", "chat_pwh", "pb_admin"].forEach(k => { try { save(k, ""); } catch(e){} });   // forget the saved password (and admin unlock) so nothing signs you straight back in
+    try { window.__entering = false; } catch(e){}
+    location.reload();                                                                         // fresh sign-in screen, connection fully closed
+  };
+
+  /* ---- auto join: you've already entered the room code and made an account on this device ---- */
+  window.addEventListener("load", () => setTimeout(() => {
+    try {
+      if(window.__entering) return;
+      const g = document.getElementById("gate");
+      if(!g || g.style.display === "none") return;
+      const hasAccount = load("pb_code", "") === ROOM_CODE && !!load("pb_pwh", "") && load("chat_usr", "User") !== "User";
+      if(!hasAccount) return;
+      if(!document.getElementById("g-name").value.trim()) return;
+      window.__autoJoined = true;
+      document.getElementById("g-go").click();
+    } catch(e){}
+  }, 400));
+})();
+</script>
+<style id="smooth-ux">
+:root{--ez:cubic-bezier(.22,1,.36,1);--ez2:cubic-bezier(.34,1.56,.64,1)}
+
+/* ---------- text boxes: smooth hover + focus ---------- */
+:is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=file]):not([type=button]):not(#inp),textarea,select){transition:border-color .22s var(--ez),box-shadow .22s var(--ez),background-color .22s var(--ez),transform .22s var(--ez)}
+:is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=file]):not([type=button]):not(#inp),textarea,select):hover{border-color:color-mix(in srgb,var(--accent,#0a84ff) 55%,var(--line,#555));box-shadow:0 0 0 3px color-mix(in srgb,var(--accent,#0a84ff) 14%,transparent)}
+:is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=file]):not([type=button]):not(#inp),textarea,select):focus{outline:none;border-color:var(--accent,#0a84ff);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent,#0a84ff) 26%,transparent)}
+.pill{transition:border-color .22s var(--ez),box-shadow .22s var(--ez),background-color .22s var(--ez)}
+.pill:hover{border-color:color-mix(in srgb,var(--accent,#0a84ff) 55%,var(--line,#555));box-shadow:0 0 0 3px color-mix(in srgb,var(--accent,#0a84ff) 14%,transparent)}
+.pill:focus-within{border-color:var(--accent,#0a84ff);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent,#0a84ff) 26%,transparent)}
+
+/* ---------- buttons, rows, tabs ---------- */
+button,.btn,.stg-btn,.dbtn,.row-ch,#chtabs button,.plus,#emo-btn,#sp-btn,#gif-btn,.goback,.cepick,.stpick{
+  transition:transform .22s var(--ez2),background-color .2s var(--ez),color .2s var(--ez),box-shadow .22s var(--ez),filter .2s var(--ez),opacity .2s var(--ez),border-color .2s var(--ez)}
+:is(.btn,.stg-btn,.dbtn,#sendbtn,.plus,#chtabs button,#g-go,.goback):not(:disabled):hover{filter:brightness(1.1)}
+:is(.btn,.stg-btn,.dbtn,#sendbtn,.plus,#chtabs button,#g-go,.goback):not(:disabled):active{transform:scale(.95)}
+.row-ch:hover{transform:translateX(3px)}
+.row-ch:active{transform:translateX(1px) scale(.99)}
+.cepick:hover,.stpick:hover{transform:scale(1.12)}
+
+/* ---------- cards + bubbles ---------- */
+.stg-card{transition:border-color .25s var(--ez),box-shadow .25s var(--ez),transform .25s var(--ez)}
+.stg-card:hover{box-shadow:0 8px 26px rgba(0,0,0,.16)}
+.bubble{transition:filter .2s var(--ez),transform .2s var(--ez)}
+.msg:hover :not(.spbox)>.bubble{filter:brightness(1.06)}
+
+/* ---------- smooth theme / colour changes on the big surfaces only ---------- */
+body,#sb,#hdr,#tray,#replybar{transition:background-color .35s var(--ez),color .35s var(--ez),border-color .35s var(--ez)}
+
+/* ---------- less lag ---------- */
+body[data-theme="imessage"] :is(#sb,#hdr,#tray,#replybar){-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}   /* was blur(22px) + saturate: very costly while scrolling */
+body[data-theme="imessage"] #typing:not(:empty){-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+#box{will-change:scroll-position;overscroll-behavior:contain}
+html{-webkit-tap-highlight-color:transparent}
+@media (hover:none){
+  .row-ch:hover,.cepick:hover,.stpick:hover{transform:none}
+  .msg:hover :not(.spbox)>.bubble{filter:none}
+}
+</style>
+<script id="boot-reveal">
+(function(){
+  const d = document.documentElement, g = document.getElementById("gate");
+  const auto = d.classList.contains("autoload");
+  if(auto){ try { document.getElementById("al-sub").textContent = "Signing in as " + localStorage.getItem("chat_usr"); } catch(e){} }
+  const showGate = () => d.classList.remove("booting");
+  if(!auto){
+    const go = () => requestAnimationFrame(showGate);
+    if(document.readyState === "complete") go(); else window.addEventListener("load", go);
+    return;
+  }
+  showGate();                                   // the pop-up covers the sign-in screen while we auto join
+  let t0 = Date.now(), saw = false, done = false;
+  window.addEventListener("load", () => { t0 = Date.now(); });
+  function finish(){
+    if(done) return; done = true; clearInterval(iv);
+    d.classList.add("al-out");
+    setTimeout(() => d.classList.remove("autoload", "al-out"), 380);
+  }
+  const iv = setInterval(() => {
+    const open = g.style.display === "none";
+    if(window.__entering || window.__autoJoined) saw = true;
+    if(open) return finish();                                    // chat opened
+    if(saw && !window.__entering) return finish();               // join failed: show the sign-in screen with its error
+    const waited = Date.now() - t0;
+    if((!saw && waited > 6000) || waited > 45000) finish();      // auto join never started / took too long
+  }, 200);
+})();
+</script>
+<style id="fsel-css">
+#fsel-pop{position:fixed;left:0;top:0;z-index:2147482000;box-sizing:border-box;overflow-y:auto;overscroll-behavior:contain;padding:4px;border-radius:12px;
+  border:1px solid var(--line,#484848);background:var(--side,var(--input,#2a2a2a));color:var(--text,#fff);box-shadow:0 16px 40px rgba(0,0,0,.45);
+  font:600 13px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  opacity:0;visibility:hidden;pointer-events:none;transform:translateY(-8px) scale(.96);transform-origin:top center;
+  transition:opacity .16s ease,transform .26s cubic-bezier(.22,1,.36,1),visibility 0s linear .26s}
+#fsel-pop.up{transform:translateY(8px) scale(.96);transform-origin:bottom center}
+#fsel-pop.open{opacity:1;visibility:visible;pointer-events:auto;transform:none;transition:opacity .16s ease,transform .26s cubic-bezier(.22,1,.36,1),visibility 0s}
+#fsel-pop .fo{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;
+  opacity:0;transform:translateY(4px);transition:background-color .14s,opacity .22s ease,transform .24s cubic-bezier(.22,1,.36,1)}
+#fsel-pop.open .fo{opacity:1;transform:none;transition-delay:0s,calc(var(--i,0) * 12ms),calc(var(--i,0) * 12ms)}
+#fsel-pop .fo:hover,#fsel-pop .fo.kb{background:color-mix(in srgb,var(--accent,#0a84ff) 22%,transparent)}
+#fsel-pop .fo.sel{color:var(--accent,#0a84ff)}
+#fsel-pop .fo.sel::after{content:"✓";font-weight:800}
+#fsel-pop .fo.dis{opacity:.4;pointer-events:none}
+#fsel-pop .fg{padding:8px 10px 4px;font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;opacity:.6}
+select.fsel-open{border-color:var(--accent,#0a84ff) !important;box-shadow:0 0 0 4px color-mix(in srgb,var(--accent,#0a84ff) 26%,transparent) !important}
+@media (prefers-reduced-motion:reduce){#fsel-pop,#fsel-pop .fo{transition:none !important}}
+</style>
+<script id="fsel-js">
+(function(){
+  /* every <select> keeps its look + layout; only its pop-up list is replaced by an animated one */
+  const pop = document.createElement("div"); pop.id = "fsel-pop"; pop.setAttribute("role", "listbox"); document.body.appendChild(pop);
+  let cur = null, kb = -1, hideT = 0;
+  const optsOf = sel => [...sel.options];
+
+  function build(sel){
+    pop.replaceChildren(); let i = 0, lastG = null;
+    optsOf(sel).forEach((o, idx) => {
+      const g = o.parentNode && o.parentNode.tagName === "OPTGROUP" ? o.parentNode : null;
+      if(g && g !== lastG){ const h = document.createElement("div"); h.className = "fg"; h.textContent = g.label; pop.appendChild(h); }
+      lastG = g;
+      const d = document.createElement("div"); d.className = "fo" + (idx === sel.selectedIndex ? " sel" : "") + ((o.disabled || (g && g.disabled)) ? " dis" : "");
+      d.setAttribute("role", "option"); d.dataset.i = idx; d.style.setProperty("--i", Math.min(i++, 14)); d.textContent = o.textContent;
+      d.onclick = () => pick(sel, idx);
+      pop.appendChild(d);
+    });
+  }
+  function place(sel){
+    const r = sel.getBoundingClientRect(), vw = innerWidth, vh = innerHeight;
+    pop.style.maxHeight = ""; pop.style.minWidth = Math.max(r.width, 120) + "px"; pop.style.maxWidth = Math.min(440, vw - 16) + "px";
+    pop.style.left = "0px"; pop.style.top = "0px";
+    const need = pop.scrollHeight + 10, below = vh - r.bottom - 10, above = r.top - 10;
+    const up = below < Math.min(need, 240) && above > below;
+    const avail = Math.max(120, up ? above : below), h = Math.min(need, 400, avail);
+    pop.style.maxHeight = h + "px";
+    const w = pop.offsetWidth;
+    pop.style.left = Math.max(8, Math.min(r.left, vw - w - 8)) + "px";
+    pop.style.top = (up ? r.top - 6 - h : r.bottom + 6) + "px";
+    pop.classList.toggle("up", up);
+  }
+  function open(sel){
+    if(sel.disabled) return;
+    if(cur === sel){ close(); return; }
+    if(cur) cur.classList.remove("fsel-open");
+    clearTimeout(hideT); cur = sel; kb = sel.selectedIndex;
+    build(sel); place(sel);
+    sel.classList.add("fsel-open"); pop.classList.remove("open"); void pop.offsetWidth; pop.classList.add("open");
+    const s = pop.querySelector(".sel"); if(s) s.scrollIntoView({ block: "nearest" });
+  }
+  function close(){
+    if(!cur) return;
+    cur.classList.remove("fsel-open"); pop.classList.remove("open"); cur = null;
+  }
+  function pick(sel, i){
+    const o = sel.options[i]; if(!o || o.disabled) return;
+    close(); sel.focus({ preventScroll: true });
+    if(i === sel.selectedIndex) return;
+    sel.selectedIndex = i;
+    sel.dispatchEvent(new Event("input", { bubbles: true })); sel.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+  function mark(){ [...pop.querySelectorAll(".fo")].forEach(e => e.classList.toggle("kb", +e.dataset.i === kb)); const k = pop.querySelector(".kb"); if(k) k.scrollIntoView({ block: "nearest" }); }
+
+  document.addEventListener("pointerdown", e => { if(cur && !pop.contains(e.target) && e.target !== cur) close(); }, true);
+  window.addEventListener("resize", close);
+  window.addEventListener("scroll", e => { if(cur && !pop.contains(e.target) && (e.target === document || (e.target.contains && e.target.contains(cur)))) close(); }, true);
+  document.addEventListener("keydown", e => {
+    if(!cur) return;
+    const n = cur.options.length;
+    if(e.key === "Escape"){ e.preventDefault(); const s = cur; close(); s.focus({ preventScroll: true }); }
+    else if(e.key === "Tab"){ close(); }
+    else if(e.key === "ArrowDown" || e.key === "ArrowUp"){ e.preventDefault(); let k = kb, t = 0; do { k = (k + (e.key === "ArrowDown" ? 1 : -1) + n) % n; t++; } while(cur.options[k].disabled && t < n); kb = k; mark(); }
+    else if(e.key === "Enter" || e.key === " "){ e.preventDefault(); if(kb >= 0) pick(cur, kb); }
+  }, true);
+
+  function enhance(sel){
+    if(sel._fsel || sel.multiple || sel.size > 1 || sel.dataset.native != null) return; sel._fsel = 1;
+    sel.addEventListener("mousedown", e => { if(e.button !== 0 || sel.disabled) return; e.preventDefault(); sel.focus({ preventScroll: true }); open(sel); });
+    let t0 = null;
+    sel.addEventListener("touchstart", e => { const t = e.touches[0]; t0 = t ? { x: t.clientX, y: t.clientY } : null; }, { passive: true });
+    sel.addEventListener("touchend", e => {
+      if(!t0 || sel.disabled) return; const t = e.changedTouches[0], moved = t && Math.hypot(t.clientX - t0.x, t.clientY - t0.y) > 10; t0 = null;
+      if(moved) return; e.preventDefault(); open(sel);                // stops the phone's own picker from also opening
+    }, { passive: false });
+    sel.addEventListener("keydown", e => { if(cur) return; if((e.key === " " && !e.ctrlKey && !e.metaKey) || (e.altKey && e.key === "ArrowDown")){ e.preventDefault(); open(sel); } });
+  }
+  document.querySelectorAll("select").forEach(enhance);
+  new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(n => {          // dropdowns that scripts add later (announcements, emojis, boards…)
+    if(n.nodeType !== 1 || n === pop) return;
+    if(n.tagName === "SELECT") enhance(n); else if(n.querySelectorAll) n.querySelectorAll("select").forEach(enhance);
+  }))).observe(document.documentElement, { childList: true, subtree: true });
+})();
+</script>
+<style id="tier-css">
+#tier{display:none;flex:1;min-height:0;flex-direction:column;background:var(--bg);color:var(--text)}
+body.in-tier #tier{display:flex}
+body.in-tier #box,body.in-tier #typing,body.in-tier #replybar,body.in-tier #tray,body.in-tier #attach{display:none !important}
+#ttools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 14px;background:var(--bar,var(--side));color:var(--bar-text,var(--text));border-bottom:1px solid var(--line)}
+#ttools select{padding:7px 10px;border-radius:10px;border:1px solid var(--line);background:var(--input);color:var(--text);font-size:14px;max-width:46vw;outline:none}
+.tbtn{border:none;background:var(--row);color:var(--text);border-radius:999px;padding:7px 13px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.tbtn:hover{filter:brightness(1.12)}
+.tbtn.on,.tbtn.tp{background:var(--accent);color:var(--on-accent,#fff)}
+.tbtn.red{background:rgba(255,69,58,.2);color:#ff6b61}
+#tlmsg{font-size:12px;color:var(--muted);min-height:15px;margin-left:4px}
+#tlscroll{flex:1;min-height:0;overflow-y:auto;padding:12px 14px 28px}
+#tltitle{font-size:21px;font-weight:800;margin:2px 0 2px;word-break:break-word}
+#tlby{font-size:12px;color:var(--muted);margin-bottom:10px}
+#tlempty{text-align:center;color:var(--muted);padding:50px 20px;font-size:15px;line-height:1.6}
+.trow{display:flex;min-height:92px;margin-bottom:3px;border-radius:6px;overflow:hidden;background:var(--row)}
+.tlab{width:92px;flex:none;display:flex;align-items:center;justify-content:center;padding:6px;text-align:center;font-weight:800;font-size:20px;word-break:break-word;line-height:1.1}
+.tzone{flex:1;display:flex;flex-wrap:wrap;align-content:flex-start;gap:4px;padding:4px;min-height:92px}
+.tzone.tover{outline:3px dashed var(--accent);outline-offset:-3px;background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.ttile{position:relative;width:84px;height:84px;border-radius:6px;background:#222 center/cover no-repeat;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;flex:none}
+.ttile.tdrag{opacity:.3}
+.tghost{position:fixed !important;z-index:200;pointer-events:none;opacity:.93;box-shadow:0 8px 24px rgba(0,0,0,.5);transform:scale(1.08);margin:0}
+.ttile .tx{position:absolute;top:2px;right:2px;width:20px;height:20px;border:none;border-radius:50%;background:rgba(0,0,0,.7);color:#fff;font-size:11px;line-height:1;cursor:pointer;padding:0;display:none}
+.ttile:hover .tx{display:block}
+@media (hover:none){.ttile .tx{display:block}}
+.tpool{margin-top:16px;border-radius:8px;background:var(--row);overflow:hidden}
+.tphd{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;font-weight:700;font-size:14px}
+.tphd span{font-weight:500;font-size:12px;color:var(--muted)}
+.tpool .tzone{min-height:100px}
+#tldlg{position:fixed;inset:0;z-index:75;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:16px}
+#tldlg.open{display:flex}
+#tldlg .tdc{background:var(--side);color:var(--text);border:1px solid var(--line);border-radius:18px;width:min(460px,100%);max-height:90vh;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:10px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+#tldlg h3{margin:0 0 2px;font-size:18px}
+#tldlg label{font-size:12px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:var(--muted)}
+#tldlg input[type=text]{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--input);color:var(--text);font-size:15px;outline:none}
+#tldlg input[type=text]:focus{border-color:var(--accent)}
+#tldlg .trow2{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
+#tldlg .ted{display:flex;gap:6px;align-items:center}
+#tldlg .ted input[type=color]{width:38px;height:34px;border:none;background:none;padding:0;cursor:pointer;flex:none}
+#tldlg .ted input[type=text]{flex:1;min-width:0}
+#tldlg .ted .tbtn{padding:6px 9px}
+</style>
+<script id="tier-js">
+(function(){
+  const $$ = id => document.getElementById(id);
+  const MAXL = 6, MAXI = 60, MAXT = 10;
+  const DEF = [["S","#ff7f7f"],["A","#ffbf7f"],["B","#ffdf7f"],["C","#ffff7f"],["D","#bfff7f"],["F","#7fff7f"]];
+  const okId = s => typeof s === "string" && /^[A-Za-z0-9_-]{1,40}$/.test(s) && s !== "__proto__";
+  const okHex = c => typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c);
+  const okIm = x => typeof x === "string" && x.length <= 12000 && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(x);
+  const rid = p => p + Math.random().toString(36).slice(2, 9);
+  const isMod = c => window.__pbIsMod ? !!window.__pbIsMod(c) : false;
+  const lum = c => { const n = parseInt(c.slice(1), 16); return 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255); };
+
+  /* ---------- state: lists -> tiers + images. The host orders every change and sends it to everyone ---------- */
+  let T = { lists: {} }, cur = load("pb_tl_cur", "");
+  try { const s = JSON.parse(load("pb_tier", "")); if(s && typeof s.lists === "object") T = s; } catch(e){}
+  let persistT = 0;
+  const cleanTiers = a => {
+    if(!Array.isArray(a)) return null; const seen = new Set(), out = [];
+    for(const t of a.slice(0, MAXT)){ if(!t || !okId(t.i) || seen.has(t.i)) continue; seen.add(t.i); out.push({ i: t.i, n: String(t.n == null ? "" : t.n).slice(0, 16), c: okHex(t.c) ? t.c : "#cccccc" }); }
+    return out.length ? out : null;
+  };
+  const defTiers = () => DEF.map((x, k) => ({ i: "t" + k, n: x[0], c: x[1] }));
+  const title = d => String(d || "").trim().slice(0, 40) || "Tier list";
+
+  function norm(d, who){                        // check + clean one change
+    if(!d || typeof d !== "object" || !okId(d.l)) return null;
+    const o = { k: d.k, l: d.l };
+    switch(d.k){
+      case "nl": o.n = title(d.n); o.tiers = cleanTiers(d.tiers) || defTiers(); break;
+      case "dl": case "cl": break;
+      case "tn": o.n = title(d.n); o.tiers = cleanTiers(d.tiers); if(!o.tiers) return null; break;
+      case "ai": if(!okId(d.i) || !okIm(d.im)) return null; o.i = d.i; o.im = d.im; o.t = typeof d.t === "string" ? d.t.slice(0, 40) : ""; o.o = isFinite(+d.o) ? +d.o : Date.now(); break;
+      case "mi": if(!okId(d.i) || !isFinite(+d.o)) return null; o.i = d.i; o.t = typeof d.t === "string" ? d.t.slice(0, 40) : ""; o.o = +d.o; break;
+      case "di": if(!okId(d.i)) return null; o.i = d.i; break;
+      default: return null;
+    }
+    o.u = who ? who.uid : (okId(d.u) ? d.u : ""); o.by = who ? who.name : String(d.by || "").slice(0, 12);
+    return o;
+  }
+  function apply(o){
+    const L = T.lists;
+    if(o.k === "nl"){
+      if(L[o.l] || Object.keys(L).length >= MAXL) return false;
+      L[o.l] = { id: o.l, n: o.n, by: o.by, u: o.u, tiers: o.tiers, items: {} };
+      if(!cur || o.u === uid) cur = o.l; return true;
+    }
+    const l = L[o.l]; if(!l) return false;
+    if(o.k === "dl"){ delete L[o.l]; if(cur === o.l) cur = Object.keys(L)[0] || ""; return true; }
+    if(o.k === "tn"){
+      l.n = o.n; l.tiers = o.tiers; const ids = new Set(o.tiers.map(t => t.i));
+      Object.values(l.items).forEach(it => { if(it.t && !ids.has(it.t)) it.t = ""; }); return true;
+    }
+    if(o.k === "cl"){ Object.values(l.items).forEach(it => { it.t = ""; }); return true; }
+    if(o.k === "ai"){
+      if(!l.items[o.i] && Object.keys(l.items).length >= MAXI) return false;
+      const ok = l.tiers.some(t => t.i === o.t);
+      l.items[o.i] = { i: o.i, im: o.im, by: o.by, u: o.u, t: ok ? o.t : "", o: o.o }; return true;
+    }
+    const it = l.items[o.i]; if(!it) return false;
+    if(o.k === "di"){ delete l.items[o.i]; return true; }
+    if(o.k === "mi"){ it.t = l.tiers.some(t => t.i === o.t) ? o.t : ""; it.o = o.o; return true; }
+    return false;
+  }
+  function perm(o, who){                        // who can do what
+    const l = T.lists[o.l];
+    switch(o.k){
+      case "nl": return !l && Object.keys(T.lists).length < MAXL;
+      case "dl": case "tn": case "cl": return !!l && (who.mod || l.u === who.uid);
+      case "ai": return !!l && (Object.keys(l.items).length < MAXI || !!l.items[o.i]);
+      case "mi": return !!l && !!l.items[o.i];
+      case "di": return !!l && !!l.items[o.i] && (who.mod || l.items[o.i].u === who.uid || l.u === who.uid);
+    }
+    return false;
+  }
+  function changed(){
+    clearTimeout(persistT); persistT = setTimeout(() => { save("pb_tier", JSON.stringify(T)); save("pb_tl_cur", cur); }, 800);
+    schedule();
+  }
+
+  /* ---------- network ---------- */
+  const broadcast = o => { const m = Object.assign({ t: "TL", i: newId() }, o); conns.forEach(c => { if(c.open && c.uid) try { c.send(m); } catch(e){} }); };
+  function sendSnap(conn){
+    const H = window.heavy || (f => f());
+    const lists = Object.values(T.lists).map(l => ({ id: l.id, n: l.n, by: l.by, u: l.u, tiers: l.tiers, ids: Object.keys(l.items) }));
+    H(() => { try { if(conn.open) conn.send({ t: "TL", i: newId(), k: "snap", lists }); } catch(e){} });
+    Object.values(T.lists).forEach(l => {
+      const its = Object.values(l.items);
+      for(let a = 0; a < its.length; a += 8){
+        const ops = its.slice(a, a + 8).map(it => ({ k: "ai", l: l.id, i: it.i, im: it.im, t: it.t, o: it.o, u: it.u, by: it.by }));
+        H(() => { try { if(conn.open) conn.send({ t: "TL", i: newId(), k: "batch", ops }); } catch(e){} });
+      }
+    });
+  }
+  function applySnap(d){
+    if(!Array.isArray(d.lists)) return;
+    const keep = new Set();
+    d.lists.slice(0, MAXL).forEach(m => {
+      if(!m || !okId(m.id)) return; keep.add(m.id);
+      const tiers = cleanTiers(m.tiers) || defTiers();
+      const l = T.lists[m.id] || (T.lists[m.id] = { id: m.id, n: "", by: "", u: "", tiers, items: {} });
+      l.n = title(m.n); l.by = String(m.by || "").slice(0, 12); l.u = okId(m.u) ? m.u : ""; l.tiers = tiers;
+      const ids = new Set((Array.isArray(m.ids) ? m.ids : []).filter(okId).slice(0, MAXI));
+      Object.keys(l.items).forEach(i => { if(!ids.has(i)) delete l.items[i]; });
+    });
+    Object.keys(T.lists).forEach(i => { if(!keep.has(i)) delete T.lists[i]; });
+    if(!T.lists[cur]) cur = Object.keys(T.lists)[0] || "";
+  }
+  function hostOp(d, from){
+    const who = from ? { uid: from.uid, name: String(from.userName || "").slice(0, 12), mod: isMod(from) } : { uid, name: usr, mod: isMod(null) };
+    if(from){ const now = Date.now(); if(now - (from.tlAt || 0) < 100) return; from.tlAt = now; if(window.__pbMuted && window.__pbMuted(who.name, from)) return; }
+    const o = norm(d, who);
+    if(!o || !perm(o, who)){ if(from) sendSnap(from); return; }     // not allowed: put their screen back
+    if(o.k === "ai") o.o = Date.now() + Math.random();
+    if(apply(o)){ changed(); broadcast(o); }
+  }
+  function sendOp(d){
+    if(isHost){ hostOp(d, null); return; }
+    const o = norm(d, { uid, name: usr, mod: isMod(null) });
+    if(!o || !perm(o, { uid, name: usr, mod: isMod(null) })) return;
+    if(apply(o)) changed();                                          // show it right away; the host's copy settles any clash
+    try { send(Object.assign({ t: "TL", i: newId() }, d)); } catch(e){}
+  }
+  const _h = handle;
+  handle = function(d, from){
+    if(d && typeof d === "object" && d.t === "TL"){
+      if(isHost){ if(!from.ok2 || from.denied || !from.uid) return; hostOp(d, from); }
+      else if(d.k === "snap"){ applySnap(d); changed(); }
+      else if(d.k === "batch"){ (Array.isArray(d.ops) ? d.ops : []).slice(0, 12).forEach(x => { const o = norm(x, null); if(o && o.k === "ai") apply(o); }); changed(); }
+      else { const o = norm(d, null); if(o && apply(o)) changed(); }
+      return;
+    }
+    _h(d, from);
+    if(isHost && d && d.t === "P" && from.ok2 && !from.denied && !from.tsent){ from.tsent = 1; sendSnap(from); }
+  };
+
+  /* ---------- UI shell ---------- */
+  const row = document.createElement("div"); row.className = "row-ch"; row.id = "ch-tier";
+  row.innerHTML = '<div class="av-sb" style="font-size:18px">🏆</div><div><b style="font-size:15px">Tier Lists</b><br><span class="csub">Rank things together</span></div>';
+  ($$("ch-draw") || $$("ch-gal")).after(row); row.onclick = () => setChannel("tier");
+  const tab = document.createElement("button"); tab.type = "button"; tab.dataset.ch = "tier"; tab.textContent = "🏆 Tiers"; tab.onclick = () => setChannel("tier");
+  $$("chtabs").appendChild(tab);
+  const view = document.createElement("div"); view.id = "tier";
+  view.innerHTML = '<div id="ttools"><select id="tlsel" title="Which tier list"></select><button class="tbtn" id="tlnew" type="button">➕ New list</button><button class="tbtn" id="tledit" type="button">✏️ Edit tiers</button><button class="tbtn" id="tlreset" type="button">↺ Reset</button><button class="tbtn" id="tlpic" type="button">📷 Save picture</button><button class="tbtn red" id="tldel" type="button">🗑 Delete</button><span id="tlmsg"></span></div><div id="tlscroll"><div id="tlempty">No tier lists yet.<br>Tap <b>➕ New list</b> to make one, then add pictures and drag them into tiers.</div><div id="tlmain" style="display:none"><div id="tltitle"></div><div id="tlby"></div><div id="tlboard"></div><div class="tpool"><div class="tphd"><div>Unranked images <span id="tlcount"></span></div><button class="tbtn tp" id="tladd" type="button">➕ Add images</button></div><div class="tzone" data-t="" id="tlpool"></div></div></div></div>';
+  $$("box").after(view);
+  const fi = document.createElement("input"); fi.type = "file"; fi.accept = "image/*"; fi.multiple = true; fi.hidden = true; document.body.appendChild(fi);
+  const msg = t => { const m = $$("tlmsg"); m.textContent = t; clearTimeout(msg.t); msg.t = setTimeout(() => { m.textContent = ""; }, 4000); };
+  const canEdit = l => !!l && (isMod(null) || l.u === uid);
+
+  /* ---------- drawing the board ---------- */
+  let drag = null, dirty = false, raf = 0;
+  function schedule(){ if(raf) return; raf = requestAnimationFrame(() => { raf = 0; render(); }); }
+  function tile(it, l){
+    const d = document.createElement("div"); d.className = "ttile"; d.dataset.i = it.i; d.style.backgroundImage = 'url("' + it.im + '")'; d.title = "Added by " + (it.by || "someone");
+    if(isMod(null) || it.u === uid || l.u === uid){
+      const x = document.createElement("button"); x.type = "button"; x.className = "tx"; x.textContent = "✕"; x.title = "Remove this image";
+      x.onpointerdown = e => e.stopPropagation(); x.onclick = e => { e.stopPropagation(); sendOp({ k: "di", l: l.id, i: it.i }); };
+      d.appendChild(x);
+    }
+    return d;
+  }
+  function render(){
+    if(!document.body.classList.contains("in-tier")) return;
+    if(drag){ dirty = true; return; }
+    const sel = $$("tlsel"), ids = Object.keys(T.lists);
+    if(!T.lists[cur]) cur = ids[0] || "";
+    sel.replaceChildren(...ids.map(i => { const o = new Option((T.lists[i].n || "Tier list") + (T.lists[i].by ? " — " + T.lists[i].by : ""), i); return o; }));
+    sel.value = cur; sel.style.display = ids.length ? "" : "none";
+    const l = T.lists[cur];
+    $$("tlempty").style.display = l ? "none" : ""; $$("tlmain").style.display = l ? "" : "none";
+    const ed = canEdit(l);
+    ["tledit", "tlreset", "tldel"].forEach(b => { $$(b).style.display = l && ed ? "" : "none"; }); $$("tlpic").style.display = l ? "" : "none";
+    if(!l) return;
+    $$("tltitle").textContent = l.n; $$("tlby").textContent = "Made by " + (l.by || "someone") + " · drag pictures into a tier · everyone can add and rank";
+    const items = Object.values(l.items).sort((a, b) => a.o - b.o), board = $$("tlboard"); board.replaceChildren();
+    l.tiers.forEach(t => {
+      const r = document.createElement("div"); r.className = "trow";
+      const lab = document.createElement("div"); lab.className = "tlab"; lab.textContent = t.n; lab.style.background = t.c; lab.style.color = lum(t.c) > 150 ? "#111" : "#fff";
+      const z = document.createElement("div"); z.className = "tzone"; z.dataset.t = t.i;
+      items.filter(it => it.t === t.i).forEach(it => z.appendChild(tile(it, l)));
+      r.append(lab, z); board.appendChild(r);
+    });
+    const pool = $$("tlpool"); pool.replaceChildren(); const un = items.filter(it => !l.tiers.some(t => t.i === it.t));
+    un.forEach(it => pool.appendChild(tile(it, l)));
+    $$("tlcount").textContent = "· " + items.length + "/" + MAXI + " images";
+  }
+
+  /* ---------- dragging (mouse + touch) ---------- */
+  function zoneAt(x, y){ const e = document.elementFromPoint(x, y); return e && e.closest ? e.closest(".tzone") : null; }
+  function move(e){
+    drag.g.style.left = (e.clientX - drag.ox) + "px"; drag.g.style.top = (e.clientY - drag.oy) + "px";
+    view.querySelectorAll(".tzone.tover").forEach(z => z.classList.remove("tover"));
+    const z = zoneAt(e.clientX, e.clientY); if(z) z.classList.add("tover");
+    const sc = $$("tlscroll"), r = sc.getBoundingClientRect();
+    if(e.clientY < r.top + 60) sc.scrollTop -= 14; else if(e.clientY > r.bottom - 60) sc.scrollTop += 14;
+  }
+  function finish(e, cancel){
+    const d = drag; drag = null; d.g.remove(); d.el.classList.remove("tdrag");
+    view.querySelectorAll(".tzone.tover").forEach(z => z.classList.remove("tover"));
+    const l = T.lists[cur], z = cancel ? null : zoneAt(e.clientX, e.clientY);
+    if(l && z){
+      const sibs = [...z.querySelectorAll(".ttile")].filter(x => x.dataset.i !== d.id);
+      let idx = sibs.length;
+      for(let k = 0; k < sibs.length; k++){ const r = sibs[k].getBoundingClientRect(); if(e.clientY < r.top || (e.clientY <= r.bottom && e.clientX < r.left + r.width / 2)){ idx = k; break; } }
+      const ov = k => (l.items[sibs[k].dataset.i] || {}).o || 0;
+      const o = sibs.length === 0 ? Date.now() : idx === 0 ? ov(0) - 1000 : idx >= sibs.length ? ov(sibs.length - 1) + 1000 : (ov(idx - 1) + ov(idx)) / 2;
+      const it = l.items[d.id], t = z.dataset.t;
+      if(it && (it.t !== t || Math.abs(it.o - o) > 1e-9)) sendOp({ k: "mi", l: cur, i: d.id, t, o });
+    }
+    if(dirty){ dirty = false; schedule(); }
+  }
+  view.addEventListener("pointerdown", e => {
+    const el = e.target.closest(".ttile"); if(!el || e.target.closest(".tx") || drag) return;
+    if(e.pointerType === "mouse" && e.button !== 0) return;
+    const l = T.lists[cur]; if(!l || !l.items[el.dataset.i]) return;
+    e.preventDefault();
+    const r = el.getBoundingClientRect(), g = el.cloneNode(true);
+    g.className = "ttile tghost"; g.style.width = r.width + "px"; g.style.height = r.height + "px"; g.querySelectorAll(".tx").forEach(x => x.remove()); document.body.appendChild(g);
+    drag = { id: el.dataset.i, el, g, ox: e.clientX - r.left, oy: e.clientY - r.top, pid: e.pointerId };
+    el.classList.add("tdrag"); move(e);
+  });
+  window.addEventListener("pointermove", e => { if(drag && e.pointerId === drag.pid) move(e); });
+  window.addEventListener("pointerup", e => { if(drag && e.pointerId === drag.pid) finish(e, false); });
+  window.addEventListener("pointercancel", e => { if(drag) finish(e, true); });
+
+  /* ---------- adding pictures ---------- */
+  function shrink(f, cb){
+    const url = URL.createObjectURL(f), im = new Image();
+    im.onload = () => {
+      URL.revokeObjectURL(url);
+      const side = Math.min(im.width, im.height) || 1, sx = (im.width - side) / 2, sy = (im.height - side) / 2;
+      for(const [s, q] of [[88, 0.72], [72, 0.62], [56, 0.55]]){
+        const c = document.createElement("canvas"); c.width = c.height = s; const x = c.getContext("2d");
+        x.fillStyle = "#222"; x.fillRect(0, 0, s, s); x.drawImage(im, sx, sy, side, side, 0, 0, s, s);
+        const d = c.toDataURL("image/jpeg", q); if(okIm(d)){ cb(d); return; }
+      }
+      cb("");
+    };
+    im.onerror = () => { URL.revokeObjectURL(url); cb(""); };
+    im.src = url;
+  }
+  $$("tladd").onclick = () => { if(!T.lists[cur]) return; fi.click(); };
+  async function addFiles(list, tierId){
+    const fs = [...list].filter(f => f && f.type && f.type.startsWith("image/")).slice(0, 12);
+    const l = T.lists[cur]; if(!l){ msg("Make a tier list first (➕ New list)."); return; }
+    let n = 0;
+    for(const f of fs){
+      if(Object.keys(l.items).length >= MAXI){ msg("This list is full (" + MAXI + " images)."); break; }
+      if(f.size > 12 * 1024 * 1024){ msg("Skipped a picture over 12 MB."); continue; }
+      const d = await new Promise(res => shrink(f, res)); if(!d){ msg("Couldn't use one of those pictures."); continue; }
+      sendOp({ k: "ai", l: cur, i: rid("i"), im: d, t: tierId || "", o: Date.now() + Math.random() }); n++;
+      await new Promise(r => setTimeout(r, 140));
+    }
+    if(n) msg("Added " + n + (n === 1 ? " picture" : " pictures") + (tierId ? "." : " — drag them into a tier."));
+  }
+  window.__tierAdd = addFiles;
+  fi.onchange = () => { const fs = [...fi.files]; fi.value = ""; addFiles(fs, ""); };
+
+  /* ---------- dialogs ---------- */
+  const dlg = document.createElement("div"); dlg.id = "tldlg"; document.body.appendChild(dlg);
+  const closeDlg = () => dlg.classList.remove("open");
+  dlg.addEventListener("click", e => { if(e.target === dlg) closeDlg(); });
+  document.addEventListener("keydown", e => { if(e.key === "Escape") closeDlg(); });
+  function openDlg(html, mount){ dlg.innerHTML = '<div class="tdc">' + html + '</div>'; dlg.classList.add("open"); const c = dlg.firstChild; mount(c); return c; }
+
+  $$("tlsel").onchange = () => { cur = $$("tlsel").value; save("pb_tl_cur", cur); render(); };
+  $$("tlnew").onclick = () => openDlg('<h3>🏆 New tier list</h3><label>Title</label><input type="text" id="tdn" maxlength="40" placeholder="e.g. Best pizza toppings"><div class="trow2"><button class="tbtn" type="button" id="tdc">Cancel</button><button class="tbtn tp" type="button" id="tdok">Create</button></div>', c => {
+    const inp = c.querySelector("#tdn"); inp.focus();
+    const go = () => { const n = inp.value.trim(); if(!n){ inp.focus(); return; } closeDlg(); sendOp({ k: "nl", l: rid("l"), n, tiers: defTiers() }); };
+    c.querySelector("#tdc").onclick = closeDlg; c.querySelector("#tdok").onclick = go; inp.onkeydown = e => { if(e.key === "Enter") go(); };
+  });
+  $$("tldel").onclick = () => { const l = T.lists[cur]; if(l && confirm("Delete the tier list “" + l.n + "” for everyone?")) sendOp({ k: "dl", l: cur }); };
+  $$("tlreset").onclick = () => { const l = T.lists[cur]; if(l && confirm("Move every picture back to the unranked pile?")) sendOp({ k: "cl", l: cur }); };
+  $$("tledit").onclick = () => {
+    const l = T.lists[cur]; if(!l) return;
+    const rows = l.tiers.map(t => ({ i: t.i, n: t.n, c: t.c }));
+    openDlg('<h3>✏️ Edit tier list</h3><label>Title</label><input type="text" id="tdn" maxlength="40"><label>Tiers</label><div id="tdrows" style="display:flex;flex-direction:column;gap:6px"></div><button class="tbtn" type="button" id="tdadd" style="align-self:flex-start">➕ Add tier</button><div class="trow2"><button class="tbtn" type="button" id="tdc">Cancel</button><button class="tbtn tp" type="button" id="tdok">Save</button></div>', c => {
+      c.querySelector("#tdn").value = l.n; const box = c.querySelector("#tdrows");
+      const draw = () => {
+        box.replaceChildren();
+        rows.forEach((r, k) => {
+          const w = document.createElement("div"); w.className = "ted";
+          const col = document.createElement("input"); col.type = "color"; col.value = r.c; col.oninput = () => { r.c = col.value; };
+          const nm = document.createElement("input"); nm.type = "text"; nm.maxLength = 16; nm.value = r.n; nm.placeholder = "Tier name"; nm.oninput = () => { r.n = nm.value; };
+          const up = document.createElement("button"); up.type = "button"; up.className = "tbtn"; up.textContent = "↑"; up.disabled = k === 0; up.onclick = () => { [rows[k - 1], rows[k]] = [rows[k], rows[k - 1]]; draw(); };
+          const dn = document.createElement("button"); dn.type = "button"; dn.className = "tbtn"; dn.textContent = "↓"; dn.disabled = k === rows.length - 1; dn.onclick = () => { [rows[k + 1], rows[k]] = [rows[k], rows[k + 1]]; draw(); };
+          const x = document.createElement("button"); x.type = "button"; x.className = "tbtn red"; x.textContent = "✕"; x.disabled = rows.length <= 1; x.onclick = () => { rows.splice(k, 1); draw(); };
+          w.append(col, nm, up, dn, x); box.appendChild(w);
+        });
+        c.querySelector("#tdadd").style.display = rows.length >= MAXT ? "none" : "";
+      };
+      draw();
+      c.querySelector("#tdadd").onclick = () => { rows.push({ i: rid("t"), n: "New", c: "#9ec5ff" }); draw(); };
+      c.querySelector("#tdc").onclick = closeDlg;
+      c.querySelector("#tdok").onclick = () => { closeDlg(); sendOp({ k: "tn", l: cur, n: c.querySelector("#tdn").value, tiers: rows }); };
+    });
+  };
+
+  /* ---------- save as a picture ---------- */
+  $$("tlpic").onclick = async () => {
+    const l = T.lists[cur]; if(!l) return;
+    const W = 900, LAB = 130, S = 92, cols = Math.floor((W - LAB - 12) / S), TOP = 64;
+    const rows = l.tiers.map(t => { const its = Object.values(l.items).filter(x => x.t === t.i).sort((a, b) => a.o - b.o); return { t, its, h: Math.max(1, Math.ceil(its.length / cols)) * S + 8 }; });
+    const H = TOP + rows.reduce((a, r) => a + r.h + 4, 0) + 12;
+    const cv = document.createElement("canvas"); cv.width = W; cv.height = H; const cx = cv.getContext("2d");
+    cx.fillStyle = "#1a1a1a"; cx.fillRect(0, 0, W, H);
+    cx.fillStyle = "#fff"; cx.font = "bold 30px system-ui,sans-serif"; cx.textBaseline = "middle"; cx.textAlign = "left"; cx.fillText(l.n, 16, TOP / 2, W - 32);
+    const imgs = {};
+    await Promise.all(Object.values(l.items).map(it => new Promise(res => { const im = new Image(); im.onload = () => { imgs[it.i] = im; res(); }; im.onerror = res; im.src = it.im; })));
+    let y = TOP;
+    rows.forEach(r => {
+      cx.fillStyle = "#2b2b2b"; cx.fillRect(0, y, W, r.h);
+      cx.fillStyle = r.t.c; cx.fillRect(0, y, LAB, r.h);
+      cx.fillStyle = lum(r.t.c) > 150 ? "#111" : "#fff"; cx.font = "bold 28px system-ui,sans-serif"; cx.textAlign = "center"; cx.fillText(r.t.n, LAB / 2, y + r.h / 2, LAB - 14);
+      r.its.forEach((it, k) => { const im = imgs[it.i]; if(im) cx.drawImage(im, LAB + 6 + (k % cols) * S, y + 4 + Math.floor(k / cols) * S, S - 4, S - 4); });
+      y += r.h + 4;
+    });
+    cv.toBlob(b => {
+      if(!b) return; const a = document.createElement("a"); a.href = URL.createObjectURL(b);
+      a.download = (l.n.replace(/[^\w\- ]+/g, "").trim().slice(0, 40) || "tierlist") + ".png"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    });
+  };
+
+  /* ---------- hook into the tab switcher ---------- */
+  const _sc = setChannel;
+  setChannel = function(c){
+    _sc(c);
+    document.body.classList.toggle("in-tier", c === "tier");
+    $$("ch-tier").classList.toggle("active", c === "tier");
+    if(c === "tier") render();
+  };
+})();
+</script>
+<style id="drop-css">
+#dropHint{position:fixed;inset:10px;z-index:150;display:none;align-items:center;justify-content:center;border:3px dashed var(--accent,#0a84ff);border-radius:22px;background:rgba(0,0,0,.6);color:#fff;font-size:20px;font-weight:800;text-align:center;pointer-events:none;padding:20px;line-height:1.4}
+#dropHint.on{display:flex}
+#dropdlg{position:fixed;inset:0;z-index:160;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:16px}
+#dropdlg.open{display:flex}
+#dropdlg .dc{background:var(--side);color:var(--text);border:1px solid var(--line);border-radius:18px;width:min(420px,100%);padding:18px;display:flex;flex-direction:column;gap:12px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+#dropdlg h3{margin:0;font-size:17px}
+#dropdlg .dth{display:flex;gap:8px;flex-wrap:wrap}
+#dropdlg .dth img{max-width:150px;max-height:130px;border-radius:10px;object-fit:cover;background:var(--row)}
+#dropdlg .dr{display:flex;gap:8px;justify-content:flex-end}
+#dropdlg button{border:none;border-radius:999px;padding:9px 18px;font-size:14px;font-weight:700;cursor:pointer;background:var(--row);color:var(--text)}
+#dropdlg button.ok{background:var(--accent);color:var(--on-accent,#fff)}
+#droptoast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:170;background:rgba(20,20,20,.94);color:#fff;border-radius:14px;padding:11px 16px;font-size:14px;max-width:min(420px,90vw);text-align:center;display:none;box-shadow:0 8px 26px rgba(0,0,0,.45)}
+</style>
+<script id="drop-js">
+(function(){
+  /* drag a picture in from another tab / window / your desktop (or paste one) — no downloading needed */
+  const $$ = id => document.getElementById(id);
+  const hint = document.createElement("div"); hint.id = "dropHint"; document.body.appendChild(hint);
+  const toastEl = document.createElement("div"); toastEl.id = "droptoast"; document.body.appendChild(toastEl);
+  const dlg = document.createElement("div"); dlg.id = "dropdlg"; document.body.appendChild(dlg);
+  let tt = 0;
+  const toast = t => { toastEl.textContent = t; toastEl.style.display = "block"; clearTimeout(tt); tt = setTimeout(() => { toastEl.style.display = "none"; }, 5000); };
+  const inTier = () => document.body.classList.contains("in-tier");
+  const where = () => inTier() ? "the tier list" : curCh === "dm" ? (dmNm || "this chat") : tabLabel(curCh);
+  const wants = dt => { if(!dt) return false; const t = [...(dt.types || [])]; return t.includes("Files") || t.includes("text/uri-list"); };
+
+  /* what was dropped? (must be read right now, before the event ends) */
+  function grab(dt){
+    const files = [...(dt.files || [])].filter(f => f.type && f.type.startsWith("image/"));
+    let url = "", other = (dt.files || []).length > files.length;
+    if(!files.length){
+      url = (dt.getData("text/uri-list") || "").split(/\r?\n/).map(s => s.trim()).find(s => s && s[0] !== "#") || "";
+      if(!url){ const m = /<img[^>]+src=["']([^"']+)["']/i.exec(dt.getData("text/html") || ""); if(m) url = m[1]; }
+      if(url){ const t = document.createElement("textarea"); t.innerHTML = url; url = t.value; }
+    }
+    return { files, url, other };
+  }
+  async function urlToBlob(url){
+    if(/^data:image\//i.test(url)){ try { return await (await fetch(url)).blob(); } catch(e){ return null; } }
+    if(!/^https?:/i.test(url)) return null;
+    try { const r = await fetch(url, { mode: "cors", credentials: "omit" }); if(r.ok){ const b = await r.blob(); if(b.type.startsWith("image/")) return b; } } catch(e){}
+    try {                                                   // some sites allow pictures but not fetch()
+      return await new Promise((res, rej) => {
+        const im = new Image(); im.crossOrigin = "anonymous";
+        im.onload = () => { try { const c = document.createElement("canvas"); c.width = im.naturalWidth; c.height = im.naturalHeight; c.getContext("2d").drawImage(im, 0, 0); c.toBlob(b => b ? res(b) : rej(), "image/png"); } catch(e){ rej(e); } };
+        im.onerror = rej; im.src = url;
+      });
+    } catch(e){}
+    return null;
+  }
+
+  /* chat: show a quick preview, then send like a normal photo */
+  function closeDlg(){ dlg.querySelectorAll("img").forEach(i => URL.revokeObjectURL(i.src)); dlg.classList.remove("open"); dlg.replaceChildren(); }
+  function sendAll(blobs){
+    let i = 0;
+    (function next(){
+      if(i >= Math.min(blobs.length, 5)) return;
+      const f = blobs[i++];
+      if(f.size > 10 * 1024 * 1024){ sys("Image too big (10MB max)."); return next(); }
+      const r = new FileReader(); r.onload = ev => shrinkImage(ev.target.result, d => { postMsg(d, 1); setTimeout(next, 250); }); r.readAsDataURL(f);
+    })();
+  }
+  function confirmSend(blobs){
+    const list = blobs.slice(0, 5), box = document.createElement("div"); box.className = "dc";
+    const h = document.createElement("h3"); h.textContent = "Send " + (list.length === 1 ? "this picture" : list.length + " pictures") + " to " + where() + "?";
+    const th = document.createElement("div"); th.className = "dth";
+    list.forEach(b => { const im = document.createElement("img"); im.src = URL.createObjectURL(b); th.appendChild(im); });
+    const row = document.createElement("div"); row.className = "dr";
+    const no = document.createElement("button"); no.type = "button"; no.textContent = "Cancel"; no.onclick = closeDlg;
+    const ok = document.createElement("button"); ok.type = "button"; ok.className = "ok"; ok.textContent = "Send"; ok.onclick = () => { closeDlg(); sendAll(list); };
+    row.append(no, ok); box.append(h, th, row); dlg.replaceChildren(box); dlg.classList.add("open"); ok.focus();
+  }
+  dlg.addEventListener("click", e => { if(e.target === dlg) closeDlg(); });
+  document.addEventListener("keydown", e => { if(e.key === "Escape" && dlg.classList.contains("open")) closeDlg(); });
+
+  async function deliver(g, tierId){
+    let blobs = g.files;
+    if(!blobs.length){
+      if(!g.url){ toast(g.other ? "Only pictures can be dropped here." : "Drop a picture (not text)."); return; }
+      toast("Getting the picture…");
+      const b = await urlToBlob(g.url);
+      if(!b){ toast("That website doesn't let its pictures be copied. Right-click it → Copy image, then press Ctrl+V here."); return; }
+      toastEl.style.display = "none"; blobs = [b];
+    }
+    if(inTier()){ if(window.__tierAdd) window.__tierAdd(blobs, tierId || ""); return; }
+    if(curCh === "draw"){ toast("Pictures can't be dropped on the drawing board."); return; }
+    if(curCh === "shame" && !(window.__pbIsMod && window.__pbIsMod(null))){ toast("Only mods and admins can post in the Hall of Shame."); return; }
+    confirmSend(blobs);
+  }
+
+  let depth = 0;
+  window.addEventListener("dragenter", e => { if(!wants(e.dataTransfer)) return; depth++; hint.textContent = inTier() ? "Drop pictures to add them to the tier list\n(drop on a tier to put them straight in it)" : "Drop pictures to send in " + where(); hint.style.whiteSpace = "pre-line"; hint.classList.add("on"); });
+  window.addEventListener("dragover", e => { if(!wants(e.dataTransfer)) return; e.preventDefault(); try { e.dataTransfer.dropEffect = "copy"; } catch(x){} });
+  window.addEventListener("dragleave", e => { if(!hint.classList.contains("on")) return; depth = Math.max(0, depth - 1); if(!depth) hint.classList.remove("on"); });
+  window.addEventListener("drop", e => {
+    if(!wants(e.dataTransfer)) return;
+    e.preventDefault(); depth = 0; hint.classList.remove("on");
+    const g = grab(e.dataTransfer), z = document.elementFromPoint(e.clientX, e.clientY), zone = z && z.closest ? z.closest(".tzone") : null;
+    deliver(g, zone ? zone.dataset.t : "");
+  });
+  document.addEventListener("paste", e => {                  // copied picture (right-click → Copy image) + Ctrl/Cmd+V
+    const items = [...((e.clipboardData && e.clipboardData.items) || [])].filter(i => i.kind === "file" && i.type.startsWith("image/"));
+    if(!items.length) return;
+    e.preventDefault();
+    deliver({ files: items.map(i => i.getAsFile()).filter(Boolean), url: "", other: false }, "");
+  });
+})();
+</script>
 </body>
 </html>
