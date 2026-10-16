@@ -4,14 +4,16 @@
 <style id="boot-css">
 html.booting #gate,html.autoload #gate{visibility:hidden;animation:bootfail 0s 45s forwards}
 @keyframes bootfail{to{visibility:visible}}
-#autoload{display:none;position:fixed;inset:0;z-index:2147483000;align-items:center;justify-content:center;background:#0e0e10;opacity:1;transition:opacity .35s ease}
+#autoload{display:none;position:fixed;inset:0;z-index:2147483000;align-items:center;justify-content:center;background:#0e0e10;opacity:1;transition:opacity .18s ease}
 html.autoload #autoload{display:flex;animation:alfail 0s 45s forwards}
 html.autoload.al-out #autoload{opacity:0;pointer-events:none}
 @keyframes alfail{to{opacity:0;visibility:hidden;pointer-events:none}}
-#autoload .al-card{display:flex;flex-direction:column;align-items:center;gap:10px;min-width:230px;padding:28px 34px;border-radius:14px;background:#2a2a2d;border:1px solid #3d3d41;box-shadow:0 18px 50px rgba(0,0,0,.55);color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;text-align:center;animation:alpop .4s cubic-bezier(.22,1,.36,1)}
+#autoload .al-card{display:flex;flex-direction:column;align-items:center;gap:10px;min-width:230px;padding:28px 34px;border-radius:14px;background:#2a2a2d;border:1px solid #3d3d41;box-shadow:0 18px 50px rgba(0,0,0,.55);color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;text-align:center;animation:alpop .2s cubic-bezier(.22,1,.36,1)}
 #autoload .al-card b{font-size:18px;font-weight:700;letter-spacing:.2px}
 #autoload .al-card span{font-size:13px;color:#a0a0a8}
 #autoload .al-spin{width:38px;height:38px;border-radius:50%;border:4px solid rgba(255,255,255,.14);border-top-color:#2f7bf6;animation:alspin .8s linear infinite;margin-bottom:4px}
+#autoload .al-card #al-skip{margin-top:10px;padding:6px 10px;border:none;background:none;color:#8fb6ff;font:600 13px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;cursor:pointer;text-decoration:underline;text-underline-offset:3px;border-radius:8px}
+#autoload .al-card #al-skip:hover{color:#fff;background:rgba(255,255,255,.08)}
 @keyframes alspin{to{transform:rotate(360deg)}}
 @keyframes alpop{from{opacity:0;transform:scale(.92) translateY(10px)}to{opacity:1;transform:none}}
 </style>
@@ -280,6 +282,10 @@ if(L.getItem("pb_code")==="lospurebrochat"&&L.getItem("pb_pwh")&&(L.getItem("cha
   body:not(.in-gal) .msg[data-ch="gal"]{display:none}
   body.in-gal .msg:not([data-ch="gal"]){display:none}
   #gate #gver{position:absolute;left:0;right:0;bottom:12px;text-align:center;font-size:11px;font-weight:600;letter-spacing:.4px;color:var(--muted,#8e8e93);opacity:.7;pointer-events:none}
+  body:not(.in-polls) .msg[data-ch="polls"]{display:none}
+  body.in-polls #inp{pointer-events:none;opacity:.7}
+  body.in-polls #sp-btn,body.in-polls #emo-btn,body.in-polls #gif-btn{display:none !important}
+  body.in-polls .msg:not([data-ch="polls"]){display:none}
   body:not(.in-shame) .msg[data-ch="shame"]{display:none}
   body.in-shame .msg:not([data-ch="shame"]){display:none}
   body.in-gal #box{flex-direction:row;flex-wrap:wrap;align-content:flex-start;gap:16px}
@@ -503,10 +509,10 @@ if(L.getItem("pb_code")==="lospurebrochat"&&L.getItem("pb_pwh")&&(L.getItem("cha
   #gmod.open .gcard{animation:cardIn .26s cubic-bezier(.2,.9,.3,1.1)}
   #gmod.open.closing{animation:fadeOut .18s ease-in forwards}
   #gmod.open.closing .gcard{animation:cardOut .18s ease-in forwards}
-  #gate{transition:opacity .35s ease}
+  #gate{transition:opacity .18s ease}
   #gate.leaving{opacity:0;pointer-events:none}
-  #gate .card{animation:cardIn .5s cubic-bezier(.2,.9,.3,1.1)}
-  #gate.leaving .card{transform:scale(.96);transition:transform .35s ease}
+  #gate .card{animation:cardIn .25s cubic-bezier(.2,.9,.3,1.1)}
+  #gate.leaving .card{transform:scale(.96);transition:transform .18s ease}
   .msg.pop{animation:msgIn .26s cubic-bezier(.2,.9,.3,1.15)}
   .msg.gone{animation:msgOut .18s ease-in forwards;pointer-events:none}
   #box.swap{animation:boxIn .24s cubic-bezier(.2,.9,.3,1)}
@@ -629,7 +635,7 @@ if(L.getItem("pb_code")==="lospurebrochat"&&L.getItem("pb_pwh")&&(L.getItem("cha
 
 </head>
 <body data-theme="imessage">
-<div id="autoload" role="status" aria-live="polite"><div class="al-card"><div class="al-spin"></div><b>Auto loading…</b><span id="al-sub">Signing you in</span></div></div>
+<div id="autoload" role="status" aria-live="polite"><div class="al-card"><div class="al-spin"></div><b>Auto loading…</b><span id="al-sub">Signing you in</span><button id="al-skip" type="button">Go to login screen instead</button></div></div>
 
 <div id="gate">
   <div class="gside">
@@ -653,6 +659,7 @@ if(L.getItem("pb_code")==="lospurebrochat"&&L.getItem("pb_pwh")&&(L.getItem("cha
     <div class="row-ch active" id="ch-main"><div class="av-sb lp"></div><div><b style="font-size:15px">Los Purebreds</b><br><span id="chname" class="csub">iMessage Channel</span></div></div>
     <div class="row-ch" id="ch-shame"><div class="av-sb" style="font-size:18px">🚨</div><div><b style="font-size:15px">Hall of Shame</b><br><span class="csub">Mods &amp; admins post · admins delete</span></div></div>
     <div class="row-ch" id="ch-gal"><div class="av-sb" style="font-size:18px">🖼️</div><div><b style="font-size:15px">Image Gallery</b><br><span class="csub">Photos only</span></div></div>
+    <div class="row-ch" id="ch-polls"><div class="av-sb" style="font-size:18px">📊</div><div><b style="font-size:15px">Polls</b><br><span class="csub">Polls only</span></div></div>
     <div id="sbroster"></div>
     <div id="sbdm"></div>
   </div>
@@ -720,7 +727,7 @@ if(L.getItem("pb_code")==="lospurebrochat"&&L.getItem("pb_pwh")&&(L.getItem("cha
 </div></div>
 <button id="sb-arrow" class="arrow" title="Hide / show messages bar"></button>
 <div id="main">
-  <div id="hdrwrap"><div id="hdr"><button id="hdr-set" title="Settings">⚙️</button><span id="status">Not connected</span><div id="chtabs"><button type="button" data-ch="main" class="on">💬 Chat</button><button type="button" data-ch="gal">🖼️ Image Gallery</button><button type="button" data-ch="shame">🚨 Hall of Shame</button></div><button id="dmchip" type="button" title="Unread private messages"></button><div id="online" title="See who's online"></div></div>
+  <div id="hdrwrap"><div id="hdr"><button id="hdr-set" title="Settings">⚙️</button><span id="status">Not connected</span><div id="chtabs"><button type="button" data-ch="main" class="on">💬 Chat</button><button type="button" data-ch="gal">🖼️ Image Gallery</button><button type="button" data-ch="polls">📊 Polls</button><button type="button" data-ch="shame">🚨 Hall of Shame</button></div><button id="dmchip" type="button" title="Unread private messages"></button><div id="online" title="See who's online"></div></div>
     <div id="onpop"></div>
     <button id="hdr-arrow" class="arrow" title="Hide / show top bar"></button></div>
   <div id="dmbar"><span id="dmtitle"></span><button id="dmclose" type="button">← Chat</button><button id="dmmute" type="button" title="Mute notifications for this chat">🔕 Mute</button><button id="dmhide" type="button" title="Remove this chat from your list (it comes back if someone messages you)">Close chat</button><button id="dmedit" type="button" style="display:none" title="Rename the group or change its icon">✏️ Edit group</button><button id="dmadd" type="button" style="display:none" title="Add people to this group (online or offline)">＋ Add people</button><button id="dmleave" type="button" class="danger" style="display:none">Leave group</button></div>
@@ -1056,7 +1063,7 @@ window.revealChat = function(){
   if(!window.__entering) return;
   window.__entering = false; clearTimeout(window.__enterT);
   $("gerr").textContent = ""; $("g-go").disabled = false;
-  $("gate").classList.add("leaving"); setTimeout(() => { $("gate").style.display = "none"; }, 380);
+  $("gate").classList.add("leaving"); setTimeout(() => { $("gate").style.display = "none"; }, 200);
 };
 ["g-code", "g-name"].forEach(id => $(id).addEventListener("keydown", e => { if(e.key === "Enter") $("g-go").click(); }));
 $("g-theme").addEventListener("change", e => setTheme(e.target.value));   // preview the theme on the join screen
@@ -1395,6 +1402,11 @@ function handle(d, from){
     const changed = [];
     (Array.isArray(d.e) ? d.e : []).slice(0, 200).forEach(e => {
       const o = cleanEntry(e); if(!o) return;
+      if(isHost && o.eh && o.eh.length){
+        const cur0 = logs.find(l => l.i === o.i), n0 = cur0 && cur0.eh ? cur0.eh.length : 0;
+        if(o.eh.length < n0) o.eh = cur0.eh.slice();
+        else if(o.eh.length > n0){ const h = o.eh[o.eh.length - 1]; if(from.uid) h.c = from.uid; if(from.userName) h.u = from.userName.slice(0, 12); }   // the host knows who really sent it
+      }
       if(isHost && o.rx){ const r = vetRx(o, from); if(r) o.rx = r; else delete o.rx; }
       if(o.to){
         if(isHost){ if(!from.uid || (from.uid !== o.c && from.uid !== o.to)) return; }   // sender must be a participant
@@ -1506,11 +1518,14 @@ function cleanEntry(e){
     if(!okGid(e.g) || !o.c) return null;
     o.g = e.g; o.ch = "grp";
   } else if(e.ch === "gal" && o.img) o.ch = "gal";   // gallery only accepts images
+  else if(e.ch === "polls"){ if(!o.poll) return null; o.ch = "polls"; }   // the Polls tab only ever holds polls
   else if(e.ch === "shame" && !o.aud) o.ch = "shame";   // hall of shame: text or photos
   if(e.edited) o.edited = true;
+  if(Array.isArray(e.eh) && !(o.img || o.aud || o.fl || o.poll)) o.eh = e.eh.slice(0, 10).filter(h => h && typeof h.o === "string").map(h => ({ o: h.o.slice(0, 1999), u: String(h.u || "").slice(0, 12), c: okUid(h.c) ? h.c : "", t: +h.t || 0 }));
   if(e.sp && (o.img || !(o.aud || o.fl || o.poll))) o.sp = 1;     // spoiler: blurred until clicked
   if(e.r && typeof e.r === "object" && validId(e.r.i)){      // reply: id + name + short preview of the original
     o.r = { i: e.r.i, u: String(e.r.u || "").slice(0, 12), t: String(e.r.t || "").slice(0, 80), m: e.r.m ? 1 : 0 };
+    if(e.r.fw) o.r.fw = String(e.r.fw).slice(0, 20);
   }
   const rx = cleanRx(e.rx); if(rx) o.rx = rx;
   return o;
@@ -1529,6 +1544,10 @@ function vetRx(o, from){   // host: a person may only change their own reactions
   if(cur && cur.poll && cur.poll.end && Date.now() > cur.poll.end + 5000) return null;   // poll is closed
   Object.keys(o.rx).forEach(k => {
     const same = cur && cur.rx && cur.rx[k] && (cur.rx[k].v || 0) >= (o.rx[k].v || 0);
+    if(k === from.uid && cur && cur.poll && cur.ch === "polls" && cur.rx && cur.rx[k]){           // poll votes are final: keep what they already voted, only allow adding (multi-answer polls)
+      const VTS = ["🔴","🔵","⚫","⚪","🔶","🔷","🔸","🔹"], had = (cur.rx[k].e || []).filter(e => VTS.includes(e));
+      if(had.length){ const ne = cur.poll.m ? [...new Set([...had, ...(o.rx[k].e || [])])] : had.slice(); out[k] = { e: ne, v: Math.max(o.rx[k].v || 0, cur.rx[k].v || 0) }; return; }
+    }
     if(k === from.uid || same) out[k] = o.rx[k];
   });
   return Object.keys(out).length ? out : null;
@@ -1754,7 +1773,7 @@ function sendTyping(stop){
   if(c.to) m.to = c.to; if(c.g) m.g = c.g; if(stop) m.s = 1;
   routeTyping(m, null);
 }
-const tabLabel = k => { const b = document.querySelector('#chtabs button[data-ch="' + k + '"]'); return b ? b.textContent.trim() : (k === "shame" ? "Hall of Shame" : "Chat"); };
+const tabLabel = k => { const b = document.querySelector('#chtabs button[data-ch="' + k + '"]'); return b ? b.textContent.trim() : (k === "shame" ? "Hall of Shame" : k === "polls" ? "Polls" : "Chat"); };
 function renderTyping(){
   const now = Date.now();
   Object.keys(typers).forEach(k => { if(typers[k] < now) delete typers[k]; });
@@ -1798,14 +1817,16 @@ function setChannel(c){
   curCh = c;
   document.body.classList.toggle("in-gal", c === "gal");
   document.body.classList.toggle("in-shame", c === "shame");
+  document.body.classList.toggle("in-polls", c === "polls");
   document.body.classList.toggle("in-dm", c === "dm");
   $("ch-main").classList.toggle("active", c === "main");
   $("ch-gal").classList.toggle("active", c === "gal");
   $("ch-shame").classList.toggle("active", c === "shame");
+  $("ch-polls").classList.toggle("active", c === "polls");
   document.querySelectorAll("#chtabs button").forEach(b => b.classList.toggle("on", b.dataset.ch === c));
   $("emo-panel").style.display = "none"; hideSug();
-  clearReply();
-  if(c !== "dm") $("inp").placeholder = PH[document.body.dataset.theme] || "Message";
+  if(replyTo && replyTo.fw) showReply(); else clearReply();      // a pending forward follows you to the other channel
+  if(c !== "dm") $("inp").placeholder = c === "polls" ? "Polls only: tap + then Create poll" : (PH[document.body.dataset.theme] || "Message");
   $("sb").classList.remove("open");
   updateDmBar(); renderDMList();
   regroup();
@@ -1815,6 +1836,7 @@ function setChannel(c){
 $("ch-main").onclick = () => setChannel("main");
 $("ch-gal").onclick = () => setChannel("gal");
 $("ch-shame").onclick = () => setChannel("shame");
+$("ch-polls").onclick = () => setChannel("polls");
 document.querySelectorAll("#chtabs button").forEach(b => b.onclick = () => setChannel(b.dataset.ch));
 
 /* ---------- spoilers: the sender can blur their message / photo until someone clicks it ---------- */
@@ -1835,6 +1857,7 @@ function wrapSpoiler(wrap){
   }, true);
 }
 function postMsg(b, img, aud, extra){
+  if(curCh === "polls" && !(extra && extra.poll)){ sys("The Polls tab is for polls only. Tap + then “Create poll”."); return; }
   const now = Date.now(), o = { i: newId(), u: usr, c: uid, b, ts: now, v: now, d: myDevice };
   if(img){ o.img = 1; if(curCh === "gal") o.ch = "gal"; } else if(aud){ o.aud = 1; } else o.f = myFont;
   if(extra){
@@ -1845,6 +1868,7 @@ function postMsg(b, img, aud, extra){
     if(extra.poll){ o.poll = cleanPoll(extra.poll); if(!o.poll) return; delete o.f; }
   }
   if(mySpoiler && !aud && !(extra && (extra.fl || extra.poll))) o.sp = 1;
+  if(curCh === "polls") o.ch = "polls";
   if(curCh === "shame" && !aud) o.ch = "shame";
   if(curCh === "dm" && dmWith){
     if(dmWith[0] === "g"){ o.g = dmWith.slice(2); o.ch = "grp"; } else { o.to = dmWith.slice(2); o.tn = dmNm; o.ch = "dm"; }
@@ -1859,6 +1883,7 @@ document.getElementById("spchk").addEventListener("change", e => setSpoiler(e.ta
 function updateSendBtn(){ document.querySelector(".pill").classList.toggle("has-text", !!$("inp").value.trim()); }
 function sendText(){
   if(curCh === "gal") return;   // gallery is photos only
+  if(curCh === "polls"){ if($("inp").value.trim()) sys("The Polls tab is for polls only. Tap + then “Create poll”."); return; }
   const el = $("inp"), v = replaceCodes(el.value.trim());
   if(!v) return;
   hideSug(); postMsg(v, 0); el.value = ""; lastTyped = 0; updateSendBtn();
@@ -1892,17 +1917,28 @@ function showReply(){
   const bar = $("replybar"), t = bar.querySelector(".rb-t");
   if(!replyTo){ bar.classList.remove("on"); t.textContent = ""; return; }
   t.textContent = "";
-  const n = document.createElement("b"); n.textContent = "Replying to " + replyTo.u;
+  const n = document.createElement("b"); n.textContent = replyTo.fw ? "↪ Forwarding from " + replyTo.fw + " · " + replyTo.u : "Replying to " + replyTo.u;
   t.append(n, document.createTextNode(replyTo.t));
   bar.classList.add("on");
 }
 function startReply(id){
   if(curCh === "gal") return;
+  if(replyTo && replyTo.fw) replyTo = null;
   const l = logs.find(x => x.i === id);
   if(!l || l.del) return;
   replyTo = { i: l.i, u: l.u, t: l.sp ? "🙈 Spoiler" : l.img ? "📷 Photo" : l.fl ? "📎 " + l.fn : l.poll ? "📊 " + l.poll.q.slice(0, 60) : l.aud ? "🎤 Voice message" : String(l.b).slice(0, 80), m: (l.img || l.aud || l.fl || l.poll) ? 1 : 0 };
   showReply();
   const w = $(id); if(w) w.classList.remove("tap");
+  $("inp").focus();
+}
+function startForward(id){
+  const l = logs.find(x => x.i === id);
+  if(!l || l.del || l.to || l.g) return;          // never forward private DMs or group chat messages
+  const from = l.ch === "gal" ? "Image Gallery" : l.ch === "shame" ? "Hall of Shame" : l.ch === "polls" ? "Polls" : "Chat";
+  replyTo = { i: l.i, u: l.u, t: l.sp ? "🙈 Spoiler" : l.img ? "📷 Photo" : l.fl ? "📎 " + l.fn : l.poll ? "📊 " + l.poll.q.slice(0, 60) : l.aud ? "🎤 Voice message" : String(l.b).slice(0, 80), m: (l.img || l.aud || l.fl || l.poll) ? 1 : 0, fw: from };
+  showReply();
+  const w = $(id); if(w) w.classList.remove("tap");
+  sys("Now open the channel you want and send a message: it will quote the message you're forwarding. (Press Esc or ✕ to cancel.)");
   $("inp").focus();
 }
 function clearReply(){ replyTo = null; showReply(); }
@@ -1959,13 +1995,17 @@ $("emo-q").addEventListener("keydown", e => { if(e.key === "Escape" && window.__
 function jumpTo(id){
   const e = $(id);
   if(!e || e.dataset.ch === "gal"){ sys("That message is no longer here."); return; }
+  if(!visibleHere(e)){                                   // original lives in another channel: go there first
+    if(e.dataset.dm){ sys("That message is in a private chat."); return; }
+    setChannel(e.dataset.ch || "main");
+  }
   e.scrollIntoView({ block: "center", behavior: "smooth" });
   e.classList.remove("flash"); void e.offsetWidth; e.classList.add("flash");
   setTimeout(() => e.classList.remove("flash"), 1400);
 }
 function buildQuote(r){
   const q = document.createElement("div"); q.className = "quote"; q.title = "Jump to original message";
-  const n = document.createElement("b"); n.textContent = r.u || "Message";
+  const n = document.createElement("b"); n.textContent = (r.fw ? "↪ Forwarded from " + r.fw + " · " : "") + (r.u || "Message");
   const t = document.createElement("span"); t.textContent = r.t || "Message";
   q.append(n, t);
   q.onclick = ev => { ev.stopPropagation(); jumpTo(r.i); };
@@ -1991,6 +2031,7 @@ const isMine = m => (m.to || m.g) ? m.c === uid : ((m.c && m.c === uid) || m.u =
 const ICON_EDIT = '<svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
 const ICON_DEL = '<svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
 const ICON_REACT = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 14a4.2 4.2 0 0 0 7 0"/><path d="M9 9.5h.01M15 9.5h.01"/></svg>';
+const ICON_FWD = '<svg viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9h-9a7 7 0 0 0-7 7v3"/></svg>';
 const ICON_REPLY = '<svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h9a7 7 0 0 1 7 7v3"/></svg>';
 function iconBtn(cls, title, svg, fn){
   const b = document.createElement("button"); b.type = "button"; b.className = cls; b.title = title; b.setAttribute("aria-label", title);
@@ -2013,6 +2054,8 @@ function startEdit(id){
     const nv = replaceCodes(inp.value.trim());
     inp.remove(); bub.style.display = ""; w.classList.remove("editing");
     if(ok && nv && nv !== l.b){
+      (l.eh = l.eh || []).push({ o: l.b, u: usr, c: uid, t: Date.now() });   // keep what it said before + who changed it (admins can read this)
+      if(l.eh.length > 10) l.eh.splice(1, 1);                               // always keep the very first original
       l.b = nv; l.edited = true; l.v = Date.now();
       persist(); applyToDom(l); sendEntry(l);
     }
@@ -2081,6 +2124,7 @@ function renderRow(m, animate){
 
   const act = document.createElement("div"); act.className = "act";
   if(m.ch !== "gal") act.appendChild(iconBtn("rep", "Reply", ICON_REPLY, () => startReply(m.i)));
+  if(!(m.to || m.g)) act.appendChild(iconBtn("fwd", "Forward: reply to this from another channel", ICON_FWD, () => startForward(m.i)));   // private DMs / group chats can't be forwarded
   if(!m.poll) act.appendChild(iconBtn("rct", "React with any emoji", ICON_REACT, () => startReact(m.i)));
   if(!m.img && !m.aud && !m.fl && !m.poll && (!(m.to || m.g) || mine)) act.appendChild(iconBtn("edt", "Edit message", ICON_EDIT, () => startEdit(m.i)));
   if(mine && !(m.ch === "shame" && !(window.__pbAdm && window.__pbAdm()))) act.appendChild(iconBtn("del", "Delete message", ICON_DEL, () => deleteMsg(m.i)));   // hall of shame: only admins delete
@@ -2107,7 +2151,7 @@ function renderRow(m, animate){
 }
 function visibleHere(el){                       // is this row part of the chat the person is looking at right now?
   const d = el.dataset;
-  return curCh === "dm" ? ((d.ch === "dm" || d.ch === "grp") && d.dm === dmWith) : curCh === "gal" ? d.ch === "gal" : curCh === "shame" ? d.ch === "shame" : !d.ch;
+  return curCh === "dm" ? ((d.ch === "dm" || d.ch === "grp") && d.dm === dmWith) : curCh === "gal" ? d.ch === "gal" : curCh === "polls" ? d.ch === "polls" : curCh === "shame" ? d.ch === "shame" : !d.ch;
 }
 
 function applyToDom(l){
@@ -2145,7 +2189,7 @@ function regroup(){
   const vis = [...box.children].filter(e => {
     if(!e.classList.contains("msg")) return false;
     if(e.classList.contains("sys")) return true;
-    const show = curCh === "dm" ? ((e.dataset.ch === "dm" || e.dataset.ch === "grp") && e.dataset.dm === dmWith) : curCh === "gal" ? e.dataset.ch === "gal" : curCh === "shame" ? e.dataset.ch === "shame" : !e.dataset.ch;
+    const show = curCh === "dm" ? ((e.dataset.ch === "dm" || e.dataset.ch === "grp") && e.dataset.dm === dmWith) : curCh === "gal" ? e.dataset.ch === "gal" : curCh === "polls" ? e.dataset.ch === "polls" : curCh === "shame" ? e.dataset.ch === "shame" : !e.dataset.ch;
     setC(e, "off", !show);
     return show;
   });
@@ -3236,7 +3280,7 @@ label.plus.open{transform:rotate(45deg)}
     const total = voters.size, ended = !!p.end && Date.now() >= p.end;
     const q = document.createElement("div"); q.className = "pq"; q.textContent = "📊 " + p.q;
     const sub = document.createElement("div"); sub.className = "ps";
-    sub.textContent = (p.m ? "Select one or more" : "Select one") + (p.end ? " · " + endText(p.end) : "");
+    sub.textContent = (p.m ? "Select one or more" : "Select one") + (l.ch === "polls" ? " · Votes are final" : "") + (p.end ? " · " + endText(p.end) : "");
     const opts = p.o.map((t, k) => {
       const b = document.createElement("button"); b.type = "button"; b.className = "popt" + (by[k].includes(uid) ? " mine" : ""); b.disabled = ended;
       const pct = total ? Math.round(by[k].length / total * 100) : 0;
@@ -3253,7 +3297,7 @@ label.plus.open{transform:rotate(45deg)}
       }
       return g;
     });
-    const ft = document.createElement("div"); ft.className = "pf"; ft.textContent = total + (total === 1 ? " vote" : " votes") + (ended ? " · Poll closed" : "");
+    const ft = document.createElement("div"); ft.className = "pf"; ft.textContent = total + (total === 1 ? " vote" : " votes") + (ended ? " · Poll closed" : voters.has(uid) && l.ch === "polls" ? " · ✓ You voted, it can't be changed" : "");
     card.replaceChildren(q, sub, ...opts, ft);
   };
   function vote(id, k){
@@ -3261,7 +3305,12 @@ label.plus.open{transform:rotate(45deg)}
     if(l.poll.end && Date.now() >= l.poll.end){ sys("This poll has ended."); return; }
     if(window.__pbMuted && window.__pbMuted(usr)){ sys("You're muted by an admin."); return; }
     const mine = (l.rx && l.rx[uid]) || { e: [], v: 0 }, set = new Set(mine.e.filter(e => VT.includes(e))), tok = VT[k];
-    if(set.has(tok)) set.delete(tok); else { if(!l.poll.m) set.clear(); set.add(tok); }
+    if(l.ch === "polls"){                               // Polls tab only: votes are final
+      if(set.has(tok)){ sys("Votes are final: you can't take back a vote you've already made."); return; }
+      if(set.size && !l.poll.m){ sys("You already voted on this poll. You can't change your vote anymore."); return; }
+      if(!confirm("Vote for “" + l.poll.o[k] + "”?\nYou won't be able to change or remove your vote afterwards.")) return;
+      set.add(tok);
+    } else if(set.has(tok)) set.delete(tok); else { if(!l.poll.m) set.clear(); set.add(tok); }
     l.rx = l.rx || {}; l.rx[uid] = { e: [...set], v: Math.max(Date.now(), (mine.v || 0) + 1) };
     persist(); renderRx(l); sendEntry(l);
   }
@@ -3377,8 +3426,8 @@ label.plus.open{transform:rotate(45deg)}
     if($$("fi").disabled) return;
     if($$("attach") && $$("attach").classList.contains("on")){ window.__pbDirect = true; plus.click(); return; }   // panel open: close it
     if(menu.classList.contains("open")){ closeMenu(); return; }
-    const gal = curCh === "gal";
-    menu.querySelectorAll('[data-a="file"],[data-a="poll"],[data-a="gif"]').forEach(b => b.style.display = gal ? "none" : "");
+    const gal = curCh === "gal", pl = curCh === "polls";
+    menu.querySelectorAll('[data-a]').forEach(b => { const a = b.dataset.a; b.style.display = pl ? (a === "poll" ? "" : "none") : (gal && a !== "photo") ? "none" : ""; });
     const r = plus.getBoundingClientRect();
     menu.style.left = Math.max(8, Math.min(r.left, innerWidth - 230)) + "px"; menu.style.bottom = (innerHeight - r.top + 10) + "px";
     menu.classList.add("open"); plus.classList.add("open");
@@ -3648,7 +3697,7 @@ label.plus.open{transform:rotate(45deg)}
   const amMod=()=>!adminMode&&reg.mods.includes(low(usr));        // approved by an admin as a moderator
   window.__pbMuted=(n,conn)=>{ if(conn?conn.admin:adminMode) return false; return reg.muteAll||reg.mutes.includes(low(n)); };   // lets the drawing board respect admin mutes
 
-  const clT=l=>l.ch==="gal"?reg.clg:l.ch==="shame"?reg.cls:reg.clr, clMin=()=>Math.min(reg.clr,reg.clg,reg.cls);
+  const clT=l=>l.ch==="gal"?reg.clg:l.ch==="shame"?reg.cls:l.ch==="polls"?0:reg.clr, clMin=()=>Math.min(reg.clr,reg.clg,reg.cls);
   function commit(){ reg.v=Math.max(Date.now(),reg.v+1); saveReg(); if(isHost) send(areg()); refreshUI(); }
   function applyClear(){
     // main chat and image gallery are cleared separately; private chats are never touched
@@ -5977,9 +6026,9 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
   const slotRoom = k => k ? ROOM_ID + "-r" + (k + 1) : ROOM_ID;
   const hubUrl = k => BASE + "?room=" + encodeURIComponent(slotRoom(k));
   const MAX_FRAME = 900000;
-  const GHOST_MS = 6000;       // connected, but the host never said a word
-  const HELLO_MS = 9000;       // relay accepted nothing at all
-  const PROBE_MS = 2500;       // looking for a live room next door
+  const GHOST_MS = 4000;       // connected, but the host never said a word
+  const HELLO_MS = 6000;       // relay accepted nothing at all
+  const PROBE_MS = 1500;       // looking for a live room next door
   const DEAD_MS = 180000;      // remember "this room's host is a ghost" for a while
   const QUIET_MS = 40000;      // client: ping the host after this much silence
   const PONG_MS = 20000;       // client: host must answer a ping within this long
@@ -6357,7 +6406,7 @@ body.tab-dragging,body.tab-dragging *{user-select:none !important;-webkit-user-s
 <script>
 /* =============== ↕ drag to reorder your tabs (header tabs + sidebar rooms) — saved on this device only =============== */
 (function(){
-  const KEYS=["main","shame","gal","draw"], LS="pb_taborder", DEF=["main","shame","gal","draw"];
+  const KEYS=["main","shame","gal","polls","draw"], LS="pb_taborder", DEF=["main","shame","gal","polls","draw"];
   let order=[];
   try{ const a=JSON.parse(localStorage.getItem(LS)||"[]"); if(Array.isArray(a)) order=a.filter(k=>KEYS.includes(k)); }catch(e){}
   const full=()=>{ const o=order.filter((k,i,a)=>KEYS.includes(k)&&a.indexOf(k)===i); DEF.forEach(k=>{ if(!o.includes(k)) o.push(k); }); return o; };
@@ -7713,7 +7762,18 @@ body[data-theme="ios6"] #replybar *,body[data-theme="ios6"] #dmbar *{color:inher
 </style>
 <style id="anim-css">
 /* ---- speed: don't lay out / paint chat messages that are scrolled out of view ---- */
-body:not(.in-gal) #box > .msg{content-visibility:auto;contain-intrinsic-size:auto 56px}
+/* NOTE: content-visibility:auto implies paint containment, which clipped the floating reply/react/delete/kick/mute/ban pill (it sits outside the message box). Removed. */
+body:not(.in-gal) #box > .msg{content-visibility:visible}
+/* narrow screens / admin pill (up to 6 buttons): float it above the bubble so it never runs off the edge */
+@media(max-width:600px){
+  body:not(.in-gal) .act{top:-16px;bottom:auto;transform:none}
+  body:not(.in-gal) .me .act{right:6px;left:auto}
+  body:not(.in-gal) .peer .act{left:6px;right:auto}
+  body:not(.in-gal) .act::before{display:none}
+  body:not(.in-gal) .act{flex-wrap:nowrap}
+}
+/* image messages: keep the pill on top of the photo, not behind it */
+.bwrap > .act{z-index:5}
 /* ---- motion: transform + opacity only, so it stays on the GPU ---- */
 @keyframes dpop{0%{transform:scale(.86)}60%{transform:scale(1.08)}100%{transform:scale(1)}}
 @keyframes slideUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
@@ -7748,6 +7808,90 @@ body.sb-switch #main,body.sb-switch #sb{animation:slideUp .3s cubic-bezier(.2,.9
   apply(on);
 })();
 </script>
+<style id="sb-bottom-fix">
+/* ===== Bottom bar clean-up: no clipped lines / cut-off friend names ===== */
+@media(min-width:601px){
+  body.sb-bottom #sb{height:auto;min-height:84px;max-height:96px;overflow:visible;align-items:stretch;padding:0}
+  body.sb-bottom.hide-sb #sb{min-height:0;max-height:0;height:0;overflow:hidden}
+  /* scroller: padding gives hover/scale room so nothing is sliced; hidden scrollbar, smooth snap */
+  body.sb-bottom #sb > div:first-child{gap:6px;padding:8px 10px;align-items:center;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+  body.sb-bottom #sb > div:first-child::-webkit-scrollbar{display:none}
+  body.sb-bottom .row-ch:hover,body.sb-bottom .prow:hover{transform:none !important}
+  /* channel buttons */
+  body.sb-bottom .row-ch{position:relative;flex:0 0 auto;gap:8px;margin:0;padding:6px 14px 10px 10px;border:none !important;border-radius:12px;min-width:0}
+  body.sb-bottom .row-ch > div:last-child{min-width:0;line-height:1.25}
+  body.sb-bottom .row-ch b{font-size:14px !important;white-space:nowrap}
+  body.sb-bottom .row-ch .csub{display:block;max-width:150px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  body.sb-bottom .row-ch br{display:none}
+  body.sb-bottom .av-sb{width:34px;height:34px;font-size:16px !important}
+  /* active marker is an inset pill instead of a border, so it can't get cut or curve oddly */
+  body.sb-bottom .row-ch.active::after{content:"";position:absolute;left:14px;right:14px;bottom:3px;height:3px;border-radius:3px;background:var(--accent)}
+  /* online + DM lists */
+  body.sb-bottom #sbroster,body.sb-bottom #sbdm{align-self:center;height:60px;margin:0 0 0 4px;padding:0 0 0 10px;gap:6px;border-left:1px solid var(--line);overflow:visible}
+  body.sb-bottom #sbroster .sbh,body.sb-bottom #sbdm .sbh{flex:0 0 auto;padding:0 4px;font-size:10px;line-height:1.2;white-space:nowrap}
+  body.sb-bottom #sbroster .prow,body.sb-bottom #sbdm .prow{flex:0 0 auto;min-width:0;max-width:210px;padding:5px 10px 5px 6px;gap:8px;background:var(--row);border-radius:999px;line-height:1.25}
+  body.sb-bottom #sbroster .pnm,body.sb-bottom #sbdm .pnm{flex:0 1 auto;min-width:0;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  body.sb-bottom #sbdm .pnm div{max-width:140px;font-weight:600}
+  body.sb-bottom #sbdm .plast{max-width:140px;font-size:10px}
+  body.sb-bottom #sbroster .pdev{font-size:10px}
+  body.sb-bottom #sbdm .prow .xbtn{opacity:.6;flex:0 0 auto}
+  /* Options / Settings column */
+  body.sb-bottom .stg-sb{flex:0 0 auto;max-width:46%;display:flex;flex-direction:row;flex-wrap:wrap;align-content:center;align-items:center;gap:0 12px;padding:4px 14px;border-top:none;border-left:1px solid var(--line);overflow:visible;position:relative}
+  body.sb-bottom .stg-sb > *{flex:0 0 auto;line-height:1.5;margin:0;white-space:nowrap}
+  body.sb-bottom .stg-btn,body.sb-bottom .goback{font-size:12px;padding:2px 0}
+  body.sb-bottom #youare{flex:1 0 100%;margin:0;max-width:240px;overflow:hidden;text-overflow:ellipsis;font-size:11px}
+  /* the opened Settings box floats above the bar instead of being squeezed inside it */
+  body.sb-bottom .stg-box{position:fixed;right:10px;bottom:98px;width:min(320px,calc(100vw - 20px));max-height:calc(100dvh - 140px);overflow-y:auto;z-index:70;box-shadow:0 8px 30px rgba(0,0,0,.5);margin:0}
+}
+@media(max-width:600px){
+  /* phone bottom sheet: let long names wrap-free but never clip */
+  body.sb-bottom #sb{overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,0px)}
+  body.sb-bottom #sbdm .pnm div,body.sb-bottom #sbdm .plast,#sbroster .pnm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}
+</style>
+<style id="edit-hist-css">
+body.pb-admin .edited{cursor:pointer;text-decoration:underline dotted;text-underline-offset:2px}
+#ehist{display:none;position:fixed;inset:0;z-index:2147480000;background:rgba(0,0,0,.55);align-items:center;justify-content:center;padding:16px}
+#ehist.open{display:flex}
+#ehist .ecard{background:var(--side,#1c1c1e);color:var(--text,#fff);border:1px solid var(--line,#444);border-radius:16px;width:min(460px,100%);max-height:80vh;display:flex;flex-direction:column;box-shadow:0 16px 50px rgba(0,0,0,.55)}
+#ehist .ehd{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line,#444);font-weight:700}
+#ehist .ehd button{border:none;background:var(--row,#333);color:inherit;width:28px;height:28px;border-radius:50%;cursor:pointer}
+#ehist .ebd{padding:12px 16px 16px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+#ehist .eit{background:var(--row,#2a2a2c);border-radius:12px;padding:10px 12px}
+#ehist .eit small{display:block;color:var(--muted,#999);font-size:11px;margin-bottom:4px}
+#ehist .eit div{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px}
+#ehist .eit.cur{border:1px solid var(--accent,#0a84ff)}
+#ehist .enone{color:var(--muted,#999);font-size:13px}
+</style>
+<div id="ehist"><div class="ecard"><div class="ehd"><span>✏️ Edit history (admin)</span><button type="button" id="ehx" aria-label="Close">✕</button></div><div class="ebd" id="ehbody"></div></div></div>
+<script id="edit-hist-js">
+(function(){
+  const $h = id => document.getElementById(id), pop = $h("ehist"), body = $h("ehbody");
+  const isAdm = () => { try { return !!(window.__pbAdm && window.__pbAdm()); } catch(e){ return false; } };
+  setInterval(() => document.body.classList.toggle("pb-admin", isAdm()), 800);
+  const close = () => pop.classList.remove("open");
+  $h("ehx").onclick = close; pop.addEventListener("click", e => { if(e.target === pop) close(); });
+  document.addEventListener("keydown", e => { if(e.key === "Escape") close(); });
+  const when = t => t ? new Date(t).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
+  function item(label, text, cur){
+    const d = document.createElement("div"); d.className = "eit" + (cur ? " cur" : "");
+    const s = document.createElement("small"); s.textContent = label; const t = document.createElement("div"); t.textContent = text;
+    d.append(s, t); body.appendChild(d);
+  }
+  $h("box").addEventListener("click", ev => {
+    const tag = ev.target.closest && ev.target.closest(".edited"); if(!tag || !isAdm()) return;
+    const w = tag.closest(".msg"), l = w && logs.find(x => x.i === w.id); if(!l) return;
+    ev.stopPropagation(); body.replaceChildren();
+    const h = Array.isArray(l.eh) ? l.eh : [];
+    if(!h.length){ const n = document.createElement("div"); n.className = "enone"; n.textContent = "No history was recorded for this message (it was edited before tracking was added). Current text:"; body.appendChild(n); item("Now · by " + l.u, l.b, true); }
+    else {
+      item("Original · written by " + l.u + (h[0].t ? " · first changed " + when(h[0].t) : ""), h[0].o, false);
+      h.forEach((e, i) => item("Edit " + (i + 1) + " by " + (e.u || "unknown") + (e.t ? " · " + when(e.t) : ""), i + 1 < h.length ? h[i + 1].o : l.b, i + 1 === h.length));
+    }
+    pop.classList.add("open");
+  }, true);
+})();
+</script>
 <script id="logout-autojoin">
 (function(){
   /* ---- Settings: Log out button ---- */
@@ -7765,7 +7909,7 @@ body.sb-switch #main,body.sb-switch #sb{animation:slideUp .3s cubic-bezier(.2,.9
   /* ---- auto join: you've already entered the room code and made an account on this device ---- */
   window.addEventListener("load", () => setTimeout(() => {
     try {
-      if(window.__entering) return;
+      if(window.__entering || window.__autoCancel) return;
       const g = document.getElementById("gate");
       if(!g || g.style.display === "none") return;
       const hasAccount = load("pb_code", "") === ROOM_CODE && !!load("pb_pwh", "") && load("chat_usr", "User") !== "User";
@@ -7774,7 +7918,7 @@ body.sb-switch #main,body.sb-switch #sb{animation:slideUp .3s cubic-bezier(.2,.9
       window.__autoJoined = true;
       document.getElementById("g-go").click();
     } catch(e){}
-  }, 400));
+  }, 0));
 })();
 </script>
 <style id="smooth-ux">
@@ -7833,8 +7977,15 @@ html{-webkit-tap-highlight-color:transparent}
   function finish(){
     if(done) return; done = true; clearInterval(iv);
     d.classList.add("al-out");
-    setTimeout(() => d.classList.remove("autoload", "al-out"), 380);
+    setTimeout(() => d.classList.remove("autoload", "al-out"), 200);
   }
+  const skip = document.getElementById("al-skip");
+  if(skip) skip.onclick = () => {                 // stay out: cancel the auto sign-in and show the normal login screen
+    window.__autoCancel = true;
+    if(window.__entering && window.__leave) window.__leave("");
+    g.style.display = "flex"; g.classList.remove("leaving");
+    finish();
+  };
   const iv = setInterval(() => {
     const open = g.style.display === "none";
     if(window.__entering || window.__autoJoined) saw = true;
@@ -7842,7 +7993,7 @@ html{-webkit-tap-highlight-color:transparent}
     if(saw && !window.__entering) return finish();               // join failed: show the sign-in screen with its error
     const waited = Date.now() - t0;
     if((!saw && waited > 6000) || waited > 45000) finish();      // auto join never started / took too long
-  }, 200);
+  }, 80);
 })();
 </script>
 <style id="fsel-css">
