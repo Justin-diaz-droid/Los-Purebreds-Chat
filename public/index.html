@@ -1364,7 +1364,6 @@ function addConn(c){
     c.send({ t: "S", i: newId(), s: logs.filter(l => !isHost || (!l.to && !l.g)).map(l => [l.i, l.v || 0, rxv(l)]) });   // host: public history only; private/group ids are added once the joiner identifies itself
     c.send({ t: "B", i: newId(), c: uid, bc: myBc, bi: myBi, v: bstyle[uid] ? bstyle[uid].v : 0 });
     setStatus("Online — " + conns.length + " connected");
-    sys(isHost ? "A friend joined." : "Connected to the room.");
     queueRegroup();
   });
   c.on("data", d => { try { handle(d, c); } catch(err){ console.error("handle failed", err, d); } });
@@ -1373,7 +1372,6 @@ function addConn(c){
     conns = conns.filter(x => x !== c);
     if(isHost) pushRoster(); else renderOnline([me()]);
     setStatus(isHost ? "Online (hosting)" : "Online — reconnecting…");
-    if(isHost) sys("A friend left.");
     queueRegroup();
     // lost the connection to the room (host left, kicked, network drop) -> straight back to the join screen
     if(!isHost && window.__leave) window.__leave("Disconnected from the room. Rejoin to continue.");
@@ -8161,6 +8159,11 @@ body.in-tier #box,body.in-tier #typing,body.in-tier #replybar,body.in-tier #tray
 .tzone.tover{outline:3px dashed var(--accent);outline-offset:-3px;background:color-mix(in srgb,var(--accent) 14%,transparent)}
 .ttile{position:relative;width:84px;height:84px;border-radius:6px;background:#222 center/cover no-repeat;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;flex:none}
 .ttile.tdrag{opacity:.3}
+.ttile.tremote{opacity:.25;outline:2px dashed var(--accent);outline-offset:-2px}
+#tlmain{position:relative}
+#tlghosts{position:absolute;inset:0;pointer-events:none;overflow:visible;z-index:20}
+.tlg{position:absolute;width:84px;height:84px;border-radius:6px;background:#222 center/cover no-repeat;transform:translate(-50%,-50%) scale(1.08);opacity:.92;box-shadow:0 8px 24px rgba(0,0,0,.5);transition:left .09s linear,top .09s linear;border:2px solid var(--gc,#fff)}
+.tlg span{position:absolute;left:50%;top:100%;transform:translateX(-50%);margin-top:3px;font-size:11px;font-weight:700;background:rgba(0,0,0,.78);color:#fff;padding:1px 8px;border-radius:999px;white-space:nowrap}
 .tghost{position:fixed !important;z-index:200;pointer-events:none;opacity:.93;box-shadow:0 8px 24px rgba(0,0,0,.5);transform:scale(1.08);margin:0}
 .ttile .tx{position:absolute;top:2px;right:2px;width:20px;height:20px;border:none;border-radius:50%;background:rgba(0,0,0,.7);color:#fff;font-size:11px;line-height:1;cursor:pointer;padding:0;display:none}
 .ttile:hover .tx{display:block}
@@ -8185,7 +8188,7 @@ body.in-tier #box,body.in-tier #typing,body.in-tier #replybar,body.in-tier #tray
 <script id="tier-js">
 (function(){
   const $$ = id => document.getElementById(id);
-  const MAXL = 6, MAXI = 60, MAXT = 10;
+  const MAXL = 6, MAXI = 300, MAXT = 10;      /* MAXI = most pictures per tier list (was 60) */
   const DEF = [["S","#ff7f7f"],["A","#ffbf7f"],["B","#ffdf7f"],["C","#ffff7f"],["D","#bfff7f"],["F","#7fff7f"]];
   const okId = s => typeof s === "string" && /^[A-Za-z0-9_-]{1,40}$/.test(s) && s !== "__proto__";
   const okHex = c => typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c);
@@ -8198,6 +8201,16 @@ body.in-tier #box,body.in-tier #typing,body.in-tier #replybar,body.in-tier #tray
   let T = { lists: {} }, cur = load("pb_tl_cur", "");
   try { const s = JSON.parse(load("pb_tier", "")); if(s && typeof s.lists === "object") T = s; } catch(e){}
   let persistT = 0;
+  const dbP = new Promise(res => { try { const r = indexedDB.open("purebred-board", 1); r.onupgradeneeded = () => r.result.createObjectStore("kv"); r.onsuccess = () => res(r.result); r.onerror = () => res(null); } catch(e){ res(null); } });
+  async function idbPut(str){
+    const db = await dbP;
+    if(!db){ save("pb_tier", str.length < 2000000 ? str : ""); return; }
+    try { db.transaction("kv", "readwrite").objectStore("kv").put(str, "tierlists"); try { localStorage.removeItem("pb_tier"); } catch(e){} } catch(e){}
+  }
+  dbP.then(db => { if(!db) return; try {
+    const q = db.transaction("kv").objectStore("kv").get("tierlists");
+    q.onsuccess = () => { try { const s = JSON.parse(q.result || ""); if(s && typeof s.lists === "object" && !Object.keys(T.lists).length){ T = s; if(!T.lists[cur]) cur = Object.keys(T.lists)[0] || ""; schedule(); } } catch(e){} };
+  } catch(e){} });
   const cleanTiers = a => {
     if(!Array.isArray(a)) return null; const seen = new Set(), out = [];
     for(const t of a.slice(0, MAXT)){ if(!t || !okId(t.i) || seen.has(t.i)) continue; seen.add(t.i); out.push({ i: t.i, n: String(t.n == null ? "" : t.n).slice(0, 16), c: okHex(t.c) ? t.c : "#cccccc" }); }
@@ -8238,10 +8251,11 @@ body.in-tier #box,body.in-tier #typing,body.in-tier #replybar,body.in-tier #tray
     if(o.k === "ai"){
       if(!l.items[o.i] && Object.keys(l.items).length >= MAXI) return false;
       const ok = l.tiers.some(t => t.i === o.t);
-      l.items[o.i] = { i: o.i, im: o.im, by: o.by, u: o.u, t: ok ? o.t : "", o: o.o }; return true;
+      l.items[o.i] = { i: o.i, im: o.im, by: o.by, u: o.u, t: ok ? o.t : "", o: o.o }; if(l.known) l.known.add(o.i); return true;
     }
+    if(o.k === "di" && !l.items[o.i] && l.known && l.known.has(o.i)){ l.known.delete(o.i); return true; }
     const it = l.items[o.i]; if(!it) return false;
-    if(o.k === "di"){ delete l.items[o.i]; return true; }
+    if(o.k === "di"){ delete l.items[o.i]; if(l.known) l.known.delete(o.i); return true; }
     if(o.k === "mi"){ it.t = l.tiers.some(t => t.i === o.t) ? o.t : ""; it.o = o.o; return true; }
     return false;
   }
@@ -8258,7 +8272,7 @@ body.in-tier #box,body.in-tier #typing,body.in-tier #replybar,body.in-tier #tray
   }
   window.__pbTierClear = () => { if(!isHost) return; T.lists = {}; cur = ""; changed(); broadcast({ k: "ca" }); };
   function changed(){
-    clearTimeout(persistT); persistT = setTimeout(() => { save("pb_tier", JSON.stringify(T)); save("pb_tl_cur", cur); }, 800);
+    clearTimeout(persistT); persistT = setTimeout(() => { idbPut(JSON.stringify(T, (k, v) => k === "known" ? undefined : v)); save("pb_tl_cur", cur); }, 800);
     schedule();
   }
 
@@ -8268,14 +8282,30 @@ body.in-tier #box,body.in-tier #typing,body.in-tier #replybar,body.in-tier #tray
     const H = window.heavy || (f => f());
     const lists = Object.values(T.lists).map(l => ({ id: l.id, n: l.n, by: l.by, u: l.u, tiers: l.tiers, ids: Object.keys(l.items) }));
     H(() => { try { if(conn.open) conn.send({ t: "TL", i: newId(), k: "snap", lists }); } catch(e){} });
-    Object.values(T.lists).forEach(l => {
-      const its = Object.values(l.items);
-      for(let a = 0; a < its.length; a += 8){
-        const ops = its.slice(a, a + 8).map(it => ({ k: "ai", l: l.id, i: it.i, im: it.im, t: it.t, o: it.o, u: it.u, by: it.by }));
-        H(() => { try { if(conn.open) conn.send({ t: "TL", i: newId(), k: "batch", ops }); } catch(e){} });
-      }
-    });
+    /* pictures are NOT pushed on join any more (hundreds of them clogged the room for new people) - each person asks for the ones it is missing, see "want" */
   }
+  function serveWant(d, from){                   // host: send back the pictures somebody asked for, a few at a time
+    const now = Date.now(); if(now - (from.twAt || 0) < 120) return; from.twAt = now;
+    const l = okId(d.l) ? T.lists[d.l] : null; if(!l || !Array.isArray(d.ids)) return;
+    const its = d.ids.slice(0, 24).filter(okId).map(i => l.items[i]).filter(Boolean);
+    for(let a = 0; a < its.length; a += 6){
+      const ops = its.slice(a, a + 6).map(it => ({ k: "ai", l: l.id, i: it.i, im: it.im, t: it.t, o: it.o, u: it.u, by: it.by }));
+      setTimeout(() => { try { if(from.open) from.send({ t: "TL", i: newId(), k: "batch", ops }); } catch(e){} }, (a / 6) * 60);
+    }
+  }
+  const asked = new Map();                       // picture id -> when I last asked for it
+  let askT = 0;
+  function askMissing(){
+    clearTimeout(askT); askT = 0;
+    if(isHost || !document.body.classList.contains("in-tier")) return;
+    const l = T.lists[cur]; if(!l || !l.known) return;
+    const now = Date.now(), need = [];
+    l.known.forEach(i => { if(!l.items[i] && now - (asked.get(i) || 0) > 6000 && need.length < 24) need.push(i); });
+    if(!need.length) return;
+    need.forEach(i => asked.set(i, now));
+    try { send({ t: "TL", i: newId(), k: "want", l: l.id, ids: need }); } catch(e){}
+  }
+  const missingCount = l => { let n = 0; if(l && l.known) l.known.forEach(i => { if(!l.items[i]) n++; }); return n; }
   function applySnap(d){
     if(!Array.isArray(d.lists)) return;
     const keep = new Set();
@@ -8286,6 +8316,7 @@ body.in-tier #box,body.in-tier #typing,body.in-tier #replybar,body.in-tier #tray
       l.n = title(m.n); l.by = String(m.by || "").slice(0, 12); l.u = okId(m.u) ? m.u : ""; l.tiers = tiers;
       const ids = new Set((Array.isArray(m.ids) ? m.ids : []).filter(okId).slice(0, MAXI));
       Object.keys(l.items).forEach(i => { if(!ids.has(i)) delete l.items[i]; });
+      l.known = ids;
     });
     Object.keys(T.lists).forEach(i => { if(!keep.has(i)) delete T.lists[i]; });
     if(!T.lists[cur]) cur = Object.keys(T.lists)[0] || "";
@@ -8305,9 +8336,37 @@ body.in-tier #box,body.in-tier #typing,body.in-tier #replybar,body.in-tier #tray
     if(apply(o)) changed();                                          // show it right away; the host's copy settles any clash
     try { send(Object.assign({ t: "TL", i: newId() }, d)); } catch(e){}
   }
+  /* live "someone is dragging" messages: never stored, only relayed */
+  const cl = (v, a, b) => Math.min(b, Math.max(a, +v || 0));
+  function cleanG(d){
+    if(!d || !okId(d.l) || !okId(d.i)) return null;
+    if(d.off) return { k: "g", l: d.l, i: d.i, off: 1 };
+    return { k: "g", l: d.l, i: d.i, z: typeof d.z === "string" ? d.z.slice(0, 40) : "", zz: d.zz ? 1 : 0, fx: cl(d.fx, -0.2, 1.2), fy: cl(d.fy, -50, 5000) };
+  }
+  function sendG(d){
+    const o = cleanG(d); if(!o) return;
+    if(isHost){ const m = Object.assign({ t: "TL", i: newId(), f: uid, n: usr }, o); conns.forEach(c => { if(c.open && c.uid) try { c.send(m); } catch(e){} }); }
+    else { try { send(Object.assign({ t: "TL", i: newId() }, o)); } catch(e){} }
+  }
+  function hostG(d, from){
+    const now = Date.now(); if(now - (from.tgAt || 0) < 45 && !d.off) return; from.tgAt = now;
+    const name = String(from.userName || "").slice(0, 12);
+    if(window.__pbMuted && window.__pbMuted(name, from)) return;
+    const o = cleanG(d); if(!o) return;
+    const m = Object.assign({ t: "TL", i: newId(), f: from.uid, n: name }, o);
+    conns.forEach(c => { if(c !== from && c.open && c.uid) try { c.send(m); } catch(e){} });
+    showRemote(m);                                                   // the host sees it too
+  }
+
   const _h = handle;
   handle = function(d, from){
     if(d && typeof d === "object" && d.t === "TL"){
+      if(d.k === "want"){ if(isHost && from.ok2 && !from.denied && from.uid) serveWant(d, from); return; }
+      if(d.k === "g"){
+        if(isHost){ if(!from.ok2 || from.denied || !from.uid) return; hostG(d, from); }
+        else showRemote(d);
+        return;
+      }
       if(isHost){ if(!from.ok2 || from.denied || !from.uid) return; hostOp(d, from); }
       else if(d.k === "ca"){ T.lists = {}; cur = ""; changed(); }              // an admin cleared every tier list
       else if(d.k === "snap"){ applySnap(d); changed(); }
@@ -8326,7 +8385,7 @@ body.in-tier #box,body.in-tier #typing,body.in-tier #replybar,body.in-tier #tray
   const tab = document.createElement("button"); tab.type = "button"; tab.dataset.ch = "tier"; tab.textContent = "🏆 Tiers"; tab.onclick = () => setChannel("tier");
   $$("chtabs").appendChild(tab);
   const view = document.createElement("div"); view.id = "tier";
-  view.innerHTML = '<div id="ttools"><select id="tlsel" title="Which tier list"></select><button class="tbtn" id="tlnew" type="button">➕ New list</button><button class="tbtn" id="tledit" type="button">✏️ Edit tiers</button><button class="tbtn" id="tlreset" type="button">↺ Reset</button><button class="tbtn" id="tlpic" type="button">📷 Save picture</button><button class="tbtn red" id="tldel" type="button">🗑 Delete</button><span id="tlmsg"></span></div><div id="tlscroll"><div id="tlempty">No tier lists yet.<br>Tap <b>➕ New list</b> to make one, then add pictures and drag them into tiers.</div><div id="tlmain" style="display:none"><div id="tltitle"></div><div id="tlby"></div><div id="tlboard"></div><div class="tpool"><div class="tphd"><div>Unranked images <span id="tlcount"></span></div><button class="tbtn tp" id="tladd" type="button">➕ Add images</button></div><div class="tzone" data-t="" id="tlpool"></div></div></div></div>';
+  view.innerHTML = '<div id="ttools"><select id="tlsel" title="Which tier list"></select><button class="tbtn" id="tlnew" type="button">➕ New list</button><button class="tbtn" id="tledit" type="button">✏️ Edit tiers</button><button class="tbtn" id="tlreset" type="button">↺ Reset</button><button class="tbtn" id="tlpic" type="button">📷 Save picture</button><button class="tbtn red" id="tldel" type="button">🗑 Delete</button><span id="tlmsg"></span></div><div id="tlscroll"><div id="tlempty">No tier lists yet.<br>Tap <b>➕ New list</b> to make one, then add pictures and drag them into tiers.</div><div id="tlmain" style="display:none"><div id="tlghosts"></div><div id="tltitle"></div><div id="tlby"></div><div id="tlboard"></div><div class="tpool"><div class="tphd"><div>Unranked images <span id="tlcount"></span></div><button class="tbtn tp" id="tladd" type="button">➕ Add images</button></div><div class="tzone" data-t="" id="tlpool"></div></div></div></div>';
   $$("box").after(view);
   const fi = document.createElement("input"); fi.type = "file"; fi.accept = "image/*"; fi.multiple = true; fi.hidden = true; document.body.appendChild(fi);
   const msg = t => { const m = $$("tlmsg"); m.textContent = t; clearTimeout(msg.t); msg.t = setTimeout(() => { m.textContent = ""; }, 4000); };
@@ -8335,7 +8394,14 @@ body.in-tier #box,body.in-tier #typing,body.in-tier #replybar,body.in-tier #tray
   /* ---------- drawing the board ---------- */
   let drag = null, dirty = false, raf = 0;
   function schedule(){ if(raf) return; raf = requestAnimationFrame(() => { raf = 0; render(); }); }
+  const tcache = new Map();                      // item id -> tile element (re-used so big lists don't flicker)
+  const remote = new Map();                      // user id -> { n, l, i, z, zz, fx, fy, t, el }
   function tile(it, l){
+    const own = isMod(null) || it.u === uid || l.u === uid, hit = tcache.get(it.i);
+    if(hit && hit.im === it.im && hit.own === own){ hit.seen = 1; return hit.el; }
+    const d = tileNew(it, l); tcache.set(it.i, { el: d, im: it.im, own, seen: 1 }); return d;
+  }
+  function tileNew(it, l){
     const d = document.createElement("div"); d.className = "ttile"; d.dataset.i = it.i; d.style.backgroundImage = 'url("' + it.im + '")'; d.title = "Added by " + (it.by || "someone");
     if(isMod(null) || it.u === uid || l.u === uid){
       const x = document.createElement("button"); x.type = "button"; x.className = "tx"; x.textContent = "✕"; x.title = "Remove this image";
@@ -8346,9 +8412,9 @@ body.in-tier #box,body.in-tier #typing,body.in-tier #replybar,body.in-tier #tray
   }
   function render(){
     if(!document.body.classList.contains("in-tier")) return;
-    if(drag){ dirty = true; return; }
     const sel = $$("tlsel"), ids = Object.keys(T.lists);
     if(!T.lists[cur]) cur = ids[0] || "";
+    tcache.forEach(v => { v.seen = 0; });
     sel.replaceChildren(...ids.map(i => { const o = new Option((T.lists[i].n || "Tier list") + (T.lists[i].by ? " — " + T.lists[i].by : ""), i); return o; }));
     sel.value = cur; sel.style.display = ids.length ? "" : "none";
     const l = T.lists[cur];
@@ -8367,7 +8433,59 @@ body.in-tier #box,body.in-tier #typing,body.in-tier #replybar,body.in-tier #tray
     });
     const pool = $$("tlpool"); pool.replaceChildren(); const un = items.filter(it => !l.tiers.some(t => t.i === it.t));
     un.forEach(it => pool.appendChild(tile(it, l)));
-    $$("tlcount").textContent = "· " + items.length + "/" + MAXI + " images";
+    const miss = missingCount(l);
+    $$("tlcount").textContent = "· " + items.length + "/" + MAXI + " images" + (miss ? " · loading " + miss + " more…" : "");
+    if(miss && !askT) askT = setTimeout(askMissing, 150);
+    tcache.forEach((v, k) => { if(!v.seen && !(drag && drag.id === k)) tcache.delete(k); });
+    if(drag && !l.items[drag.id]){ drag.g.remove(); drag = null; }   // someone deleted the picture I was holding
+    updateRemote();
+  }
+
+  /* ---------- seeing other people drag, live ---------- */
+  function showRemote(d){
+    if(!d || !okId(d.f) || d.f === uid) return;
+    let r = remote.get(d.f);
+    if(d.off){ if(r){ if(r.el) r.el.remove(); remote.delete(d.f); updateRemote(); } return; }
+    if(!r){ r = { n: String(d.n || "Someone").slice(0, 12), el: null }; remote.set(d.f, r); }
+    r.l = d.l; r.i = d.i; r.z = d.z; r.zz = d.zz; r.fx = d.fx; r.fy = d.fy; r.t = Date.now();
+    if(d.n) r.n = String(d.n).slice(0, 12);
+    if(document.body.classList.contains("in-tier")) updateRemote();
+  }
+  function updateRemote(){
+    const wrap = $$("tlghosts"), main = $$("tlmain"), l = T.lists[cur];
+    if(!wrap || !main || !l) { if(wrap) wrap.replaceChildren(); return; }
+    const mr = main.getBoundingClientRect(), mine = new Set();
+    tcache.forEach(v => v.el.classList.remove("tremote"));
+    let names = [];
+    remote.forEach((r, f) => {
+      if(r.l !== cur || !l.items[r.i]){ if(r.el){ r.el.remove(); r.el = null; } return; }
+      names.push(r.n); mine.add(f);
+      const c = tcache.get(r.i); if(c) c.el.classList.add("tremote");
+      let x, y;
+      const z = r.zz ? [...view.querySelectorAll(".tzone")].find(e => e.dataset.t === r.z) : null;
+      if(z){ const zr = z.getBoundingClientRect(); x = zr.left - mr.left + r.fx * zr.width; y = zr.top - mr.top + r.fy; }
+      else { x = r.fx * mr.width; y = r.fy; }
+      if(!r.el){ r.el = document.createElement("div"); r.el.className = "tlg"; r.el.style.setProperty("--gc", colorFor(r.n)); r.el.innerHTML = "<span></span>"; wrap.appendChild(r.el); }
+      r.el.style.backgroundImage = 'url("' + l.items[r.i].im + '")'; r.el.firstChild.textContent = r.n;
+      r.el.style.left = x + "px"; r.el.style.top = y + "px";
+    });
+    [...wrap.children].forEach(e => { if(![...remote.values()].some(r => r.el === e)) e.remove(); });
+    if(names.length) $$("tlmsg").textContent = "✋ " + names.join(", ") + (names.length > 1 ? " are" : " is") + " dragging…";
+    else if($$("tlmsg").textContent.startsWith("✋")) $$("tlmsg").textContent = "";
+  }
+  setInterval(() => {                               // drop ghosts of people whose connection went quiet
+    const now = Date.now(); let ch = false;
+    remote.forEach((r, f) => { if(now - r.t > 3000){ if(r.el) r.el.remove(); remote.delete(f); ch = true; } });
+    if(ch) updateRemote();
+  }, 800);
+  window.addEventListener("resize", () => { if(remote.size) updateRemote(); });
+
+  let gAt = 0;
+  function sendDragPos(e){
+    const now = Date.now(); if(now - gAt < 60) return; gAt = now;
+    const z = zoneAt(e.clientX, e.clientY), main = $$("tlmain"), mr = main.getBoundingClientRect();
+    if(z){ const zr = z.getBoundingClientRect(); sendG({ l: cur, i: drag.id, z: z.dataset.t, zz: 1, fx: (e.clientX - zr.left) / zr.width, fy: e.clientY - zr.top }); }
+    else sendG({ l: cur, i: drag.id, z: "", zz: 0, fx: (e.clientX - mr.left) / mr.width, fy: e.clientY - mr.top });
   }
 
   /* ---------- dragging (mouse + touch) ---------- */
@@ -8378,9 +8496,11 @@ body.in-tier #box,body.in-tier #typing,body.in-tier #replybar,body.in-tier #tray
     const z = zoneAt(e.clientX, e.clientY); if(z) z.classList.add("tover");
     const sc = $$("tlscroll"), r = sc.getBoundingClientRect();
     if(e.clientY < r.top + 60) sc.scrollTop -= 14; else if(e.clientY > r.bottom - 60) sc.scrollTop += 14;
+    sendDragPos(e);
   }
   function finish(e, cancel){
     const d = drag; drag = null; d.g.remove(); d.el.classList.remove("tdrag");
+    sendG({ l: cur, i: d.id, off: 1 });
     view.querySelectorAll(".tzone.tover").forEach(z => z.classList.remove("tover"));
     const l = T.lists[cur], z = cancel ? null : zoneAt(e.clientX, e.clientY);
     if(l && z){
@@ -8392,7 +8512,7 @@ body.in-tier #box,body.in-tier #typing,body.in-tier #replybar,body.in-tier #tray
       const it = l.items[d.id], t = z.dataset.t;
       if(it && (it.t !== t || Math.abs(it.o - o) > 1e-9)) sendOp({ k: "mi", l: cur, i: d.id, t, o });
     }
-    if(dirty){ dirty = false; schedule(); }
+    schedule();
   }
   view.addEventListener("pointerdown", e => {
     const el = e.target.closest(".ttile"); if(!el || e.target.closest(".tx") || drag) return;
@@ -8402,7 +8522,7 @@ body.in-tier #box,body.in-tier #typing,body.in-tier #replybar,body.in-tier #tray
     const r = el.getBoundingClientRect(), g = el.cloneNode(true);
     g.className = "ttile tghost"; g.style.width = r.width + "px"; g.style.height = r.height + "px"; g.querySelectorAll(".tx").forEach(x => x.remove()); document.body.appendChild(g);
     drag = { id: el.dataset.i, el, g, ox: e.clientX - r.left, oy: e.clientY - r.top, pid: e.pointerId };
-    el.classList.add("tdrag"); move(e);
+    el.classList.add("tdrag"); gAt = 0; move(e);
   });
   window.addEventListener("pointermove", e => { if(drag && e.pointerId === drag.pid) move(e); });
   window.addEventListener("pointerup", e => { if(drag && e.pointerId === drag.pid) finish(e, false); });
@@ -8426,7 +8546,7 @@ body.in-tier #box,body.in-tier #typing,body.in-tier #replybar,body.in-tier #tray
   }
   $$("tladd").onclick = () => { if(!T.lists[cur]) return; fi.click(); };
   async function addFiles(list, tierId){
-    const fs = [...list].filter(f => f && f.type && f.type.startsWith("image/")).slice(0, 12);
+    const fs = [...list].filter(f => f && f.type && f.type.startsWith("image/")).slice(0, 60);
     const l = T.lists[cur]; if(!l){ msg("Make a tier list first (➕ New list)."); return; }
     let n = 0;
     for(const f of fs){
@@ -8434,7 +8554,7 @@ body.in-tier #box,body.in-tier #typing,body.in-tier #replybar,body.in-tier #tray
       if(f.size > 12 * 1024 * 1024){ msg("Skipped a picture over 12 MB."); continue; }
       const d = await new Promise(res => shrink(f, res)); if(!d){ msg("Couldn't use one of those pictures."); continue; }
       sendOp({ k: "ai", l: cur, i: rid("i"), im: d, t: tierId || "", o: Date.now() + Math.random() }); n++;
-      await new Promise(r => setTimeout(r, 140));
+      await new Promise(r => setTimeout(r, 120));
     }
     if(n) msg("Added " + n + (n === 1 ? " picture" : " pictures") + (tierId ? "." : " — drag them into a tier."));
   }
