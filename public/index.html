@@ -3781,7 +3781,7 @@ label.plus.open{transform:rotate(45deg)}
       if(!c0) return reply(true,"");
       if(!f.admin && hVer(String(m.a||""))!==c0) return reply(false,"Wrong password.");
       if(from!==l && own(reg.acc,l)) return reply(false,"That name already has a password.");
-      delete reg.acc[from]; reg.acc[l]=c0; commit(); return reply(true,"");
+      delete reg.acc[from]; reg.acc[l]=c0; moveName(from,l); commit(); return reply(true,"");
     }
     const cur=own(reg.acc,l);
     if(cur && !f.admin && hVer(String(m.a||""))!==cur) return reply(false,"Wrong current password.");
@@ -3833,7 +3833,7 @@ label.plus.open{transform:rotate(45deg)}
       if(reg.bans.includes(low(nn))) return say("That name is banned.");
       const old=m.u===uid?usr:(conn(m.u)||{}).userName; if(!old) return say("They're not connected.");
       const ol=low(old), nl=low(nn), c0=own(reg.acc,ol);
-      if(c0&&ol!==nl){ if(own(reg.acc,nl)) return say("That name already belongs to someone with a password."); delete reg.acc[ol]; reg.acc[nl]=c0; moveUid(ol,nl); commit(); }
+      if(c0&&ol!==nl){ if(own(reg.acc,nl)) return say("That name already belongs to someone with a password."); delete reg.acc[ol]; reg.acc[nl]=c0; moveName(ol,nl); commit(); }
       if(m.u===uid) applyRename(nn); else { const c=conn(m.u); c.allow=nl; c.send({t:"Z",i:newId(),n:nn}); }
       say(old+" is now "+nn+".");
     }
@@ -3971,7 +3971,15 @@ label.plus.open{transform:rotate(45deg)}
   /* identity: every device that joins with the same name shares one id, so private DMs and group chats follow you */
   let uidMap={}; try{ uidMap=JSON.parse(load("pb_uidmap","{}"))||{}; }catch(e){ uidMap={}; }
   const saveUidMap=()=>{ const ks=Object.keys(uidMap); if(ks.length>300) ks.slice(0,ks.length-300).forEach(k=>delete uidMap[k]); save("pb_uidmap",JSON.stringify(uidMap)); };
-  function moveUid(ol,nl){ if(uidMap[ol]&&!uidMap[nl]){ uidMap[nl]=uidMap[ol]; delete uidMap[ol]; saveUidMap(); } }
+  function moveUid(ol,nl){ if(ol&&nl&&ol!==nl&&uidMap[ol]){ uidMap[nl]=uidMap[ol]; delete uidMap[ol]; saveUidMap(); } }   // the renamed person keeps their id (tier lists, DMs, groups)
+  function moveName(ol,nl){                    // a rename carries EVERYTHING keyed by the old name: mod role, hidden badge, emojis they made, synced look, id
+    if(!ol||!nl||ol===nl) return;
+    const mv=a=>{ if(!a.includes(ol)) return a; const r=a.filter(x=>x!==ol); if(!r.includes(nl)) r.push(nl); return r; };
+    reg.mods=mv(reg.mods); reg.hid=mv(reg.hid);
+    Object.keys(reg.ce||{}).forEach(k=>{ if(reg.ce[k]&&reg.ce[k].by===ol) reg.ce[k].by=nl; });
+    if(prefsDB[ol]&&!prefsDB[nl]){ prefsDB[nl]=prefsDB[ol]; delete prefsDB[ol]; try{ persistPrefs(); }catch(e){} }
+    moveUid(ol,nl);
+  }
   window.__pbCanonUid=function(from,name){
     const l=low(name); if(!l||!from||!from.ok2||!from.uid) return;
     const c=uidMap[l];
@@ -4149,7 +4157,7 @@ label.plus.open{transform:rotate(45deg)}
         if(!from.admin&&reg.mutes.includes(low(from.userName))){ const nl=low(String(d.b||"")); if(nl&&!reg.mutes.includes(nl)){ reg.mutes.push(nl); commit(); } }
         if(!from.admin){                        // renaming: the password moves to the new name
           const ol=low(from.userName), nl=low(String(d.b||"").slice(0,12)), c0=own(reg.acc,ol);
-          if(c0&&ol!==nl&&!own(reg.acc,nl)&&!reg.bans.includes(nl)&&hVer(String(from.pwh||""))===c0){ delete reg.acc[ol]; reg.acc[nl]=c0; moveUid(ol,nl); commit(); }
+          if(c0&&ol!==nl&&!own(reg.acc,nl)&&!reg.bans.includes(nl)&&hVer(String(from.pwh||""))===c0){ delete reg.acc[ol]; reg.acc[nl]=c0; moveName(ol,nl); commit(); }
         }
         const why=nameBlocked(String(d.b||"").slice(0,12),from,from.pwh); if(why) return deny(from,why);
       }
@@ -4164,6 +4172,7 @@ label.plus.open{transform:rotate(45deg)}
       if(d.t==="A"){
         const n=cleanReg(d); if(d.ce===undefined&&reg.ce) n.ce=reg.ce;
         if(window.revealChat) window.revealChat();       // the host accepted us: now show the chat
+        if(reg.v&&n.v&&n.v<reg.v){ console.warn("[reg] ignored an older registry from the host"); return; }   // a host with stale data must not demote mods / drop accounts
         const grew=n.clr>reg.clr||n.clg>reg.clg||n.cls>reg.cls||n.clp>reg.clp; reg=n; saveReg(); if(grew) applyClear(); refreshUI(); return;
       }
       if(d.t==="X"){
@@ -5209,6 +5218,7 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
 #dstage{position:relative}
 #dcv{background:#fff;border-radius:var(--r,16px);box-shadow:0 8px 30px rgba(0,0,0,.35);touch-action:none;cursor:crosshair;display:block;width:100%;height:100%}
 #dcur{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:var(--r,16px)}
+#dsel{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;border-radius:var(--r,16px)}
 .dcur{position:absolute;transform:translate(-50%,-50%);pointer-events:none;transition:left .08s linear,top .08s linear}
 .dcur i{display:block;width:12px;height:12px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.45)}
 .dcur span{position:absolute;left:14px;top:8px;font-size:11px;font-weight:600;background:rgba(0,0,0,.72);color:#fff;padding:1px 7px;border-radius:999px;white-space:nowrap}
@@ -5270,6 +5280,9 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
       <button class="dbtn" id="dpick" type="button" title="Color dropper: click any spot on the board to copy its color">💧 Dropper</button>
       <button class="dbtn" id="dscr" type="button" title="Pick a color from anywhere on your screen" style="display:none">🖥</button>
       <button class="dbtn" id="der" type="button" title="Eraser">🧽 Eraser</button>
+      <button class="dbtn" id="dlasso" type="button" title="Lasso: draw around drawings or pictures to select them (or click one), then drag to move, use the square handles to resize and the round handle to rotate. Hold Shift to stretch / snap the angle.">🪢 Lasso</button>
+      <button class="dbtn" id="dimg" type="button" title="Add a picture to the board (you can also drop or paste one here)">🖼 Image</button>
+      <button class="dbtn red" id="dseldel" type="button" title="Delete what is selected (Delete key)" style="display:none">✖ Delete selection</button><input type="file" id="dimgf" accept="image/*" hidden>
       <span class="dsep"></span>
       <div id="dpal"></div><input type="color" id="dcolor" value="#111111" title="Custom color">
       <span class="dsep"></span>
@@ -5279,13 +5292,14 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
       <span id="dwho"></span>
     </div>
     <div id="dinvp"></div>
-    <div id="dwrap"><div id="dstage"><canvas id="dcv" width="${W}" height="${H}"></canvas><div id="dcur"></div><div id="dloupe"><i></i><b></b></div></div></div>`;
+    <div id="dwrap"><div id="dstage"><canvas id="dcv" width="${W}" height="${H}"></canvas><canvas id="dsel" width="${W}" height="${H}"></canvas><div id="dcur"></div><div id="dloupe"><i></i><b></b></div></div></div>`;
   $$("box").after(board);
-  const cv = $$("dcv"), cx = cv.getContext("2d"), stage = $$("dstage");
+  const cv = $$("dcv"), stage = $$("dstage"), ov = $$("dsel"), ox = ov.getContext("2d");
+  let cx = cv.getContext("2d");
   cx.lineCap = "round"; cx.lineJoin = "round";
 
   /* ---------- boards: the public one + private ones (each keeps its own strokes) ---------- */
-  const mk = id => ({ id, strokes: [], byId: new Map(), gone: new Set(), clr: 0, mine: [], redoS: [], unread: 0, srAt: 0 });
+  const mk = id => ({ id, strokes: [], byId: new Map(), gone: new Set(), clr: 0, mine: [], redoS: [], unread: 0, srAt: 0, opHist: new Map() });
   const states = new Map([["", mk("")]]);
   const P = states.get("");                      // the public board
   let S = P;                                     // the board on screen
@@ -5302,21 +5316,28 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
   const saveMembers = () => save("pb_pvm", JSON.stringify(members));
 
   let tool = "pen", prevTool = "pen", color = COLORS[0], size = 6, shapeKind = "line", shapeFill = false;
+  let sel = null, lz = null;                      // lasso: the current selection · the pointer action in progress
   let cur = null, shp = null, base = null, pend = [], flushT = 0, persistT = 0, whoT = 0, lastC = 0;
   const okId = s => typeof s === "string" && /^[A-Za-z0-9_-]{4,60}$/.test(s);
   const okCol = c => typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c);
   const cl = (v, a, b) => Math.min(b, Math.max(a, Math.round(+v || 0)));
   const mkId = () => "s" + uid.slice(-5) + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  const MAXIMG = 10, IMG_MAX = 130000, LIM = 3000;   // pictures per board · biggest picture (characters of its data) · how far off the board a thing may be dragged
+  const okPic = x => typeof x === "string" && x.length <= IMG_MAX && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+\/=]+$/.test(x);
+  const angOf = v => { v = +v; if(!isFinite(v)) return 0; return Math.round(Math.atan2(Math.sin(v), Math.cos(v)) * 10000) / 10000; };
 
   function cleanStroke(s){
     if(!s || typeof s !== "object" || !okId(s.id) || !okCol(s.c) || !Array.isArray(s.p)) return null;
-    const fill = s.t === "f", shape = s.t === "h", p = [];
+    const fill = s.t === "f", shape = s.t === "h", img = s.t === "i", p = [];
     if(shape && !SHAPES[s.sh]) return null;
-    for(let i = 0; i + 1 < s.p.length && p.length < (fill ? 2 : shape ? 4 : 8000); i += 2) p.push(cl(s.p[i], 0, W - 1), cl(s.p[i + 1], 0, H - 1));
-    if(!p.length || (shape && p.length < 4)) return null;
+    if(img && !okPic(s.im)) return null;
+    const lx = fill ? 0 : -LIM, hx = fill ? W - 1 : W - 1 + LIM, hy = fill ? H - 1 : H - 1 + LIM, ly = fill ? 0 : -LIM;
+    for(let i = 0; i + 1 < s.p.length && p.length < (fill || img ? 2 : shape ? 4 : 8000); i += 2) p.push(cl(s.p[i], lx, hx), cl(s.p[i + 1], ly, hy));
+    if(!p.length || (shape && p.length < 4) || (img && p.length < 2)) return null;
     const o = { id: s.id, o: okUid(s.o) ? s.o : "", n: String(s.n || "").slice(0, 12), c: s.c, w: cl(s.w, 1, 80), ts: +s.ts || 0, p };
     if(fill) o.t = "f";
-    if(shape){ o.t = "h"; o.sh = s.sh; o.fl = s.fl ? 1 : 0; }
+    if(shape){ o.t = "h"; o.sh = s.sh; o.fl = s.fl ? 1 : 0; const r = angOf(s.r); if(r) o.r = r; }
+    if(img){ o.t = "i"; o.im = s.im; o.iw = cl(s.iw, 8, 2400); o.ih = cl(s.ih, 8, 2400); const r = angOf(s.r); if(r) o.r = r; }
     return o;
   }
   function reindex(st){ st.byId = new Map(st.strokes.map(s => [s.id, s])); }
@@ -5326,6 +5347,7 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     st.strokes.splice(lo, 0, s); st.byId.set(s.id, s); return lo === st.strokes.length - 1;
   }
   function cap(st){
+    { let ni = 0; for(let i = st.strokes.length - 1; i >= 0; i--) if(st.strokes[i].t === "i" && ++ni > MAXIMG) st.strokes.splice(i, 1); }
     let pts = 0; for(let i = st.strokes.length - 1; i >= 0; i--) pts += st.strokes[i].p.length;
     while(st.strokes.length > 1500 || (pts > 150000 && st.strokes.length > 1)){ pts -= st.strokes[0].p.length; st.strokes.shift(); }
     reindex(st);
@@ -5362,6 +5384,8 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
   function paintShape(s){
     const [x1, y1, x2, y2] = s.p, lx = Math.min(x1, x2), rx = Math.max(x1, x2), ty = Math.min(y1, y2), by = Math.max(y1, y2);
     cx.strokeStyle = s.c; cx.fillStyle = s.c; cx.lineWidth = s.w; cx.lineCap = "round"; cx.lineJoin = "round";
+    const rot = s.r && s.sh !== "line" && s.sh !== "arrow" ? s.r : 0;
+    if(rot){ cx.save(); const mx = (x1 + x2) / 2, my = (y1 + y2) / 2; cx.translate(mx, my); cx.rotate(rot); cx.translate(-mx, -my); }
     cx.beginPath();
     if(s.sh === "line" || s.sh === "arrow"){
       cx.moveTo(x1, y1); cx.lineTo(x2, y2);
@@ -5385,8 +5409,11 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     }
     if(s.fl) cx.fill();
     cx.stroke();
+    if(rot) cx.restore();
   }
+  const imgs = new Map(); let redrawQ = 0;       // picture elements by stroke id
   function paint(s, i0){
+    if(s.t === "i"){ paintImg(s); return; }
     if(s.t === "f"){ floodFill(s.p[0], s.p[1], s.c); return; }
     if(s.t === "h"){ paintShape(s); return; }
     const p = s.p; cx.strokeStyle = s.c; cx.fillStyle = s.c; cx.lineWidth = s.w; cx.lineCap = "round"; cx.lineJoin = "round";
@@ -5397,8 +5424,10 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     cx.stroke();
   }
   function redraw(){
+    if(sel && sel.live){ sel.bg = buildBg(); drawPreview(); return; }      // somebody drew while I'm dragging: keep my drag on screen
     cx.fillStyle = "#fff"; cx.fillRect(0, 0, W, H);
     S.strokes.forEach(s => paint(s, 0));
+    if(sel) selSync();
   }
   redraw();
 
@@ -5417,7 +5446,7 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
       cap(st);
       const o = { clr: st.clr, strokes: st.strokes.slice(), gone: [...st.gone].slice(-1500) };
       if(db){ try { db.transaction("kv", "readwrite").objectStore("kv").put(o, dkey(st)); } catch(e){} }
-      if(!st.id){ try { localStorage.setItem("pb_board", JSON.stringify({ clr: o.clr, strokes: o.strokes.slice(-150), gone: [] })); } catch(e){} }   // small backup copy of the public board
+      if(!st.id){ try { localStorage.setItem("pb_board", JSON.stringify({ clr: o.clr, strokes: o.strokes.slice(-150).filter(s => s.t !== "i"), gone: [] })); } catch(e){} }   // small backup copy of the public board
     }
   }
   function persistSoon(st){ dirty.add(st); clearTimeout(persistT); persistT = setTimeout(saveAll, 600); }
@@ -5455,7 +5484,14 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
   }
   const snapBody = st => { cap(st); return { k: "snap", clr: st.clr, strokes: st.strokes.slice(), gone: [...st.gone].slice(-1500) }; };
   function snapObj(st){ return Object.assign({ t: "D", i: newId() }, snapBody(st)); }
-  function sendSnap(conn){ (window.heavy || (f => f()))(() => { try { if(conn.open) conn.send(snapObj(P)); } catch(e){} }); }
+  function snapParts(st){                                  // pictures make a board heavy: split it so no single message is too big
+    cap(st); const gone = [...st.gone].slice(-1500), parts = []; let cur = [], size = 0;
+    st.strokes.forEach(s => { const n = (s.im ? s.im.length : 0) + s.p.length * 7 + 120; if(cur.length && (size + n > 420000 || cur.length >= 1500)){ parts.push(cur); cur = []; size = 0; } cur.push(s); size += n; });
+    parts.push(cur);
+    return parts.map(strokes => ({ k: "snap", clr: st.clr, strokes, gone }));
+  }
+  const snapObjs = st => snapParts(st).map(b => Object.assign({ t: "D", i: newId() }, b));
+  function sendSnap(conn){ (window.heavy || (f => f()))(() => { try { if(conn.open) snapObjs(P).forEach(o => conn.send(o)); } catch(e){} }); }
   function merge(st, sn){
     let changed = false;
     const nc = +sn.clr || 0;
@@ -5471,7 +5507,7 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
   }
   function who(t){ const e = $$("dwho"); e.textContent = t; clearTimeout(whoT); whoT = setTimeout(() => { e.textContent = ""; }, 1800); }
   function rm(st, id){ if(!st.byId.has(id)) return; st.strokes = st.strokes.filter(s => s.id !== id); st.gone.add(id); reindex(st); if(st === S) redraw(); persistSoon(st); }
-  function applyClr(st, t){ st.clr = Math.max(st.clr, t); st.strokes = st.strokes.filter(s => s.ts > st.clr); st.gone.clear(); st.mine = []; st.redoS = []; reindex(st); if(st === S){ redraw(); updBtns(); } persistSoon(st); }
+  function applyClr(st, t){ st.clr = Math.max(st.clr, t); st.strokes = st.strokes.filter(s => s.ts > st.clr); st.gone.clear(); st.mine = []; st.redoS = []; st.opHist.clear(); reindex(st); if(st === S){ redraw(); updBtns(); } persistSoon(st); }
 
   /* ---------- everyone's cursors (only people on the board you're looking at) ---------- */
   const curs = new Map();
@@ -5514,6 +5550,13 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
       if(s && s.o !== d.f) return false;
       rm(st, d.s); if(!cs) flag(); return true;
     }
+    if(d.k === "x"){                           // move / resize / rotate / delete: some things replaced by others
+      const dels = Array.isArray(d.del) ? d.del.slice(0, 80) : [], adds = Array.isArray(d.add) ? d.add.slice(0, 40) : [];
+      if(!dels.length && !adds.length) return false;
+      const ch = applyX(st, dels, adds, d.f, nm);
+      if(cs){ if(ch) who("✋ " + nm + " changed the drawing"); } else flag();
+      return true;
+    }
     if(d.k === "clr"){
       const t = +d.ts || 0; if(t > Date.now() + 60000) return false;
       applyClr(st, t || Date.now()); if(cs) who("🗑 " + nm + " cleared the board"); else flag();
@@ -5526,11 +5569,11 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
   function onPub(d, fromConn){
     const host = isHost;
     if(d.k === "snap"){
-      if(host){ if(fromConn.snapIn) return; fromConn.snapIn = 1; if(merge(P, d)) send(snapObj(P), fromConn); }
+      if(host){ if(fromConn.snapIn) return; fromConn.snapIn = 1; if(merge(P, d)) snapObjs(P).forEach(o => send(o, fromConn)); }
       else {
         const had = P.strokes.length > 0;
         merge(P, d);
-        if(had && P.strokes.length){ const o = snapObj(P); try { conns.forEach(c => c.open && c.send(o)); } catch(e){} }   // give the host anything it was missing
+        if(had && P.strokes.length){ try { snapObjs(P).forEach(o => conns.forEach(c => c.open && c.send(o))); } catch(e){} }   // give the host anything it was missing
       }
       return;
     }
@@ -5574,7 +5617,7 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     if(k === "snap"){ merge(st, d); return; }
     if(k === "sr"){                                                 // somebody (re)joined and wants the picture
       const ownerOn = mine || (lastRoster || []).some(e => e.c === owner);
-      if(st.strokes.length && (mine || !ownerOn)){ const to = d.f; setTimeout(() => sendD(Object.assign(snapBody(st), { to }), b), 100 + Math.random() * 300); }
+      if(st.strokes.length && (mine || !ownerOn)){ const to = d.f; setTimeout(() => snapParts(st).forEach(pt => sendD(Object.assign(pt, { to }), b)), 100 + Math.random() * 300); }
       return;
     }
     applyMsg(st, d, String(d.n || "Someone").slice(0, 12));
@@ -5597,7 +5640,7 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     if(isHost){ (pboards[uid] || (pboards[uid] = new Set())).add(u); relayTo(u, { t: "D", i: newId(), f: uid, n: usr, b: myBid, k: "pi", to: u }, null); }
     else sendD({ k: "pi", to: u }, myBid);
     const st = states.get(myBid);
-    if(st.strokes.length) setTimeout(() => sendD(Object.assign(snapBody(st), { to: u }), myBid), 300);   // give them what's already drawn
+    if(st.strokes.length) setTimeout(() => snapParts(st).forEach(pt => sendD(Object.assign(pt, { to: u }), myBid)), 300);   // give them what's already drawn
     renderInvp(); chrome();
   }
   function removeMember(u){
@@ -5683,12 +5726,13 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
       : "🔒 " + (joined[S.id] || "Someone") + "'s private board";
   }
   function abortDraw(){
+    if(lz) lzCancel();
     if(cur) end();
     if(shp){ cx.drawImage(base, 0, 0); shp = null; base = null; }
   }
   function openBoard(id){
     if(!states.has(id)) id = "";
-    abortDraw();
+    abortDraw(); clearSel();
     S = states.get(id); S.unread = 0;
     curs.forEach((c, f) => hideCursor(f));
     redraw(); buildSelect(); chrome(); updBtns();
@@ -5757,8 +5801,8 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
   }
   function setTool(t){
     if(t === "pick" && tool !== "pick") prevTool = tool;
-    tool = t;
-    [["dpen", "pen"], ["dfill", "fill"], ["dshape", "shape"], ["dpick", "pick"], ["der", "erase"]].forEach(([id, n]) => $$(id).classList.toggle("on", t === n));
+    tool = t; if(t !== "lasso") clearSel();
+    [["dpen", "pen"], ["dfill", "fill"], ["dshape", "shape"], ["dpick", "pick"], ["der", "erase"], ["dlasso", "lasso"]].forEach(([id, n]) => $$(id).classList.toggle("on", t === n));
     $$("dshgrp").classList.toggle("on", t === "shape");
     cv.style.cursor = t === "fill" ? "cell" : "crosshair";
     if(t !== "pick") $$("dloupe").style.display = "none";
@@ -5780,16 +5824,19 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
   }
   function sample(x, y){ const d = cx.getImageData(x, y, 1, 1).data; return "#" + [d[0], d[1], d[2]].map(v => v.toString(16).padStart(2, "0")).join(""); }
 
-  function updBtns(){ $$("dredo").disabled = !S.redoS.length; $$("dundo").disabled = !S.mine.some(id => S.byId.has(id)); }
+  function updBtns(){ $$("dredo").disabled = !S.redoS.length; $$("dundo").disabled = !S.mine.some(id => { const h = S.opHist.get(id); return h ? (!h.newIds.length || h.newIds.some(x => S.byId.has(x))) : S.byId.has(id); }); }
   function undo(){
     while(S.mine.length){
-      const id = S.mine.pop(), s = S.byId.get(id);
+      const id = S.mine.pop(), h = S.opHist.get(id);
+      if(h){ S.opHist.delete(id); if(undoOp(h)) break; continue; }       // undo a move / resize / rotate / delete
+      const s = S.byId.get(id);
       if(s){ S.redoS.push(JSON.parse(JSON.stringify(s))); sendD({ k: "u", s: id }); rm(S, id); break; }
     }
     updBtns();
   }
   function redo(){
     const o = S.redoS.pop(); if(!o) return;
+    if(o.__op){ redoOp(o); updBtns(); return; }
     const s = Object.assign({}, o, { id: mkId(), ts: Date.now(), o: uid, n: usr });     // comes back on top as a fresh stroke
     if(addStroke(S, s)) paint(s, 0); else redraw(); S.mine.push(s.id); sendD({ k: "s", s }); persistSoon(S); updBtns();
   }
@@ -5805,6 +5852,8 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     const tg = e.target, typing = tg && (tg.tagName === "TEXTAREA" || (tg.tagName === "INPUT" && tg.type !== "range" && tg.type !== "checkbox"));
     if(!(e.ctrlKey || e.metaKey)){
       if(typing) return;
+      if(sel && (e.key === "Delete" || e.key === "Backspace")){ e.preventDefault(); deleteSel(); return; }
+      if(sel && e.key === "Escape"){ clearSel(); return; }
       if(e.key === "[" ){ size = Math.max(1, size - (size > 12 ? 4 : 1)); updPrev(); }
       else if(e.key === "]"){ size = Math.min(60, size + (size >= 12 ? 4 : 1)); updPrev(); }
       return;
@@ -5844,11 +5893,12 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     S.mine.push(s.id); sendD({ k: "s", s }); persistSoon(S); updBtns();
   }
   cv.addEventListener("pointerdown", e => {
-    if(e.button > 0 || cur || shp) return;
+    if(e.button > 0 || cur || shp || lz) return;
     const [x, y] = pt(e);
     if(tool === "pick"){ e.preventDefault(); useColor(sample(x, y)); setTool(prevTool === "pick" || prevTool === "erase" ? "pen" : prevTool); return; }
     if(muteCheck()) return;
     e.preventDefault();
+    if(tool === "lasso"){ const q = ptf(e); lassoDown(e, q[0], q[1]); return; }
     S.redoS = [];
     if(tool === "fill"){
       const s = { id: mkId(), o: uid, n: usr, c: color, w: 1, ts: Date.now(), t: "f", p: [x, y] };
@@ -5865,7 +5915,9 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     pend = [x, y]; flush(); updBtns();
   });
   cv.addEventListener("pointermove", e => {
-    const [hx, hy] = pt(e); sendCursor(hx, hy, !!cur || !!shp);
+    const [hx, hy] = pt(e); sendCursor(hx, hy, !!cur || !!shp || !!lz);
+    if(lz){ lassoMove(e); return; }
+    if(tool === "lasso") hoverCursor(e);
     if(tool === "pick"){
       const r = cv.getBoundingClientRect(), hex = sample(hx, hy), lp = $$("dloupe");
       lp.style.display = "flex"; lp.style.left = (e.clientX - r.left + 16) + "px"; lp.style.top = (e.clientY - r.top - 40) + "px";
@@ -5889,10 +5941,371 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     if(cur.p.length > old){ paint(cur, old); if(!flushT) flushT = setTimeout(flush, 45); }
   });
   function end(){ if(!cur) return; flush(); cur = null; persistSoon(S); }
-  const up = () => { if(shp) finishShape(); else end(); };
+  const up = () => { if(lz) lassoUp(); else if(shp) finishShape(); else end(); };
   cv.addEventListener("pointerup", up);
-  cv.addEventListener("pointercancel", () => { if(shp){ cx.drawImage(base, 0, 0); shp = null; base = null; } else end(); });
+  cv.addEventListener("pointercancel", () => { if(lz){ lzCancel(); } else if(shp){ cx.drawImage(base, 0, 0); shp = null; base = null; } else end(); });
   cv.addEventListener("pointerleave", () => { $$("dloupe").style.display = "none"; if(!cur && !shp){ lastC = 0; sendD({ k: "c", off: 1 }); } });
+
+  /* ---------- lasso maths: a selection is a frame (centre, angle, half-width, half-height); moving / resizing / rotating the frame maps every item inside it ---------- */
+  const rot2 = (x, y, a) => { const c = Math.cos(a), s = Math.sin(a); return [x * c - y * s, x * s + y * c]; };
+  const isBox = s => s.t === "i" || (s.t === "h" && s.sh !== "line" && s.sh !== "arrow");
+  function boxOf(s){                                     // centre, half sizes and angle of a picture / rectangle-like shape
+    if(s.t === "i") return { c: [s.p[0], s.p[1]], hw: s.iw / 2, hh: s.ih / 2, r: s.r || 0 };
+    const x1 = s.p[0], y1 = s.p[1], x2 = s.p[2], y2 = s.p[3];
+    return { c: [(x1 + x2) / 2, (y1 + y2) / 2], hw: Math.abs(x2 - x1) / 2, hh: Math.abs(y2 - y1) / 2, r: s.r || 0 };
+  }
+  function ptsOf(s){                                     // outline points of one thing, in board coordinates
+    if(isBox(s)){ const b = boxOf(s); return [[-b.hw, -b.hh], [b.hw, -b.hh], [b.hw, b.hh], [-b.hw, b.hh]].map(q => { const v = rot2(q[0], q[1], b.r); return [b.c[0] + v[0], b.c[1] + v[1]]; }); }
+    if(s.t === "h") return [[s.p[0], s.p[1]], [s.p[2], s.p[3]]];
+    const out = []; for(let i = 0; i + 1 < s.p.length; i += 2) out.push([s.p[i], s.p[i + 1]]); return out;
+  }
+  const padOf = s => s.t === "i" ? 0 : s.w / 2 + (s.sh === "arrow" ? Math.max(16, s.w * 4) * 0.45 : 0);
+  function frameOf(items){
+    if(items.length === 1 && isBox(items[0].s)){ const s = items[0].s, b = boxOf(s), pad = s.t === "i" ? 0 : s.w / 2; return { C: b.c, th: b.r, hw: Math.max(4, b.hw + pad), hh: Math.max(4, b.hh + pad) }; }
+    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    items.forEach(it => { const pad = padOf(it.s); ptsOf(it.s).forEach(q => { x0 = Math.min(x0, q[0] - pad); y0 = Math.min(y0, q[1] - pad); x1 = Math.max(x1, q[0] + pad); y1 = Math.max(y1, q[1] + pad); }); });
+    return { C: [(x0 + x1) / 2, (y0 + y1) / 2], th: 0, hw: Math.max(6, (x1 - x0) / 2), hh: Math.max(6, (y1 - y0) / 2) };
+  }
+  function mapOf(f0, f1){                                // frame f0 -> frame f1:  p' = C1 + R(th1) * diag(sx, sy) * R(-th0) * (p - C0)
+    const sx = f1.hw / f0.hw, sy = f1.hh / f0.hh, c0 = Math.cos(-f0.th), s0 = Math.sin(-f0.th), c1 = Math.cos(f1.th), s1 = Math.sin(f1.th);
+    const a = c1 * sx, b = -s1 * sy, c = s1 * sx, d = c1 * sy;
+    const m11 = a * c0 + b * s0, m12 = -a * s0 + b * c0, m21 = c * c0 + d * s0, m22 = -c * s0 + d * c0;
+    return { m11, m12, m21, m22, pt: (x, y) => { const dx = x - f0.C[0], dy = y - f0.C[1]; return [f1.C[0] + m11 * dx + m12 * dy, f1.C[1] + m21 * dx + m22 * dy]; } };
+  }
+  const axes = (M, r) => { const ux = Math.cos(r), uy = Math.sin(r); return [[M.m11 * ux + M.m12 * uy, M.m21 * ux + M.m22 * uy], [-M.m11 * uy + M.m12 * ux, -M.m21 * uy + M.m22 * ux]]; };
+  function xform(s, M){                                  // a copy of one thing after the frame map
+    const o = Object.assign({}, s), det = Math.abs(M.m11 * M.m22 - M.m12 * M.m21);
+    if(s.t === "i"){
+      const ax = axes(M, s.r || 0), c = M.pt(s.p[0], s.p[1]);
+      o.p = [c[0], c[1]]; o.iw = Math.hypot(ax[0][0], ax[0][1]) * s.iw; o.ih = Math.hypot(ax[1][0], ax[1][1]) * s.ih; o.r = Math.atan2(ax[0][1], ax[0][0]); return o;
+    }
+    o.w = Math.min(80, Math.max(1, Math.round(s.w * Math.sqrt(det))));
+    if(s.t === "h"){
+      if(!isBox(s)){ const a = M.pt(s.p[0], s.p[1]), b = M.pt(s.p[2], s.p[3]); o.p = [a[0], a[1], b[0], b[1]]; return o; }
+      const bx = boxOf(s), ax = axes(M, bx.r), c = M.pt(bx.c[0], bx.c[1]);
+      const hx = bx.hw * Math.hypot(ax[0][0], ax[0][1]), hy = bx.hh * Math.hypot(ax[1][0], ax[1][1]);
+      o.p = [c[0] - hx, c[1] - hy, c[0] + hx, c[1] + hy]; o.r = Math.atan2(ax[0][1], ax[0][0]); return o;
+    }
+    const p = []; for(let i = 0; i + 1 < s.p.length; i += 2){ const q = M.pt(s.p[i], s.p[i + 1]); p.push(q[0], q[1]); }
+    o.p = p; return o;
+  }
+  function inPoly(x, y, poly){ let c = false; for(let i = 0, j = poly.length - 1; i < poly.length; j = i++){ const xi = poly[i][0], yi = poly[i][1], xj = poly[j][0], yj = poly[j][1]; if((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; }
+  function sampleIn(s, poly){                            // true when at least half of a thing's outline sits inside the lasso
+    let pts = ptsOf(s);
+    if(pts.length === 4){ const m = [(pts[0][0] + pts[2][0]) / 2, (pts[0][1] + pts[2][1]) / 2]; pts = pts.concat([m], [0, 1, 2, 3].map(k => [(pts[k][0] + pts[(k + 1) % 4][0]) / 2, (pts[k][1] + pts[(k + 1) % 4][1]) / 2])); }
+    else if(pts.length === 2) pts = pts.concat([[(pts[0][0] + pts[1][0]) / 2, (pts[0][1] + pts[1][1]) / 2]]);
+    const step = Math.max(1, Math.floor(pts.length / 80)); let n = 0, ins = 0;
+    for(let i = 0; i < pts.length; i += step){ n++; if(inPoly(pts[i][0], pts[i][1], poly)) ins++; }
+    return n > 0 && ins * 2 >= n;
+  }
+  function segDist(x, y, a, b){ const dx = b[0] - a[0], dy = b[1] - a[1], l = dx * dx + dy * dy; let t = l ? ((x - a[0]) * dx + (y - a[1]) * dy) / l : 0; t = Math.max(0, Math.min(1, t)); return Math.hypot(x - (a[0] + t * dx), y - (a[1] + t * dy)); }
+  function hitStroke(s, x, y, tol){                      // is this board point on that thing?
+    if(isBox(s)){
+      const b = boxOf(s), q = rot2(x - b.c[0], y - b.c[1], -b.r), pad = s.t === "i" ? tol : tol + s.w / 2;
+      const inside = Math.abs(q[0]) <= b.hw + pad && Math.abs(q[1]) <= b.hh + pad;
+      if(s.t === "h" && !s.fl) return inside && !(Math.abs(q[0]) <= b.hw - pad && Math.abs(q[1]) <= b.hh - pad);   // hollow shape: only its edge counts
+      return inside;
+    }
+    const p = ptsOf(s), r = s.w / 2 + tol;
+    if(p.length === 1) return Math.hypot(x - p[0][0], y - p[0][1]) <= r;
+    for(let i = 0; i + 1 < p.length; i++) if(segDist(x, y, p[i], p[i + 1]) <= r) return true;
+    return false;
+  }
+
+  /* ================= pictures + lasso (select -> move / resize / rotate) ================= */
+  const CURS = { n: "ns-resize", s: "ns-resize", e: "ew-resize", w: "ew-resize", nw: "nwse-resize", se: "nwse-resize", ne: "nesw-resize", sw: "nesw-resize", rot: "grab", move: "move" };
+  const say = t => { try { if(typeof toast === "function") toast(t); else sys(t); } catch(e){ try { sys(t); } catch(x){} } };
+  const unit = () => { const w = cv.getBoundingClientRect().width; return w > 0 ? W / w : 1; };          // 1 screen pixel, in board pixels
+  const ptf = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height]; };
+  const cloneF = f => ({ C: f.C.slice(), th: f.th, hw: f.hw, hh: f.hh });
+  const copyS = s => JSON.parse(JSON.stringify(s));
+  const normA = a => Math.atan2(Math.sin(a), Math.cos(a));
+  const clampC = c => [Math.min(W, Math.max(0, c[0])), Math.min(H, Math.max(0, c[1]))];
+  const showDel = on => { $$("dseldel").style.display = on ? "" : "none"; };
+
+  /* ---- pictures ---- */
+  function wantRedraw(){ if(redrawQ) return; redrawQ = requestAnimationFrame(() => { redrawQ = 0; redraw(); drawOv(); }); }
+  function imgEl(s){
+    let e = imgs.get(s.id);
+    if(!e){ if(imgs.size > 80) imgs.delete(imgs.keys().next().value); e = new Image(); e.onload = wantRedraw; e.src = s.im; imgs.set(s.id, e); }
+    return e;
+  }
+  function paintImg(s){
+    const e = imgEl(s); if(!e.complete || !e.naturalWidth) return;
+    cx.save(); cx.translate(s.p[0], s.p[1]); if(s.r) cx.rotate(s.r); cx.imageSmoothingQuality = "high"; cx.drawImage(e, -s.iw / 2, -s.ih / 2, s.iw, s.ih); cx.restore();
+  }
+  function shrink(im){                                    // make the picture small enough to send: webp, or png / jpeg on browsers that can't write webp
+    const nw = im.naturalWidth, nh = im.naturalHeight; if(!nw || !nh) return null;
+    for(const L of [900, 720, 560, 420, 320, 240, 160]){
+      const k = Math.min(1, L / Math.max(nw, nh)), w = Math.max(1, Math.round(nw * k)), h = Math.max(1, Math.round(nh * k));
+      const c = document.createElement("canvas"); c.width = w; c.height = h; c.getContext("2d").drawImage(im, 0, 0, w, h);
+      let u = c.toDataURL("image/webp", 0.82);
+      if(!u.startsWith("data:image/webp")){
+        u = c.toDataURL("image/png");
+        if(u.length > IMG_MAX){ const c2 = document.createElement("canvas"); c2.width = w; c2.height = h; const g = c2.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, w, h); g.drawImage(im, 0, 0, w, h); u = c2.toDataURL("image/jpeg", 0.8); }
+      }
+      if(okPic(u)) return { u, w, h };
+    }
+    return null;
+  }
+  function addImageFile(file){
+    if(!file || !/^image\//.test(file.type || "")) { say("That isn't a picture."); return; }
+    if(muteCheck()) return;
+    if(S.strokes.filter(s => s.t === "i").length >= MAXIMG){ say("This board already has " + MAXIMG + " pictures. Delete one first."); return; }
+    const url = URL.createObjectURL(file), im = new Image();
+    im.onerror = () => { URL.revokeObjectURL(url); say("Couldn't open that picture."); };
+    im.onload = () => {
+      URL.revokeObjectURL(url);
+      const r = shrink(im); if(!r){ say("That picture is too detailed to add. Try a smaller one."); return; }
+      const k = Math.min(1, W * 0.6 / r.w, H * 0.6 / r.h);
+      const c = cleanStroke({ id: mkId(), o: uid, n: usr, c: "#000000", w: 1, ts: Date.now(), t: "i", p: [W / 2, H / 2], iw: r.w * k, ih: r.h * k, r: 0, im: r.u });
+      if(!c) { say("Couldn't add that picture."); return; }
+      S.redoS = []; if(addStroke(S, c)) paint(c, 0); else redraw();
+      S.mine.push(c.id); sendD({ k: "s", s: c }); persistSoon(S); updBtns();
+      setTool("lasso"); selectItems([c], []);
+    };
+    im.src = url;
+  }
+  window.__pbBoardAddImage = addImageFile;
+  $$("dimg").onclick = () => $$("dimgf").click();
+  $$("dimgf").onchange = e => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if(f) addImageFile(f); };
+  $$("dlasso").onclick = () => { setTool("lasso"); who("🪢 Draw around things to select them, or click a picture"); };
+  $$("dseldel").onclick = () => deleteSel();
+
+  /* ---- turning a bucket fill into a movable picture (a fill is pixels, so it can't just be re-played somewhere else) ---- */
+  function maskOf(a, b, hex){
+    let x0 = W, y0 = H, x1 = -1, y1 = -1;
+    for(let y = 0; y < H; y++) for(let x = 0; x < W; x++){ const i = (y * W + x) * 4; if(a[i] !== b[i] || a[i + 1] !== b[i + 1] || a[i + 2] !== b[i + 2]){ if(x < x0) x0 = x; if(x > x1) x1 = x; if(y < y0) y0 = y; if(y > y1) y1 = y; } }
+    if(x1 < 0) return null;
+    const w = x1 - x0 + 1, h = y1 - y0 + 1, c = document.createElement("canvas"); c.width = w; c.height = h;
+    const g = c.getContext("2d"), im = g.createImageData(w, h), d = im.data, r = parseInt(hex.slice(1, 3), 16), gg = parseInt(hex.slice(3, 5), 16), bb = parseInt(hex.slice(5, 7), 16);
+    for(let y = 0; y < h; y++) for(let x = 0; x < w; x++){ const i = ((y + y0) * W + x + x0) * 4; if(a[i] !== b[i] || a[i + 1] !== b[i + 1] || a[i + 2] !== b[i + 2]){ const j = (y * w + x) * 4; d[j] = r; d[j + 1] = gg; d[j + 2] = bb; d[j + 3] = 255; } }
+    g.putImageData(im, 0, 0);
+    const url = c.toDataURL("image/png"); if(!okPic(url)) return null;
+    return { url, x0, y0, w, h };
+  }
+  function bakeFills(fills){
+    const out = new Map(); if(!fills.length) return out;
+    const c = document.createElement("canvas"); c.width = W; c.height = H; const g = c.getContext("2d", { willReadFrequently: true });
+    const want = new Set(fills.map(f => f.id)), keep = cx; cx = g;
+    try {
+      g.fillStyle = "#fff"; g.fillRect(0, 0, W, H);
+      for(const s of S.strokes){
+        if(want.has(s.id)){ const A = g.getImageData(0, 0, W, H); paint(s, 0); const B = g.getImageData(0, 0, W, H); const m = maskOf(A.data, B.data, s.c); if(m) out.set(s.id, m); }
+        else paint(s, 0);
+      }
+    } catch(e){ console.warn("[draw] fill bake failed", e); } finally { cx = keep; }
+    return out;
+  }
+  function buildBg(){                                     // the board without the selected things (they're drawn on top while being dragged)
+    const c = document.createElement("canvas"); c.width = W; c.height = H; const g = c.getContext("2d");
+    const ex = new Set(sel.items.map(i => i.ref)), keep = cx; cx = g;
+    try { g.fillStyle = "#fff"; g.fillRect(0, 0, W, H); S.strokes.forEach(s => { if(!ex.has(s.id)) paint(s, 0); }); } finally { cx = keep; }
+    return c;
+  }
+  function drawPreview(){
+    cx.drawImage(sel.bg, 0, 0);
+    const M = mapOf(sel.f0, sel.f);
+    sel.items.forEach(it => { const t = xform(it.s, M); t.id = it.s.id; paint(t, 0); });
+    drawOv();
+  }
+
+  /* ---- selection overlay: dashed box, 8 resize handles, 1 rotate handle ---- */
+  function handles(f, u){
+    let ry = -f.hh - 34 * u; const cs = Math.cos(f.th);
+    if(f.C[1] + ry * cs < 16 * u) ry = f.hh + 34 * u;     // no room above: put the rotate handle on the other side
+    const L = [["nw", -f.hw, -f.hh], ["ne", f.hw, -f.hh], ["se", f.hw, f.hh], ["sw", -f.hw, f.hh], ["n", 0, -f.hh], ["e", f.hw, 0], ["s", 0, f.hh], ["w", -f.hw, 0]];
+    const out = L.map(a => { const v = rot2(a[1], a[2], f.th); return { id: a[0], x: f.C[0] + v[0], y: f.C[1] + v[1], sx: a[0].includes("e") ? 1 : a[0].includes("w") ? -1 : 0, sy: a[0].includes("s") ? 1 : a[0].includes("n") ? -1 : 0 }; });
+    const rv = rot2(0, ry, f.th); out.push({ id: "rot", x: f.C[0] + rv[0], y: f.C[1] + rv[1], sx: 0, sy: 0, ry });
+    return out;
+  }
+  function drawOv(){
+    ox.clearRect(0, 0, W, H);
+    const u = unit();
+    if(lz && lz.kind === "lasso" && lz.path.length > 1){
+      ox.save(); ox.lineJoin = "round"; ox.beginPath(); lz.path.forEach((q, i) => i ? ox.lineTo(q[0], q[1]) : ox.moveTo(q[0], q[1])); ox.closePath();
+      ox.fillStyle = "rgba(47,123,246,.12)"; ox.fill(); ox.lineWidth = 3 * u; ox.strokeStyle = "rgba(255,255,255,.95)"; ox.stroke();
+      ox.lineWidth = 1.5 * u; ox.strokeStyle = "#2f7bf6"; ox.setLineDash([6 * u, 5 * u]); ox.stroke(); ox.restore();
+    }
+    if(!sel) return;
+    const f = sel.f, hs = handles(f, u), P = (x, y) => { const v = rot2(x, y, f.th); return [f.C[0] + v[0], f.C[1] + v[1]]; };
+    ox.save();
+    const k = [P(-f.hw, -f.hh), P(f.hw, -f.hh), P(f.hw, f.hh), P(-f.hw, f.hh)];
+    ox.beginPath(); k.forEach((q, i) => i ? ox.lineTo(q[0], q[1]) : ox.moveTo(q[0], q[1])); ox.closePath();
+    ox.lineWidth = 3 * u; ox.strokeStyle = "rgba(255,255,255,.9)"; ox.stroke();
+    ox.lineWidth = 1.5 * u; ox.strokeStyle = "#2f7bf6"; ox.setLineDash([6 * u, 4 * u]); ox.stroke(); ox.setLineDash([]);
+    const rot = hs[hs.length - 1], top = P(0, rot.ry > 0 ? f.hh : -f.hh);
+    ox.beginPath(); ox.moveTo(top[0], top[1]); ox.lineTo(rot.x, rot.y); ox.lineWidth = 1.5 * u; ox.strokeStyle = "#2f7bf6"; ox.stroke();
+    hs.forEach(h => {
+      ox.beginPath();
+      if(h.id === "rot") ox.arc(h.x, h.y, 7 * u, 0, 6.2832); else ox.rect(h.x - 5 * u, h.y - 5 * u, 10 * u, 10 * u);
+      ox.fillStyle = h.id === "rot" ? "#2f7bf6" : "#fff"; ox.fill(); ox.lineWidth = 1.5 * u; ox.strokeStyle = "#2f7bf6"; ox.stroke();
+    });
+    ox.restore();
+  }
+  function hitHandle(x, y){
+    if(!sel) return "";
+    const u = unit(), f = sel.f, hs = handles(f, u), rot = hs[hs.length - 1];
+    if(Math.hypot(x - rot.x, y - rot.y) <= 14 * u) return "rot";
+    for(const h of hs) if(h.sx && h.sy && Math.hypot(x - h.x, y - h.y) <= 11 * u) return h.id;
+    for(const h of hs) if(h.id !== "rot" && !(h.sx && h.sy) && Math.hypot(x - h.x, y - h.y) <= 11 * u) return h.id;
+    const q = rot2(x - f.C[0], y - f.C[1], -f.th);
+    return Math.abs(q[0]) <= f.hw + 8 * u && Math.abs(q[1]) <= f.hh + 8 * u ? "move" : "";
+  }
+  const hoverCursor = e => { if(lz) return; const p = ptf(e), h = sel ? hitHandle(p[0], p[1]) : ""; cv.style.cursor = h ? CURS[h] : "crosshair"; };
+
+  /* ---- selecting ---- */
+  function clearSel(){
+    const was = sel; sel = null; if(lz && lz.kind === "drag") lz = null;
+    showDel(false);
+    if(was && was.live) redraw();
+    drawOv(); cv.style.cursor = tool === "fill" ? "cell" : "crosshair";
+  }
+  function selectItems(list, fills){
+    const items = list.map(s => ({ ref: s.id, s, orig: s, fill: false }));
+    const bake = fills && fills.length ? bakeFills(fills) : new Map();
+    (fills || []).forEach(F => {
+      const m = bake.get(F.id); if(!m) return;
+      const bs = { id: "b" + F.id.slice(1), t: "i", im: m.url, p: [m.x0 + m.w / 2, m.y0 + m.h / 2], iw: m.w, ih: m.h, r: 0, c: "#000000", w: 1, ts: F.ts, o: uid, n: usr };
+      items.push({ ref: F.id, s: bs, orig: F, fill: true });
+    });
+    if(!items.length){ clearSel(); return; }
+    sel = { items, f: frameOf(items), f0: null, live: false, bg: null }; sel.f0 = cloneF(sel.f);
+    showDel(true); drawOv();
+  }
+  function selSync(){                                     // things someone else erased / moved drop out of the selection
+    if(!sel || sel.live) return;
+    const keep = sel.items.filter(i => S.byId.has(i.ref));
+    if(keep.length === sel.items.length){ drawOv(); return; }
+    if(!keep.length){ clearSel(); return; }
+    sel.items = keep; sel.f = frameOf(keep); sel.f0 = cloneF(sel.f); drawOv();
+  }
+  function topAt(x, y){ const tol = 6 * unit(); for(let i = S.strokes.length - 1; i >= 0; i--){ const s = S.strokes[i]; if(s.t !== "f" && hitStroke(s, x, y, tol)) return s; } return null; }
+
+  function lassoDown(e, x, y){
+    try { cv.setPointerCapture(e.pointerId); } catch(_){}
+    if(sel){ const h = hitHandle(x, y); if(h){ lz = { kind: "drag", mode: h, start: [x, y], last: [x, y], moved: false }; sel.f0 = cloneF(sel.f); return; } }
+    lz = { kind: "lasso", path: [[x, y]] }; drawOv();
+  }
+  function nextFrame(l, x, y, shift){
+    const f0 = sel.f0;
+    if(l.mode === "move") return { C: clampC([f0.C[0] + x - l.start[0], f0.C[1] + y - l.start[1]]), th: f0.th, hw: f0.hw, hh: f0.hh };
+    if(l.mode === "rot"){
+      let a = Math.atan2(y - f0.C[1], x - f0.C[0]) + Math.PI / 2; if(l.flip) a += Math.PI;
+      if(shift) a = Math.round(a / (Math.PI / 12)) * (Math.PI / 12); else { const q = Math.PI / 2, n = Math.round(a / q) * q; if(Math.abs(a - n) < 0.05) a = n; }   // gentle snap to upright / sideways
+      return { C: f0.C.slice(), th: normA(a), hw: f0.hw, hh: f0.hh };
+    }
+    const hd = l.hd, q = rot2(x - f0.C[0], y - f0.C[1], -f0.th);                                  // pointer in the frame's own axes
+    let nw = 2 * f0.hw, nh = 2 * f0.hh;
+    if(hd.sx) nw = Math.max(8, (q[0] + hd.sx * f0.hw) * hd.sx);
+    if(hd.sy) nh = Math.max(8, (q[1] + hd.sy * f0.hh) * hd.sy);
+    if(hd.sx && hd.sy && !shift){                                                                  // corners keep the shape (hold Shift to stretch)
+      let s = Math.max(nw / (2 * f0.hw), nh / (2 * f0.hh));
+      s = Math.min(Math.max(s, 8 / (2 * f0.hw), 8 / (2 * f0.hh)), 3000 / (2 * f0.hw), 3000 / (2 * f0.hh));
+      nw = 2 * f0.hw * s; nh = 2 * f0.hh * s;
+    } else { nw = Math.min(3000, Math.max(8, nw)); nh = Math.min(3000, Math.max(8, nh)); }
+    const cxl = hd.sx ? -hd.sx * f0.hw + hd.sx * nw / 2 : 0, cyl = hd.sy ? -hd.sy * f0.hh + hd.sy * nh / 2 : 0, v = rot2(cxl, cyl, f0.th);
+    return { C: clampC([f0.C[0] + v[0], f0.C[1] + v[1]]), th: f0.th, hw: nw / 2, hh: nh / 2 };
+  }
+  function lassoMove(e){
+    const p = ptf(e), l = lz;
+    if(l.kind === "lasso"){ const q = l.path[l.path.length - 1]; if(Math.hypot(p[0] - q[0], p[1] - q[1]) >= 3 * unit() && l.path.length < 2000) l.path.push(p); drawOv(); return; }
+    l.last = p;
+    if(!l.moved){
+      if(Math.hypot(p[0] - l.start[0], p[1] - l.start[1]) < 4 * unit()) return;
+      l.moved = true; sel.bg = buildBg(); sel.live = true;
+      if(l.mode !== "move" && l.mode !== "rot") l.hd = handles(sel.f0, unit()).find(h => h.id === l.mode);
+      if(l.mode === "rot"){ const rh = handles(sel.f0, unit()).pop(); l.flip = rh.ry > 0; }
+    }
+    sel.f = nextFrame(l, p[0], p[1], e.shiftKey);
+    if(!l.raf) l.raf = requestAnimationFrame(() => { l.raf = 0; if(lz === l && sel && sel.live) drawPreview(); });
+  }
+  function lzCancel(){
+    if(lz && lz.raf) cancelAnimationFrame(lz.raf);
+    if(sel && sel.live){ sel.live = false; sel.f = cloneF(sel.f0); sel.bg = null; redraw(); }
+    lz = null; drawOv();
+  }
+  function lassoUp(){
+    const l = lz; lz = null; if(!l) return;
+    if(l.raf) cancelAnimationFrame(l.raf);
+    if(l.kind === "drag"){
+      if(l.moved) commitDrag();
+      else {
+        sel.live = false; sel.bg = null;
+        if(l.mode === "move"){ const h = topAt(l.last[0], l.last[1]); if(h && !sel.items.some(i => i.ref === h.id)) selectItems([h], []); else if(!h) clearSel(); }
+      }
+      drawOv(); return;
+    }
+    const path = l.path, u = unit(); let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    path.forEach(q => { x0 = Math.min(x0, q[0]); y0 = Math.min(y0, q[1]); x1 = Math.max(x1, q[0]); y1 = Math.max(y1, q[1]); });
+    if(x1 - x0 < 6 * u && y1 - y0 < 6 * u){ const h = topAt(path[0][0], path[0][1]); if(h) selectItems([h], []); else clearSel(); return; }
+    if(path.length < 3){ clearSel(); return; }
+    let picks = [], fills = [];
+    S.strokes.forEach(s => { if(s.t === "f"){ if(inPoly(s.p[0], s.p[1], path)) fills.push(s); } else if(sampleIn(s, path)) picks.push(s); });
+    if(!picks.length){ clearSel(); drawOv(); return; }                // a fill on its own is left alone
+    if(picks.length + fills.length > 300){ say("That's a lot. Selecting the first 300 things."); picks = picks.slice(0, 300); fills = fills.slice(0, Math.max(0, 300 - picks.length)); }
+    selectItems(picks, fills);
+  }
+
+  /* ---- applying a move / resize / rotate ---- */
+  function applyX(st, dels, adds, owner, nm){             // replace things on a board: remove some, add others (used by me and by everybody's messages)
+    let ch = false;
+    (dels || []).forEach(id => { if(!okId(id)) return; st.gone.add(id); if(st.byId.has(id)) ch = true; });
+    if(ch){ st.strokes = st.strokes.filter(s => !st.gone.has(s.id)); reindex(st); }
+    (adds || []).forEach(raw => {
+      const s = cleanStroke(raw); if(!s || s.ts <= st.clr || st.gone.has(s.id) || st.byId.has(s.id)) return;
+      if(owner){ s.o = owner; s.n = nm; }
+      addStroke(st, s); ch = true;
+    });
+    if(ch){ cap(st); if(st === S) redraw(); persistSoon(st); }
+    return ch;
+  }
+  function sendOps(dels, adds){                           // split into messages that are never too big
+    const dc = [], ac = []; let part = [], size = 0;
+    for(let i = 0; i < dels.length; i += 80) dc.push(dels.slice(i, i + 80));
+    adds.forEach(a => { const n = (a.im ? a.im.length : 0) + a.p.length * 7 + 200; if(part.length && (size + n > 380000 || part.length >= 40)){ ac.push(part); part = []; size = 0; } part.push(a); size += n; });
+    if(part.length) ac.push(part);
+    for(let i = 0; i < Math.max(dc.length, ac.length, 1); i++) sendD({ k: "x", del: dc[i] || [], add: ac[i] || [] });
+  }
+  const markId = () => "x" + mkId().slice(1);
+  const pushOp = (newIds, olds) => { const m = markId(); S.opHist.set(m, { newIds, olds }); S.mine.push(m); };
+  function commitDrag(){
+    const f0 = sel.f0, f1 = sel.f, M = mapOf(f0, f1), base = Date.now();
+    const items = sel.items.slice().sort((a, b) => a.s.ts - b.s.ts), adds = [], dels = [], olds = [], nit = [];
+    items.forEach((it, k) => {
+      const t = xform(it.s, M); t.id = mkId(); t.o = uid; t.n = usr; t.ts = base + k;
+      const c = cleanStroke(t); if(!c) return;
+      if(c.t === "i"){ const e = imgs.get(it.s.id); if(e) imgs.set(c.id, e); }
+      adds.push(c); dels.push(it.ref); olds.push(copyS(it.orig)); nit.push({ ref: c.id, s: c, orig: c, fill: false });
+    });
+    sel.live = false; sel.bg = null;
+    if(!adds.length){ redraw(); return; }
+    sel.items = nit; sel.f0 = cloneF(f1);
+    applyX(S, dels, adds, uid, usr); sendOps(dels, adds); pushOp(adds.map(a => a.id), olds);
+    S.redoS = []; persistSoon(S); updBtns(); drawOv();
+  }
+  function deleteSel(){
+    if(!sel || muteCheck()) return;
+    const dels = sel.items.map(i => i.ref), olds = sel.items.map(i => copyS(i.orig));
+    clearSel();
+    applyX(S, dels, [], uid, usr); sendOps(dels, []); pushOp([], olds); S.redoS = []; persistSoon(S); updBtns();
+  }
+  function remapId(a, b){ S.mine = S.mine.map(x => x === a ? b : x); S.opHist.forEach(h => { h.newIds = h.newIds.map(x => x === a ? b : x); }); }
+  function undoOp(h){
+    const live = h.newIds.filter(x => S.byId.has(x));
+    if(h.newIds.length && !live.length) return false;     // somebody else already changed those: nothing to undo
+    const back = h.olds.map(o => Object.assign(copyS(o), { id: mkId(), o: uid, n: usr }));
+    back.forEach((r, k) => remapId(h.olds[k].id, r.id));
+    S.redoS.push({ __op: 1, del: back.map(r => r.id), add: live.map(id => copyS(S.byId.get(id))) });
+    applyX(S, h.newIds, back, uid, usr); sendOps(h.newIds, back);
+    return true;
+  }
+  function redoOp(o){
+    const olds = o.del.map(id => S.byId.get(id)).filter(Boolean).map(copyS);
+    if(o.del.length && !olds.length) return;
+    const adds = o.add.map((s, k) => Object.assign(copyS(s), { id: mkId(), ts: Date.now() + k, o: uid, n: usr }));
+    applyX(S, o.del, adds, uid, usr); sendOps(o.del, adds); pushOp(adds.map(a => a.id), olds);
+  }
 
   /* ---------- fit the canvas to the pane (16:9) ---------- */
   function fit(){
@@ -5900,6 +6313,7 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     if(aw <= 0 || ah <= 0) return;
     const w = Math.max(120, Math.min(aw, ah * W / H));
     stage.style.width = w + "px"; stage.style.height = (w * H / W) + "px";
+    if(sel || lz) drawOv();
   }
   new ResizeObserver(fit).observe($$("dwrap")); fit();
 
@@ -8202,15 +8616,31 @@ body.in-tier #box,body.in-tier #typing,body.in-tier #replybar,body.in-tier #tray
   try { const s = JSON.parse(load("pb_tier", "")); if(s && typeof s.lists === "object") T = s; } catch(e){}
   let persistT = 0;
   const dbP = new Promise(res => { try { const r = indexedDB.open("purebred-board", 1); r.onupgradeneeded = () => r.result.createObjectStore("kv"); r.onsuccess = () => res(r.result); r.onerror = () => res(null); } catch(e){ res(null); } });
-  async function idbPut(str){
-    const db = await dbP;
-    if(!db){ save("pb_tier", str.length < 2000000 ? str : ""); return; }
-    try { db.transaction("kv", "readwrite").objectStore("kv").put(str, "tierlists"); try { localStorage.removeItem("pb_tier"); } catch(e){} } catch(e){}
+  async function idbPut(str, key){
+    const db = await dbP, k = key || "tierlists";
+    if(!db){ if(k === "tierlists" && str.length < 2000000) save("pb_tier", str); return; }
+    try {
+      const tx = db.transaction("kv", "readwrite"); tx.objectStore("kv").put(str, k);
+      tx.oncomplete = () => { if(k === "tierlists") try { localStorage.removeItem("pb_tier"); } catch(e){} };   // only forget the backup once the write really landed
+      const bad = () => { if(k === "tierlists" && str.length < 2000000) save("pb_tier", str); };
+      tx.onerror = bad; tx.onabort = bad;
+    } catch(e){ if(k === "tierlists" && str.length < 2000000) save("pb_tier", str); }
   }
-  dbP.then(db => { if(!db) return; try {
+  let idbDone = false, idbWait = [];
+  const whenLoaded = f => { if(idbDone) f(); else idbWait.push(f); };
+  const idbFinish = () => { idbDone = true; const q = idbWait; idbWait = []; q.forEach(f => { try { f(); } catch(e){} }); };
+  dbP.then(db => { if(!db){ idbFinish(); return; } try {
     const q = db.transaction("kv").objectStore("kv").get("tierlists");
-    q.onsuccess = () => { try { const s = JSON.parse(q.result || ""); if(s && typeof s.lists === "object" && !Object.keys(T.lists).length){ T = s; if(!T.lists[cur]) cur = Object.keys(T.lists)[0] || ""; schedule(); } } catch(e){} };
-  } catch(e){} });
+    q.onsuccess = () => { try {
+      const s = JSON.parse(q.result || "");
+      if(s && typeof s.lists === "object"){                  // MERGE (never skip): lists that arrived before the saved copy loaded must not hide it
+        Object.keys(s.lists).forEach(id => { if(!T.lists[id]) T.lists[id] = s.lists[id]; });
+        if(!T.lists[cur]) cur = Object.keys(T.lists)[0] || ""; schedule();
+      }
+    } catch(e){} idbFinish(); };
+    q.onerror = () => idbFinish();
+  } catch(e){ idbFinish(); } });
+  setTimeout(idbFinish, 3000);                              // never wait forever
   const cleanTiers = a => {
     if(!Array.isArray(a)) return null; const seen = new Set(), out = [];
     for(const t of a.slice(0, MAXT)){ if(!t || !okId(t.i) || seen.has(t.i)) continue; seen.add(t.i); out.push({ i: t.i, n: String(t.n == null ? "" : t.n).slice(0, 16), c: okHex(t.c) ? t.c : "#cccccc" }); }
@@ -8280,8 +8710,10 @@ body.in-tier #box,body.in-tier #typing,body.in-tier #replybar,body.in-tier #tray
   const broadcast = o => { const m = Object.assign({ t: "TL", i: newId() }, o); conns.forEach(c => { if(c.open && c.uid) try { c.send(m); } catch(e){} }); };
   function sendSnap(conn){
     const H = window.heavy || (f => f());
-    const lists = Object.values(T.lists).map(l => ({ id: l.id, n: l.n, by: l.by, u: l.u, tiers: l.tiers, ids: Object.keys(l.items) }));
-    H(() => { try { if(conn.open) conn.send({ t: "TL", i: newId(), k: "snap", lists }); } catch(e){} });
+    whenLoaded(() => {                                      // host: don't tell anyone "you have no lists" before its own saved lists are loaded
+      const lists = Object.values(T.lists).map(l => ({ id: l.id, n: l.n, by: l.by, u: l.u, tiers: l.tiers, ids: Object.keys(l.items) }));
+      H(() => { try { if(conn.open) conn.send({ t: "TL", i: newId(), k: "snap", lists }); } catch(e){} });
+    });
     /* pictures are NOT pushed on join any more (hundreds of them clogged the room for new people) - each person asks for the ones it is missing, see "want" */
   }
   function serveWant(d, from){                   // host: send back the pictures somebody asked for, a few at a time
@@ -8309,6 +8741,9 @@ body.in-tier #box,body.in-tier #typing,body.in-tier #replybar,body.in-tier #tray
   function applySnap(d){
     if(!Array.isArray(d.lists)) return;
     const keep = new Set();
+    if(Object.keys(T.lists).some(i => !d.lists.some(m => m && m.id === i))){     // the host's copy is about to remove lists from this device: keep a recoverable backup first
+      try { idbPut(JSON.stringify(T, (k, v) => k === "known" ? undefined : v), "tierlists_bak"); } catch(e){}
+    }
     d.lists.slice(0, MAXL).forEach(m => {
       if(!m || !okId(m.id)) return; keep.add(m.id);
       const tiers = cleanTiers(m.tiers) || defTiers();
@@ -8324,6 +8759,7 @@ body.in-tier #box,body.in-tier #typing,body.in-tier #replybar,body.in-tier #tray
   function hostOp(d, from){
     const who = from ? { uid: from.uid, name: String(from.userName || "").slice(0, 12), mod: isMod(from) } : { uid, name: usr, mod: isMod(null) };
     if(from){ const now = Date.now(); if(now - (from.tlAt || 0) < 100) return; from.tlAt = now; if(window.__pbMuted && window.__pbMuted(who.name, from)) return; }
+    if(!idbDone){ whenLoaded(() => { if(from) from.tlAt = 0; hostOp(d, from); }); return; }
     const o = norm(d, who);
     if(!o || !perm(o, who)){ if(from) sendSnap(from); return; }     // not allowed: put their screen back
     if(o.k === "ai") o.o = Date.now() + Math.random();
@@ -8722,7 +9158,7 @@ body.in-tier #box,body.in-tier #typing,body.in-tier #replybar,body.in-tier #tray
       toastEl.style.display = "none"; blobs = [b];
     }
     if(inTier()){ if(window.__tierAdd) window.__tierAdd(blobs, tierId || ""); return; }
-    if(curCh === "draw"){ toast("Pictures can't be dropped on the drawing board."); return; }
+    if(curCh === "draw"){ if(window.__pbBoardAddImage && blobs[0]) window.__pbBoardAddImage(blobs[0]); else toast("Pictures can't be dropped on the drawing board."); return; }
     if(curCh === "shame" && !(window.__pbIsMod && window.__pbIsMod(null))){ toast("Only mods and admins can post in the Hall of Shame."); return; }
     confirmSend(blobs);
   }
