@@ -828,8 +828,8 @@ function cleanGroup(g){
 }
 // a group icon is either one small emoji or a small square JPEG we made ourselves (never anything else)
 function okGIcon(ic){
-  if(typeof ic !== "string" || !ic || ic.length > 30000) return false;
-  if(ic.startsWith("data:")) return /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(ic);
+  if(typeof ic !== "string" || !ic || ic.length > 11000000) return false;
+  if(ic.startsWith("data:")) return /^data:image\/(jpeg|gif|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(ic);
   return ic.length <= 24 && /^(?:\p{Extended_Pictographic}|\p{Regional_Indicator}|[\u200d\ufe0f\u{1F3FB}-\u{1F3FF}])+$/u.test(ic);
 }
 function setGroupIcon(el, ic){
@@ -862,7 +862,7 @@ if(!uid){ uid = "u" + Date.now().toString(36) + Math.random().toString(36).slice
 const bstyle = {}; let myBc = "", myBi = "";
 const okUid = c => typeof c === "string" && /^[A-Za-z0-9_-]{1,40}$/.test(c) && c !== "__proto__";
 const okBc = c => typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c) ? c : "";
-const okBi = a => typeof a === "string" && a.length < 150000 && /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(a) ? a : "";
+const okBi = a => typeof a === "string" && a.length < 3000000 && /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(a) ? a : "";
 
 /* ---------- device (PC / mobile / tablet) ---------- */
 const DEVS = { pc: ["💻", "PC"], mobile: ["📱", "Mobile"], tablet: ["📱", "Tablet"] };
@@ -1035,7 +1035,7 @@ const avatars = {};
   Object.keys(FONT_MAP).forEach(k => { const o = document.createElement("option"); o.value = k; o.textContent = k; o.style.fontFamily = FONT_MAP[k]; sel.appendChild(o); });
 })();
 function okFont(f){ return typeof f === "string" && Object.prototype.hasOwnProperty.call(FONT_MAP, f) ? f : ""; }
-const AV_MAX = 300000;                                   // biggest profile picture / banner (characters of its data, ~220 KB): everyone in the room receives it
+const AV_MAX = 11000000;                                   // biggest profile picture / banner (characters of its data, ~8 MB file): everyone in the room receives it
 function okAv(a){ return typeof a === "string" && a.length < AV_MAX && /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(a) ? a : ""; }
 function paintAv(el, name){
   const a = avatars[name];
@@ -1046,7 +1046,7 @@ function refreshAvatars(){
   document.querySelectorAll(".msg[data-user]").forEach(w => { const a = w.querySelector(".av"); if(a) paintAv(a, w.dataset.user); });
   paintPfp();
 }
-function cacheAvatars(){ save("chat_avatars", JSON.stringify(avatars)); }
+function cacheAvatars(){ const o = {}; Object.keys(avatars).forEach(k => { if(avatars[k] && avatars[k].length < 250000) o[k] = avatars[k]; }); save("chat_avatars", JSON.stringify(o)); }   // huge GIFs are not kept in localStorage (its quota is small); the room sends them again
 function me(){ return { n: usr, a: myAvatar, d: myDevice, c: uid }; }
 function announce(){ if(isHost) pushRoster(); else send({ t: "P", u: usr, a: myAvatar, d: myDevice, c: uid, i: newId() }); }
 
@@ -1093,9 +1093,9 @@ function pushRoster(){
   const list = [me(), ...conns.filter(c => c.userName).map(c => ({ n: c.userName, a: c.avatar || "", d: c.device || "", c: c.uid || "" }))].filter((e, i, a) => a.findIndex(x => x.n === e.n && x.c === e.c) === i);
   renderOnline(list);
   let wire = list, size = 0; try { size = JSON.stringify(list).length; } catch(e){}
-  if(size > 780000){                                    // too many big GIF pictures for one message: leave out the biggest ones (people keep the ones they already have)
+  if(size > 20000000){                                    // too many big GIF pictures for one message: leave out the biggest ones (people keep the ones they already have)
     wire = list.map(e => Object.assign({}, e));
-    wire.filter(e => e.a).sort((x, y) => y.a.length - x.a.length).forEach(e => { if(size > 780000){ size -= e.a.length; e.a = ""; } });
+    wire.filter(e => e.a).sort((x, y) => y.a.length - x.a.length).forEach(e => { if(size > 20000000){ size -= e.a.length; e.a = ""; } });
   }
   send({ t: "R", i: newId(), list: wire });
 }
@@ -1238,7 +1238,7 @@ function gifPick(e, ok, use, tooBig, stillFn){
   r.readAsDataURL(f);
   return true;
 }
-$("pfpfile").onchange = e => { if(!gifPick(e, okAv, u => { draft.avatar = u; paintPfp(); renderPreview(); }, "That GIF is too big to animate for everyone (max ~220 KB) — using a still picture instead.", pfpStill)) pfpStill(e); };
+$("pfpfile").onchange = e => { if(!gifPick(e, okAv, u => { draft.avatar = u; paintPfp(); renderPreview(); }, "That GIF is too big to animate for everyone (max ~8 MB) — using a still picture instead.", pfpStill)) pfpStill(e); };
 const pfpStill = e => readImage(e, 80, 0.75, (u, cv) => {   // square crop for the profile picture
   const im = new Image();
   im.onload = () => {
@@ -1252,7 +1252,7 @@ const bubStill = e => readImage(e, 240, 0.6, u => {
   if(!okBi(u)){ $("stgerr").textContent = "That bubble image is too detailed — try a simpler one."; return; }
   draft.bi = u; renderPreview();
 });
-$("bimgfile").onchange = e => { if(!gifPick(e, okBi, u => { draft.bi = u; renderPreview(); }, "That GIF is too big to animate (max ~110 KB) — using a still picture instead.", bubStill)) bubStill(e); };
+$("bimgfile").onchange = e => { if(!gifPick(e, okBi, u => { draft.bi = u; renderPreview(); }, "That GIF is too big to animate (max ~2 MB) — using a still picture instead.", bubStill)) bubStill(e); };
 function wallPick(u){ draft.wallBlob = null; draft.wallImg = u; draft.wallKind = "image"; draft.wallImgCol = ""; renderPreview(); dominantColor(u, c => { if(draft && draft.wallImg === u){ draft.wallImgCol = c; renderPreview(); } }); }
 $("wfile").onchange = e => {
   const f = e.target.files[0];
@@ -2589,6 +2589,11 @@ $("gicup").onclick = () => $("gicfile").click();
 $("gicfile").onchange = ev => {
   const f = ev.target.files && ev.target.files[0]; ev.target.value = "";
   if(!f || !/^image\//.test(f.type)) return;
+  if(f.type === "image/gif"){                      // keep GIFs as they are so they stay animated
+    const fr = new FileReader();
+    fr.onload = e2 => { const u = String(e2.target.result); if(okGIcon(u)){ gmIcon = u; $("gicon").value = ""; updIcPrev(); $("gerr2").textContent = ""; } else $("gerr2").textContent = "That GIF is too big (max ~8 MB)."; };
+    fr.readAsDataURL(f); return;
+  }
   const url = URL.createObjectURL(f), im = new Image();
   im.onload = () => {
     const c = document.createElement("canvas"); c.width = c.height = 96; const x = c.getContext("2d");
@@ -3742,8 +3747,8 @@ label.plus.open{transform:rotate(45deg)}
   const own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k)?o[k]:"";
 
   /* =============== shared registry: protected names, bans, last chat-clear =============== */
-  const okCImg=x=>typeof x==="string"&&x.length<=40000&&/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+\/=]+$/.test(x);   // custom emoji / sticker pictures
-  const okTImg=x=>typeof x==="string"&&x.length<=40000&&/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+\/=]+$/.test(x);   // room icons: small png/jpeg/webp pictures only
+  const okCImg=x=>typeof x==="string"&&x.length<=4000000&&/^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(x);   // custom emoji / sticker pictures
+  const okTImg=x=>typeof x==="string"&&x.length<=11000000&&/^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(x);   // room icons: small png/jpeg/webp pictures only
   function cleanReg(r){
     const o={acc:{},bans:[],mutes:[],mods:[],adms:[],hid:[],mto:false,mao:false,tn:{},ce:{},cls:0,clr:0,clg:0,clp:0,muteAll:false,v:0}; if(!r||typeof r!=="object") return o;
     if(r.acc&&typeof r.acc==="object") Object.keys(r.acc).slice(0,500).forEach(k=>{ if(k&&k.length<=12&&k!=="__proto__"&&HEX.test(String(r.acc[k]))) o.acc[k]=r.acc[k]; });
@@ -3759,7 +3764,7 @@ label.plus.open{transform:rotate(45deg)}
         const x=r.tn[k];
         if(x&&typeof x==="object"){
           const n=String(x.n||"").trim().slice(0,24), i=String(x.i||"").trim().slice(0,8);
-          let im=okTImg(x.im)?x.im:""; if(im&&tot+im.length>160000) im=""; tot+=im.length;
+          let im=okTImg(x.im)?x.im:""; if(im&&tot+im.length>20000000) im=""; tot+=im.length;
           if(n||i||im) o.tn[k]={n,i,im};
         }
       });
@@ -3767,7 +3772,7 @@ label.plus.open{transform:rotate(45deg)}
     if(r.ce&&typeof r.ce==="object"){
       let tot=0;
       Object.keys(r.ce).slice(0,150).forEach(k=>{
-        const x=r.ce[k]; if(!/^[a-z0-9_]{2,20}$/.test(k)||!x||typeof x!=="object"||!okCImg(x.im)||tot+x.im.length>2000000) return;
+        const x=r.ce[k]; if(!/^[a-z0-9_]{2,20}$/.test(k)||!x||typeof x!=="object"||!okCImg(x.im)||tot+x.im.length>20000000) return;
         tot+=x.im.length; o.ce[k]={k:x.k==="s"?"s":"e",im:x.im,by:String(x.by||"").slice(0,12).toLowerCase()};
       });
     }
@@ -4084,7 +4089,7 @@ label.plus.open{transform:rotate(45deg)}
     const wd=isFinite(+p.wd)?Math.max(0,Math.min(90,+p.wd)):30;
     return {th:S(p.th,12),wk:["none","color","image"].includes(p.wk)?p.wk:"none",wc:hex(p.wc)?p.wc:"#000000",wd:String(wd),
       wi:okImg(p.wi,900000)?p.wi:"",wic:hex(p.wic)?p.wic:"",hh:!!p.hh,hs:!!p.hs,ft:S(p.ft,30),bc:S(p.bc,20),
-      bi:okImg(p.bi,150000)?p.bi:"",av:okImg(p.av,300000)?p.av:"",ts};
+      bi:okImg(p.bi,3000000)?p.bi:"",av:okImg(p.av,11000000)?p.av:"",ts};
   }
   function persistPrefs(){
     const ks=Object.keys(prefsDB); if(ks.length>40) ks.sort((a,b)=>prefsDB[a].ts-prefsDB[b].ts).slice(0,ks.length-40).forEach(k=>delete prefsDB[k]);
@@ -4754,7 +4759,9 @@ label.plus.open{transform:rotate(45deg)}
 
     const host=$("amtn"), inp={}, imgs={};
     function showImg(k){ const d=imgs[k]||""; const p=inp[k]&&inp[k].pv; if(!p) return; if(d){ p.src=d; p.style.display=""; inp[k].xb.style.display=""; } else { p.removeAttribute("src"); p.style.display="none"; inp[k].xb.style.display="none"; } }
+    function gifKeep(f,cb,ok){ if(!(f&&(f.type==="image/gif"||/\.gif$/i.test(f.name||"")))) return false; const r=new FileReader(); r.onload=e=>{ const d=String(e.target.result); cb(ok(d)?d:""); }; r.readAsDataURL(f); return true; }
     function tabImgFrom(f,cb){                       // crop to a small square, keep transparency, stay under the size limit
+      if(gifKeep(f,cb,okTImg)) return;               // GIFs stay as they are so they keep moving
       const url=URL.createObjectURL(f), im=new Image();
       im.onload=()=>{
         URL.revokeObjectURL(url);
@@ -4878,6 +4885,7 @@ label.plus.open{transform:rotate(45deg)}
     };
 
     function ceImg(f,type,cb){
+      if(gifKeep(f,cb,okCImg)) return;
       const url=URL.createObjectURL(f), im=new Image();
       im.onload=()=>{
         URL.revokeObjectURL(url);
@@ -6768,7 +6776,9 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
   const SLOTS = 6;                                  // room 0 is the normal room; 1..5 are standbys
   const slotRoom = k => k ? ROOM_ID + "-r" + (k + 1) : ROOM_ID;
   const hubUrl = k => BASE + "?room=" + encodeURIComponent(slotRoom(k));
-  const MAX_FRAME = 900000;
+  const MAX_FRAME = 900000;      // biggest single WebSocket frame
+  const MAX_MSG = 24000000;       // biggest whole message (big GIFs are split into frames and put back together)
+  const CHUNK = 600000, rx = new WeakMap();
   const GHOST_MS = 4000;       // connected, but the host never said a word
   const HELLO_MS = 6000;       // relay accepted nothing at all
   const PROBE_MS = 1500;       // looking for a live room next door
@@ -6793,7 +6803,12 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
       send(d){
         if(!c.open) return;
         let s; try { s = JSON.stringify(d); } catch(e){ return; }
-        if(s.length > MAX_FRAME){ try { sys("A message was too big to send."); } catch(e){} return; }
+        if(s.length > MAX_MSG){ try { sys("A message was too big to send."); } catch(e){} return; }
+        if(s.length > MAX_FRAME){
+          const id = Math.random().toString(36).slice(2, 10), n = Math.ceil(s.length / CHUNK);
+          for(let k = 0; k < n; k++){ try { sendRaw(JSON.stringify({ t: "CK", i: id, n, k, p: s.slice(k * CHUNK, (k + 1) * CHUNK) })); } catch(e){} }
+          return;
+        }
         try { sendRaw(s); } catch(e){}
       },
       close(){ if(!c.open) return; c.open = false; try { closeRaw(); } catch(e){} c.emit("close"); }
@@ -6809,6 +6824,14 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
   }
 
   function parse(s){ try { return JSON.parse(s); } catch(e){ return null; } }
+  function unchunk(c, d){                          // put a split message back together (returns the whole message, or null while parts are missing)
+    if(!c || !d || d.t !== "CK" || typeof d.p !== "string" || typeof d.i !== "string" || !(d.n > 0) || !(d.k >= 0) || d.k >= d.n || d.n > 80) return null;
+    let m = rx.get(c); if(!m){ m = {}; rx.set(c, m); }
+    let e = m[d.i]; if(!e){ if(Object.keys(m).length > 6) m = {}; rx.set(c, m); e = m[d.i] = { n: d.n, got: 0, a: [] }; }
+    if(e.a[d.k] === undefined){ e.a[d.k] = d.p; e.got++; }
+    if(e.got < e.n) return null;
+    delete m[d.i]; return parse(e.a.join(""));
+  }
 
   /* ---- look at another room without joining it: "live" (a host answered), "free" (nobody there),
           "ghost" (a host is seated but silent) or "fail" ---- */
@@ -6929,6 +6952,7 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
         const nl = rest.indexOf("\n"); if(nl < 0) return;
         const c = hostConns.get(rest.slice(0, nl)), d = parse(rest.slice(nl + 1));
         if(d && d.t === "PG"){ if(c && c.open) c.send({ t: "PO", i: "po" }); return; }    // "are you alive?" - answered right here
+        if(d && d.t === "CK"){ if(!(c && c.open)) return; d = unchunk(c, d); }
         if(c && c.open && d) c.emit("data", d);
       } else {
         lastRx = Date.now();
@@ -6939,7 +6963,8 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
           startWatchdog(); clientConn.emit("open");
         }
         if(d.t === "PO") return;
-        if(clientConn && clientConn.open) clientConn.emit("data", d);
+        let dd = d; if(d.t === "CK") dd = unchunk(clientConn || pendingC, d);
+        if(dd && clientConn && clientConn.open) clientConn.emit("data", dd);
       }
     }
   }
@@ -7838,10 +7863,10 @@ body[data-theme="ios6"] #replybar *,body[data-theme="ios6"] #dmbar *{color:inher
   const KEY="pb_prof", $p=id=>document.getElementById(id);
   const hex=c=>/^#[0-9a-f]{6}$/i.test(c||"")?c:"";
   const txt=(t,n)=>String(t==null?"":t).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,"").slice(0,n);
-  const clean=p=>({ bio:txt(p&&p.bio,190), pr:txt(p&&p.pr,20).replace(/\n/g," "), st:txt(p&&p.st,40).replace(/\n/g," "), bn:hex(p&&p.bn), bi:(p&&typeof p.bi==="string"&&p.bi.length<300000&&/^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(p.bi))?p.bi:"", v:Math.max(0,+(p&&p.v)||0) });
+  const clean=p=>({ bio:txt(p&&p.bio,190), pr:txt(p&&p.pr,20).replace(/\n/g," "), st:txt(p&&p.st,40).replace(/\n/g," "), bn:hex(p&&p.bn), bi:(p&&typeof p.bi==="string"&&p.bi.length<11000000&&/^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(p.bi))?p.bi:"", v:Math.max(0,+(p&&p.v)||0) });
   let profs={};
   try{ const c=JSON.parse(localStorage.getItem(KEY)||"{}"); Object.keys(c).forEach(k=>{ if(okUid(k)) profs[k]=clean(c[k]); }); }catch(e){}
-  const keep=()=>{ try{ localStorage.setItem(KEY,JSON.stringify(profs)); }catch(e){} };
+  const keep=()=>{ try{ const o={}; Object.keys(profs).forEach(k=>{ o[k]=Object.assign({},profs[k]); if(o[k].bi&&o[k].bi.length>250000) o[k].bi=""; }); localStorage.setItem(KEY,JSON.stringify(o)); }catch(e){} };
   function take(c,p){ if(!okUid(c)||!p||typeof p!=="object") return false; p=clean(p); if(profs[c]&&profs[c].v>=p.v) return false; profs[c]=p; keep(); return true; }
 
   /* ---- sync (host is the referee: you can only change your own) ---- */
@@ -7863,7 +7888,7 @@ body[data-theme="ios6"] #replybar *,body[data-theme="ios6"] #dmbar *{color:inher
       if(isHost&&from&&from.ok2&&from.uid&&!from.pfSent){
         from.pfSent=1;                                              // sent in several messages so big GIF banners can't push one over the size limit
         let batch={},sz=0,n=0; const out=()=>{ from.send({t:"PFS",i:newId(),all:batch}); batch={}; sz=0; n=0; };
-        Object.keys(profs).forEach(k=>{ const w=JSON.stringify(profs[k]).length+80; if(n&&sz+w>600000) out(); batch[k]=profs[k]; sz+=w; n++; });
+        Object.keys(profs).forEach(k=>{ const w=JSON.stringify(profs[k]).length+80; if(n&&sz+w>20000000) out(); batch[k]=profs[k]; sz+=w; n++; });
         out();
       }
       else if(!isHost&&d&&(d.t==="P"||d.t==="R")&&profs[uid]&&!window.__pfOut){ window.__pfOut=1; send({t:"PF",i:newId(),c:uid,p:profs[uid]}); setTimeout(()=>{ window.__pfOut=0; },3000); }
@@ -7915,7 +7940,7 @@ body[data-theme="ios6"] #replybar *,body[data-theme="ios6"] #dmbar *{color:inher
       ib.onclick=()=>fi.click(); ix.onclick=()=>{ dbi=""; keepDraft(); paint(); };
       fi.onchange=()=>{ const f=fi.files[0]; if(!f) return;
         if(f.type==="image/gif"||/\.gif$/i.test(f.name)){            // GIFs stay GIFs so they keep moving (as long as they are small enough to send to everyone)
-          const gr=new FileReader(); gr.onload=ge=>{ if(String(ge.target.result).length<300000){ dbi=ge.target.result; keepDraft(); paint(); } else { sys("That GIF is too big to animate as a banner (max ~220 KB) — using a still picture instead."); still(f); } }; gr.readAsDataURL(f); return;
+          const gr=new FileReader(); gr.onload=ge=>{ if(String(ge.target.result).length<11000000){ dbi=ge.target.result; keepDraft(); paint(); } else { sys("That GIF is too big to animate as a banner (max ~8 MB) — using a still picture instead."); still(f); } }; gr.readAsDataURL(f); return;
         }
         still(f); };
       function still(f){ const r=new FileReader(); r.onload=ev=>{ const im=new Image(); im.onload=()=>{
