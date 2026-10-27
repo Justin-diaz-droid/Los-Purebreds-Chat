@@ -675,7 +675,7 @@ html.px-on #gate{visibility:hidden!important}
     <a class="goback" href="https://docs.google.com/document/d/1oa90mU-jYczqySulirTvHqqNWTSaNwPGnnArgBdVGrs/edit?tab=t.pqncc0vmsgzp" rel="noopener">← Go back</a>
   </div>
     <div id="gver">Version 2.5</div>
-  <label class="fld" id="g-themefld"><span>Themes</span><select id="g-theme"><option value="imessage">iMessage</option><option value="ios6">iOS 6</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option><option value="material">Material You (Android)</option><option value="terminal">Terminal</option><option value="simple">Simple</option><option value="glass">Liquid Glass</option><option value="win95">Windows 95</option><option value="winxp">Windows XP</option></select></label>
+  <label class="fld" id="g-themefld"><span>Themes</span><select id="g-theme"><option value="imessage">iMessage</option><option value="ios6">iOS 6</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option><option value="material">Material 3 Expressive</option><option value="kitkat">Android 4.4 KitKat</option><option value="terminal">Terminal</option><option value="simple">Simple</option><option value="glass">Liquid Glass</option><option value="win95">Windows 95</option><option value="winxp">Windows XP</option></select></label>
 </div>
 
 <div id="sb">
@@ -728,7 +728,7 @@ html.px-on #gate{visibility:hidden!important}
       </div>
       <div class="stg-card"><h3>🎨 Appearance</h3>
         <label>Theme</label>
-        <select id="theme"><option value="imessage">iMessage</option><option value="ios6">iOS 6</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option><option value="material">Material You (Android)</option><option value="terminal">Terminal</option><option value="simple">Simple</option><option value="glass">Liquid Glass</option><option value="win95">Windows 95</option><option value="winxp">Windows XP</option></select>
+        <select id="theme"><option value="imessage">iMessage</option><option value="ios6">iOS 6</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option><option value="material">Material 3 Expressive</option><option value="kitkat">Android 4.4 KitKat</option><option value="terminal">Terminal</option><option value="simple">Simple</option><option value="glass">Liquid Glass</option><option value="win95">Windows 95</option><option value="winxp">Windows XP</option></select>
         <label>Wallpaper &amp; accent color (also tints top bar, message bar &amp; left bar)</label><input type="color" id="wcol" value="#000000">
         <label>Wallpaper image (syncs to your other devices)</label>
         <div class="stg-row"><button id="wimg" type="button" class="btn">Choose image</button><button id="wreset" type="button" class="btn alt">Reset wallpaper</button><input type="file" id="wfile" accept="image/*" style="display:none"></div>
@@ -814,9 +814,9 @@ let usr = "User", peer = null, conns = [], isHost = false, logs = [];
 /* private DM state */
 let dmWith = "", dmNm = "", chipT = null;
 let seen = {}; try { seen = JSON.parse(load("dm_seen", "{}")) || {}; } catch(e){ seen = {}; }
-const PH = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage",ios6:"iMessage",material:"Text message",terminal:"enter message…",simple:"Message",glass:"Message",win95:"Type a message",winxp:"Type a message"};
-const THEMES = ["imessage","ios6","discord","whatsapp","tiktok","roblox","instagram","twitter","material","terminal","simple","glass","win95","winxp"];
-const CHNAME = {discord:"# purebred-chat",whatsapp:"WhatsApp Group",tiktok:"TikTok Inbox",roblox:"Roblox Chat",instagram:"Instagram Direct",twitter:"Twitter Messages",imessage:"iMessage Channel",ios6:"Messages",material:"Messages",terminal:"/dev/purebred",simple:"Messages",glass:"Messages",win95:"Messages",winxp:"Messenger"};
+const PH = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage",ios6:"iMessage",material:"Text message",kitkat:"Type a message",terminal:"enter message…",simple:"Message",glass:"Message",win95:"Type a message",winxp:"Type a message"};
+const THEMES = ["imessage","ios6","discord","whatsapp","tiktok","roblox","instagram","twitter","material","kitkat","terminal","simple","glass","win95","winxp"];
+const CHNAME = {discord:"# purebred-chat",whatsapp:"WhatsApp Group",tiktok:"TikTok Inbox",roblox:"Roblox Chat",instagram:"Instagram Direct",twitter:"Twitter Messages",imessage:"iMessage Channel",ios6:"Messages",material:"Messages",kitkat:"Hangouts",terminal:"/dev/purebred",simple:"Messages",glass:"Messages",win95:"Messages",winxp:"Messenger"};
 let draft = null, stgOpen = false, pvLoaded = false, pvq = 0;
 const shownKeys = new Set();
 let groups = {};
@@ -828,7 +828,7 @@ function cleanGroup(g){
 }
 // a group icon is either one small emoji or a small square JPEG we made ourselves (never anything else)
 function okGIcon(ic){
-  if(typeof ic !== "string" || !ic || ic.length > 11000000) return false;
+  if(typeof ic !== "string" || !ic || ic.length > 4600000) return false;
   if(ic.startsWith("data:")) return /^data:image\/(jpeg|gif|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(ic);
   return ic.length <= 24 && /^(?:\p{Extended_Pictographic}|\p{Regional_Indicator}|[\u200d\ufe0f\u{1F3FB}-\u{1F3FF}])+$/u.test(ic);
 }
@@ -877,11 +877,11 @@ const myDevice = detectDevice();
 
 /* ---------- theme ---------- */
 function setTheme(t){
-  if(!["imessage","ios6","discord","whatsapp","tiktok","roblox","instagram","twitter","material","terminal","simple","glass","win95","winxp"].includes(t)) t = "imessage";
+  if(!["imessage","ios6","discord","whatsapp","tiktok","roblox","instagram","twitter","material","kitkat","terminal","simple","glass","win95","winxp"].includes(t)) t = "imessage";
   document.body.dataset.theme = t;
   $("theme").value = t; $("g-theme").value = t;
-  $("chname").textContent = {discord:"# purebred-chat",whatsapp:"WhatsApp Group",tiktok:"TikTok Inbox",roblox:"Roblox Chat",instagram:"Instagram Direct",twitter:"Twitter Messages",imessage:"iMessage Channel",ios6:"Messages",material:"Messages",terminal:"/dev/purebred",simple:"Messages",glass:"Messages",win95:"Messages",winxp:"Messenger"}[t];
-  $("inp").placeholder = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage",ios6:"iMessage",material:"Text message",terminal:"enter message…",simple:"Message",glass:"Message",win95:"Type a message",winxp:"Type a message"}[t];
+  $("chname").textContent = {discord:"# purebred-chat",whatsapp:"WhatsApp Group",tiktok:"TikTok Inbox",roblox:"Roblox Chat",instagram:"Instagram Direct",twitter:"Twitter Messages",imessage:"iMessage Channel",ios6:"Messages",material:"Messages",kitkat:"Hangouts",terminal:"/dev/purebred",simple:"Messages",glass:"Messages",win95:"Messages",winxp:"Messenger"}[t];
+  $("inp").placeholder = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage",ios6:"iMessage",material:"Text message",kitkat:"Type a message",terminal:"enter message…",simple:"Message",glass:"Message",win95:"Type a message",winxp:"Type a message"}[t];
   save("chat_theme", t); if(curCh === "dm") updateDmBar();
   applyWall();
   restyleAll();
@@ -1035,7 +1035,7 @@ const avatars = {};
   Object.keys(FONT_MAP).forEach(k => { const o = document.createElement("option"); o.value = k; o.textContent = k; o.style.fontFamily = FONT_MAP[k]; sel.appendChild(o); });
 })();
 function okFont(f){ return typeof f === "string" && Object.prototype.hasOwnProperty.call(FONT_MAP, f) ? f : ""; }
-const AV_MAX = 11000000;                                   // biggest profile picture / banner (characters of its data, ~8 MB file): everyone in the room receives it
+const AV_MAX = 4600000;                                   // biggest profile picture / banner (characters of its data, ~3.4 MB file): everyone in the room receives it
 function okAv(a){ return typeof a === "string" && a.length < AV_MAX && /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(a) ? a : ""; }
 function paintAv(el, name){
   const a = avatars[name];
@@ -1092,12 +1092,21 @@ function pushRoster(){
   if(!isHost) return;
   const list = [me(), ...conns.filter(c => c.userName).map(c => ({ n: c.userName, a: c.avatar || "", d: c.device || "", c: c.uid || "" }))].filter((e, i, a) => a.findIndex(x => x.n === e.n && x.c === e.c) === i);
   renderOnline(list);
-  let wire = list, size = 0; try { size = JSON.stringify(list).length; } catch(e){}
-  if(size > 20000000){                                    // too many big GIF pictures for one message: leave out the biggest ones (people keep the ones they already have)
-    wire = list.map(e => Object.assign({}, e));
-    wire.filter(e => e.a).sort((x, y) => y.a.length - x.a.length).forEach(e => { if(size > 20000000){ size -= e.a.length; e.a = ""; } });
-  }
+  const wire = list.map(e => (e.a && e.a.length > INLINE_MAX) ? Object.assign({}, e, { a: "" }) : e);   // big GIF pictures are not squeezed into the join/roster message: they follow one at a time (see queueBig)
+  conns.forEach(c => { if(!c.open || !c.userName) return; c.sentBig = c.sentBig || {};
+    list.forEach(e => { if(e.a && e.a.length > INLINE_MAX && e.n !== c.userName && c.sentBig[e.n] !== e.a.length){ c.sentBig[e.n] = e.a.length; queueBig(c, { t: "AVB", i: newId(), n: e.n, a: e.a }); } }); });
   send({ t: "R", i: newId(), list: wire });
+}
+const INLINE_MAX = 60000;                              // pictures bigger than this (characters) are sent on their own, slowly, after the join
+function queueBig(c, msg){
+  c.bigQ = c.bigQ || []; c.bigQ.push(msg);
+  if(c.bigRun) return; c.bigRun = true;
+  const step = () => {
+    if(!c.open || !c.bigQ || !c.bigQ.length){ c.bigRun = false; return; }
+    if((window.__hubBuf ? window.__hubBuf() : 0) > 400000){ setTimeout(step, 600); return; }   // the connection is still busy: wait
+    c.send(c.bigQ.shift()); setTimeout(step, 1200);
+  };
+  setTimeout(step, 8000);                                // let the person finish joining first
 }
 
 /* ---------- startup ---------- */
@@ -1238,7 +1247,7 @@ function gifPick(e, ok, use, tooBig, stillFn){
   r.readAsDataURL(f);
   return true;
 }
-$("pfpfile").onchange = e => { if(!gifPick(e, okAv, u => { draft.avatar = u; paintPfp(); renderPreview(); }, "That GIF is too big to animate for everyone (max ~8 MB) — using a still picture instead.", pfpStill)) pfpStill(e); };
+$("pfpfile").onchange = e => { if(!gifPick(e, okAv, u => { draft.avatar = u; paintPfp(); renderPreview(); }, "That GIF is too big to animate for everyone (max ~3.4 MB) — using a still picture instead.", pfpStill)) pfpStill(e); };
 const pfpStill = e => readImage(e, 80, 0.75, (u, cv) => {   // square crop for the profile picture
   const im = new Image();
   im.onload = () => {
@@ -1271,7 +1280,7 @@ const wallPickStatic = e => readImage(e, 1280, 0.8, u => { draft.wallBlob = null
 
 const doSaveSettings = () => {
   if(!draft) return;
-  const d = draft, old = usr, oldAv = myAvatar;
+  const d = draft, old = usr, oldAv = myAvatar, oldFont = myFont, oldTheme = document.body.dataset.theme;
   if(d.wallKind === "image" && d.wallImg){
     if(d.wallBlob && /^blob:/.test(d.wallImg)){                    // a big GIF picked just now: store the file in IndexedDB, remember only a marker
       const blob = d.wallBlob;
@@ -1289,10 +1298,12 @@ const doSaveSettings = () => {
   myFont = okFont(d.font); save("chat_font", myFont); $("inp").style.fontFamily = FONT_MAP[myFont] || "";
   usr = (d.name.trim() || usr).slice(0, 12); save("chat_usr", usr); updateYou();
   myAvatar = okAv(d.avatar); save("chat_pfp", myAvatar);
-  if(myAvatar) avatars[usr] = myAvatar; else delete avatars[usr]; cacheAvatars();
+  if(myAvatar) avatars[usr] = myAvatar; else delete avatars[usr];
+  if(myAvatar !== oldAv || usr !== old) cacheAvatars();   // re-serialising every avatar is slow: only when one changed
   const bChanged = d.bc !== myBc || d.bi !== myBi;
   myBc = d.bc; myBi = d.bi; save("chat_bc", myBc); save("chat_bi", myBi);
-  setTheme(d.theme); applyBars(); rerender(); refreshAvatars();
+  setTheme(d.theme); applyBars();
+  if(usr !== old || myAvatar !== oldAv || myFont !== oldFont || d.theme !== oldTheme){ rerender(); refreshAvatars(); }   // rebuilding the whole chat is slow: skip it for wallpaper / colour-only changes
   if(bChanged) setMyStyle();
   if(usr !== old){ send({ t: "N", u: old, b: usr, i: newId() }); sys("You changed your name to " + usr + "."); }
   else sys("Settings saved.");
@@ -2591,7 +2602,7 @@ $("gicfile").onchange = ev => {
   if(!f || !/^image\//.test(f.type)) return;
   if(f.type === "image/gif"){                      // keep GIFs as they are so they stay animated
     const fr = new FileReader();
-    fr.onload = e2 => { const u = String(e2.target.result); if(okGIcon(u)){ gmIcon = u; $("gicon").value = ""; updIcPrev(); $("gerr2").textContent = ""; } else $("gerr2").textContent = "That GIF is too big (max ~8 MB)."; };
+    fr.onload = e2 => { const u = String(e2.target.result); if(okGIcon(u)){ gmIcon = u; $("gicon").value = ""; updIcPrev(); $("gerr2").textContent = ""; } else $("gerr2").textContent = "That GIF is too big (max ~3.4 MB)."; };
     fr.readAsDataURL(f); return;
   }
   const url = URL.createObjectURL(f), im = new Image();
@@ -3748,7 +3759,7 @@ label.plus.open{transform:rotate(45deg)}
 
   /* =============== shared registry: protected names, bans, last chat-clear =============== */
   const okCImg=x=>typeof x==="string"&&x.length<=4000000&&/^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(x);   // custom emoji / sticker pictures
-  const okTImg=x=>typeof x==="string"&&x.length<=11000000&&/^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(x);   // room icons: small png/jpeg/webp pictures only
+  const okTImg=x=>typeof x==="string"&&x.length<=4600000&&/^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(x);   // room icons: small png/jpeg/webp pictures only
   function cleanReg(r){
     const o={acc:{},bans:[],mutes:[],mods:[],adms:[],hid:[],mto:false,mao:false,tn:{},ce:{},cls:0,clr:0,clg:0,clp:0,muteAll:false,v:0}; if(!r||typeof r!=="object") return o;
     if(r.acc&&typeof r.acc==="object") Object.keys(r.acc).slice(0,500).forEach(k=>{ if(k&&k.length<=12&&k!=="__proto__"&&HEX.test(String(r.acc[k]))) o.acc[k]=r.acc[k]; });
@@ -4089,7 +4100,7 @@ label.plus.open{transform:rotate(45deg)}
     const wd=isFinite(+p.wd)?Math.max(0,Math.min(90,+p.wd)):30;
     return {th:S(p.th,12),wk:["none","color","image"].includes(p.wk)?p.wk:"none",wc:hex(p.wc)?p.wc:"#000000",wd:String(wd),
       wi:okImg(p.wi,900000)?p.wi:"",wic:hex(p.wic)?p.wic:"",hh:!!p.hh,hs:!!p.hs,ft:S(p.ft,30),bc:S(p.bc,20),
-      bi:okImg(p.bi,3000000)?p.bi:"",av:okImg(p.av,11000000)?p.av:"",ts};
+      bi:okImg(p.bi,3000000)?p.bi:"",av:okImg(p.av,4600000)?p.av:"",ts};
   }
   function persistPrefs(){
     const ks=Object.keys(prefsDB); if(ks.length>40) ks.sort((a,b)=>prefsDB[a].ts-prefsDB[b].ts).slice(0,ks.length-40).forEach(k=>delete prefsDB[k]);
@@ -4105,6 +4116,12 @@ label.plus.open{transform:rotate(45deg)}
   const collectPrefs=()=>({th:load("chat_theme","imessage"),wk:load("wall_kind","none"),wc:load("wall_color","#000000"),wd:load("wall_dim","30"),
     wi:load("wall_kind","none")==="image"&&/^data:/.test(load("wall_img",""))?load("wall_img",""):"",wic:load("wall_img_col",""),hh:load("hide_hdr","0")==="1",hs:load("hide_sb","0")==="1",
     ft:myFont||"",bc:myBc||"",bi:myBi||"",av:myAvatar||""});
+  const sigStr=v=>v?(v.length+":"+v.slice(0,48)+v.slice(-48)):"";
+  const prefsSig=()=>{                          // cheap "did my look change?" fingerprint (no multi-MB JSON every 2 s)
+    const wk=load("wall_kind","none"), wi=wk==="image"?load("wall_img",""):"";
+    return [load("chat_theme","imessage"),wk,load("wall_color","#000000"),load("wall_dim","30"),/^data:/.test(wi)?sigStr(wi):"",load("wall_img_col",""),
+      load("hide_hdr","0"),load("hide_sb","0"),myFont||"",myBc||"",sigStr(myBi),sigStr(myAvatar)].join("|");
+  };
   function pushPrefs(){
     const m={t:"PS",i:newId(),ts:pts,p:collectPrefs()};
     try{ if(JSON.stringify(m).length>850000) m.p.wi=""; }catch(e){}      // never let the wallpaper make the whole message too big to send
@@ -4124,13 +4141,13 @@ label.plus.open{transform:rotate(45deg)}
     const oldAv=myAvatar; myAvatar=okAv(p.av); save("chat_pfp",myAvatar); if(myAvatar) avatars[usr]=myAvatar; else delete avatars[usr]; cacheAvatars();
     const bch=(p.bc||"")!==myBc||(p.bi||"")!==myBi; myBc=p.bc||""; myBi=okBi(p.bi)?p.bi:""; save("chat_bc",myBc); save("chat_bi",myBi);
     setTheme(p.th); applyBars(); rerender(); refreshAvatars(); if(bch) setMyStyle(); if(myAvatar!==oldAv) announce();
-    pts=ts; save("pb_pts",String(ts)); lastJSON=JSON.stringify(collectPrefs());
+    pts=ts; save("pb_pts",String(ts)); lastJSON=prefsSig();
     sys("🔄 Your theme & wallpaper were synced from your other device.");
   }
   setInterval(()=>{                            // watch for changes on this device and share them
     if(document.hidden||$("gate").style.display!=="none"||window.__entering||!peer) return;
     if(window.__pbResync){ if(!isHost&&!conns.some(c=>c.open)) return; window.__pbResync=false; lastJSON=null; }   // new host: share my look again
-    const cur=JSON.stringify(collectPrefs());
+    const cur=prefsSig();
     if(lastJSON===null){                       // first look after joining: upload what this device already had
       lastJSON=cur;
       if(!pts){ const c=collectPrefs(); if(c.wk!=="none"||c.th!=="imessage"||c.hh||c.hs||c.ft||c.bc||c.bi||c.av) pts=1; }
@@ -4365,8 +4382,22 @@ label.plus.open{transform:rotate(45deg)}
     if(load("pb_code","")!==ROOM_CODE) save("pb_code",ROOM_CODE);
     const h=myPwH||""; if(load("pb_pwh","")!==h) save("pb_pwh",h);       // also follows password changes / removal in Settings
   },1500);
+  // Logging in as a DIFFERENT name: forget the previous account's look, id, password and sync clock,
+  // so nothing of theirs is uploaded to (or shown on) the new account.
+  function resetLocalAccount(){
+    ["chat_pfp","chat_bc","chat_bi","chat_bv","chat_font","chat_theme","chat_tc","wall_kind","wall_color","wall_dim","wall_img","wall_img_col",
+     "hide_hdr","hide_sb","pb_pts","pb_pwh","chat_pwh"].forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} });
+    try{ wallBigClear(); }catch(e){}
+    uid="u"+Date.now().toString(36)+Math.random().toString(36).slice(2,10); save("chat_uid",uid);
+    myFont=""; myAvatar=""; myBc=""; myBi=""; myPwH=""; pts=0; lastJSON=null; window.__pbResync=false;
+    bstyle[uid]={bc:"",bi:"",v:0};
+    try{ $("font").value=""; $("inp").style.fontFamily=""; $("bcol").value="#0a84ff"; }catch(e){}
+    try{ setTheme("imessage"); applyWall(); applyBars(); refreshAvatars(); }catch(e){}
+  }
   $("g-go").onclick=()=>{
     if($("g-code").value.trim().toLowerCase()!==ROOM_CODE){ origGo(); return; }
+    const nextN=low($("g-name").value);
+    if(nextN && usr!=="User" && nextN!==low(usr)) resetLocalAccount();
     const typed=$("g-pw").value;
     // The host is the only one who knows the current passwords/bans, so it decides.
     // (Checking against this browser's cached copy rejected correct passwords after a reset.)
@@ -6777,7 +6808,7 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
   const slotRoom = k => k ? ROOM_ID + "-r" + (k + 1) : ROOM_ID;
   const hubUrl = k => BASE + "?room=" + encodeURIComponent(slotRoom(k));
   const MAX_FRAME = 900000;      // biggest single WebSocket frame
-  const MAX_MSG = 24000000;       // biggest whole message (big GIFs are split into frames and put back together)
+  const MAX_MSG = 8000000;       // biggest whole message (big GIFs are split into frames and put back together)
   const CHUNK = 600000, rx = new WeakMap();
   const GHOST_MS = 4000;       // connected, but the host never said a word
   const HELLO_MS = 6000;       // relay accepted nothing at all
@@ -6792,6 +6823,7 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
   const isDead = k => (dead[k] || 0) > Date.now();
   const nextSlot = from => { for(let k = from; k < SLOTS; k++) if(!isDead(k)) return k; return -1; };
   window.__hubUp = () => !!ws && ws.readyState === 1;
+  window.__hubBuf = () => { try { return ws && ws.bufferedAmount || 0; } catch(e){ return 0; } };
   window.__hubSlot = () => slot;
 
   function makeConn(sendRaw, closeRaw){
@@ -7863,7 +7895,7 @@ body[data-theme="ios6"] #replybar *,body[data-theme="ios6"] #dmbar *{color:inher
   const KEY="pb_prof", $p=id=>document.getElementById(id);
   const hex=c=>/^#[0-9a-f]{6}$/i.test(c||"")?c:"";
   const txt=(t,n)=>String(t==null?"":t).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,"").slice(0,n);
-  const clean=p=>({ bio:txt(p&&p.bio,190), pr:txt(p&&p.pr,20).replace(/\n/g," "), st:txt(p&&p.st,40).replace(/\n/g," "), bn:hex(p&&p.bn), bi:(p&&typeof p.bi==="string"&&p.bi.length<11000000&&/^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(p.bi))?p.bi:"", v:Math.max(0,+(p&&p.v)||0) });
+  const clean=p=>({ bio:txt(p&&p.bio,190), pr:txt(p&&p.pr,20).replace(/\n/g," "), st:txt(p&&p.st,40).replace(/\n/g," "), bn:hex(p&&p.bn), bi:(p&&typeof p.bi==="string"&&p.bi.length<4600000&&/^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(p.bi))?p.bi:"", v:Math.max(0,+(p&&p.v)||0) });
   let profs={};
   try{ const c=JSON.parse(localStorage.getItem(KEY)||"{}"); Object.keys(c).forEach(k=>{ if(okUid(k)) profs[k]=clean(c[k]); }); }catch(e){}
   const keep=()=>{ try{ const o={}; Object.keys(profs).forEach(k=>{ o[k]=Object.assign({},profs[k]); if(o[k].bi&&o[k].bi.length>250000) o[k].bi=""; }); localStorage.setItem(KEY,JSON.stringify(o)); }catch(e){} };
@@ -7875,7 +7907,8 @@ body[data-theme="ios6"] #replybar *,body[data-theme="ios6"] #dmbar *{color:inher
     if(d&&typeof d==="object"&&(d.t==="PF"||d.t==="PFS")&&validId(d.i)){
       if(isHost&&(!from||!from.ok2||from.denied||!from.uid)) return;
       if(d.t==="PF"){
-        if(isHost){ d.c=from.uid; if(take(d.c,d.p)) send({t:"PF",i:newId(),c:d.c,p:profs[d.c]},from); }
+        if(isHost){ d.c=from.uid; if(take(d.c,d.p)){ const fp=profs[d.c], big=fp.bi&&fp.bi.length>INLINE_MAX; send({t:"PF",i:newId(),c:d.c,p:big?Object.assign({},fp,{bi:""}):fp},from);
+            if(big) conns.forEach(c2=>{ if(c2!==from&&c2.open&&c2.ok2) queueBig(c2,{t:"PFB",i:newId(),c:d.c,v:fp.v,bi:fp.bi}); }); } }
         else take(d.c,d.p);
       } else if(!isHost&&d.all&&typeof d.all==="object"){
         Object.keys(d.all).slice(0,200).forEach(k=>take(k,d.all[k]));
@@ -7883,13 +7916,19 @@ body[data-theme="ios6"] #replybar *,body[data-theme="ios6"] #dmbar *{color:inher
       if($p("profmod").classList.contains("on")&&shown&&shown!==uid) paint();
       return;
     }
+    if(!isHost&&d&&typeof d==="object"&&validId(d.i)){
+      if(d.t==="PFB"&&okUid(d.c)){ const q=profs[d.c], b=clean({bi:d.bi}).bi; if(q&&b&&q.v===(+d.v||0)){ q.bi=b; keep(); if($p("profmod").classList.contains("on")&&shown&&shown!==uid) paint(); } return; }
+      if(d.t==="AVB"&&typeof d.n==="string"&&d.n.length&&d.n.length<=12&&okAv(d.a)){ avatars[d.n]=d.a; cacheAvatars(); refreshAvatars(); return; }
+    }
     const r=prev.apply(this,arguments);
     try{
       if(isHost&&from&&from.ok2&&from.uid&&!from.pfSent){
         from.pfSent=1;                                              // sent in several messages so big GIF banners can't push one over the size limit
         let batch={},sz=0,n=0; const out=()=>{ from.send({t:"PFS",i:newId(),all:batch}); batch={}; sz=0; n=0; };
-        Object.keys(profs).forEach(k=>{ const w=JSON.stringify(profs[k]).length+80; if(n&&sz+w>20000000) out(); batch[k]=profs[k]; sz+=w; n++; });
-        out();
+        const later=[];
+        Object.keys(profs).forEach(k=>{ let pk=profs[k]; if(pk.bi&&pk.bi.length>INLINE_MAX){ later.push({t:"PFB",i:newId(),c:k,v:pk.v,bi:pk.bi}); pk=Object.assign({},pk,{bi:""}); }
+          const w=JSON.stringify(pk).length+80; if(n&&sz+w>600000) out(); batch[k]=pk; sz+=w; n++; });
+        out(); later.forEach(m=>queueBig(from,m));
       }
       else if(!isHost&&d&&(d.t==="P"||d.t==="R")&&profs[uid]&&!window.__pfOut){ window.__pfOut=1; send({t:"PF",i:newId(),c:uid,p:profs[uid]}); setTimeout(()=>{ window.__pfOut=0; },3000); }
     }catch(e){}
@@ -7940,7 +7979,7 @@ body[data-theme="ios6"] #replybar *,body[data-theme="ios6"] #dmbar *{color:inher
       ib.onclick=()=>fi.click(); ix.onclick=()=>{ dbi=""; keepDraft(); paint(); };
       fi.onchange=()=>{ const f=fi.files[0]; if(!f) return;
         if(f.type==="image/gif"||/\.gif$/i.test(f.name)){            // GIFs stay GIFs so they keep moving (as long as they are small enough to send to everyone)
-          const gr=new FileReader(); gr.onload=ge=>{ if(String(ge.target.result).length<11000000){ dbi=ge.target.result; keepDraft(); paint(); } else { sys("That GIF is too big to animate as a banner (max ~8 MB) — using a still picture instead."); still(f); } }; gr.readAsDataURL(f); return;
+          const gr=new FileReader(); gr.onload=ge=>{ if(String(ge.target.result).length<4600000){ dbi=ge.target.result; keepDraft(); paint(); } else { sys("That GIF is too big to animate as a banner (max ~3.4 MB) — using a still picture instead."); still(f); } }; gr.readAsDataURL(f); return;
         }
         still(f); };
       function still(f){ const r=new FileReader(); r.onload=ev=>{ const im=new Image(); im.onload=()=>{
@@ -11278,6 +11317,75 @@ body[data-theme="winxp"] #typing:not(:empty){background:transparent;color:#5a5a5
 body[data-theme="winxp"] ::-webkit-scrollbar{width:17px;height:17px}
 body[data-theme="winxp"] ::-webkit-scrollbar-track{background:#f3f1ec}
 body[data-theme="winxp"] ::-webkit-scrollbar-thumb{background:linear-gradient(90deg,#c8d7fb,#a8bdf5);border:1px solid #6b86d6;border-radius:3px}
+</style>
+<style id="m3x-css">
+/* ===== Material 3 Expressive: bolder shapes, bigger type, springy motion (builds on the Material look above) ===== */
+body[data-theme="material"]{--m-spring:cubic-bezier(.34,1.56,.64,1);--r:32px;--r-sm:20px}
+body[data-theme="material"] .hdr-sb{font-size:26px;font-weight:700;letter-spacing:-.4px;padding:22px 20px 12px}
+body[data-theme="material"] #hdr{min-height:64px;background:var(--m-s2)}
+body[data-theme="material"] #chname{font-weight:700;font-size:19px;letter-spacing:-.2px}
+body[data-theme="material"] .row-ch{border-radius:32px;transition:background .25s var(--m-ease),border-radius .35s var(--m-spring),transform .25s var(--m-spring)}
+body[data-theme="material"] .row-ch:active{transform:scale(.97)}
+body[data-theme="material"] .row-ch.active{border-radius:20px;font-weight:700}
+body[data-theme="material"] .av-sb{transition:border-radius .4s var(--m-spring)}
+body[data-theme="material"] .row-ch.active .av-sb{border-radius:14px}
+body[data-theme="material"] .bubble{border-radius:28px;padding:10px 18px;font-size:16px;line-height:1.38;letter-spacing:0}
+body[data-theme="material"] .me .bubble{border-radius:28px 28px 8px 28px}
+body[data-theme="material"] .peer .bubble{border-radius:28px 28px 28px 8px;background:var(--m-sec-c);color:var(--m-on-sec-c)}
+body[data-theme="material"] .msg.first .bubble{animation:m3pop .45s var(--m-spring) both}
+@keyframes m3pop{from{transform:scale(.85);opacity:0}to{transform:none;opacity:1}}
+body[data-theme="material"] .pill{border-radius:32px;min-height:52px;background:var(--m-s4)}
+body[data-theme="material"] #sendbtn{background:var(--m-pri);color:var(--m-on-pri);border:none;border-radius:20px;width:48px;height:48px;transition:border-radius .35s var(--m-spring),transform .25s var(--m-spring)}
+body[data-theme="material"] #sendbtn:hover{border-radius:50%}
+body[data-theme="material"] #sendbtn:active{transform:scale(.88);border-radius:50%}
+body[data-theme="material"] #sendbtn svg{stroke:var(--m-on-pri)}
+body[data-theme="material"] #chtabs{background:var(--m-s4);border-radius:999px;padding:4px}
+body[data-theme="material"] #chtabs button{border-radius:999px;font-weight:600}
+body[data-theme="material"] #chtabs button.on{background:var(--m-pri);color:var(--m-on-pri)}
+body[data-theme="material"] .img{border-radius:24px}
+</style>
+<style id="kitkat-css">
+/* ===== Android 4.4 KitKat (Holo dark + Hangouts) ===== */
+body[data-theme="kitkat"]{
+  color-scheme:dark; --r:2px; --r-sm:2px;
+  --bg:#0b0b0b; --side:#161616; --row:#222; --input:#161616; --line:#333;
+  --text:#fff; --muted:#9a9a9a; --accent:#33b5e5; --on-accent:#fff; --me:#2a8fb8; --peer:#2d2d2d;
+  --bar-text:#fff;
+  font-family:Roboto,"Droid Sans","Helvetica Neue",Arial,sans-serif,"Noto Color Emoji","Apple Color Emoji";
+  font-size:14px;
+}
+body[data-theme="kitkat"] :is(#hdr,#sb .hdr-sb){background:#222;border-bottom:2px solid #33b5e5;color:#fff;box-shadow:none}
+body[data-theme="kitkat"] #hdr{min-height:48px}
+body[data-theme="kitkat"] #hdr *,body[data-theme="kitkat"] .hdr-sb{color:#fff}
+body[data-theme="kitkat"] .hdr-sb{font-size:18px;font-weight:400;padding:12px 14px}
+body[data-theme="kitkat"] #chname{font-size:18px;font-weight:400}
+body[data-theme="kitkat"] #sb{background:#161616;border-right:1px solid #333}
+body[data-theme="kitkat"] #box{background:#0b0b0b;gap:6px;padding:10px 12px}
+body[data-theme="kitkat"] .row-ch{border-left:none !important;border-bottom:1px solid #2a2a2a;border-radius:0;padding:10px 14px;margin:0}
+body[data-theme="kitkat"] .row-ch:hover{background:#222}
+body[data-theme="kitkat"] .row-ch:active{background:#2a2a2a;box-shadow:inset 0 0 0 100px rgba(51,181,229,.25)}
+body[data-theme="kitkat"] .row-ch.active{background:#1f2f36;box-shadow:inset 4px 0 0 #33b5e5}
+body[data-theme="kitkat"] .row-ch .csub{color:#9a9a9a}
+body[data-theme="kitkat"] .av-sb{border-radius:2px;background:#33b5e5;color:#fff}
+body[data-theme="kitkat"] .av{border-radius:2px}
+body[data-theme="kitkat"] .msg{max-width:78%}
+body[data-theme="kitkat"] .bubble{border-radius:2px;padding:8px 12px;font-size:15px;background:var(--peer);color:#fff;box-shadow:0 1px 1px rgba(0,0,0,.5)}
+body[data-theme="kitkat"] .me .bubble{background:#33b5e5;color:#fff}
+body[data-theme="kitkat"] .lbl{font-size:12px;color:#33b5e5;font-weight:700}
+body[data-theme="kitkat"] .img{border-radius:2px}
+body[data-theme="kitkat"] #chtabs{background:transparent;padding:0;gap:0;border-radius:0}
+body[data-theme="kitkat"] #chtabs button{border-radius:0;text-transform:uppercase;font-size:12px;font-weight:700;letter-spacing:.3px;color:#aaa;background:transparent;border-bottom:2px solid transparent;padding:10px 14px}
+body[data-theme="kitkat"] #chtabs button.on{color:#33b5e5;background:transparent;border-bottom-color:#33b5e5}
+body[data-theme="kitkat"] :is(#tray,#replybar){background:#161616;border-top:1px solid #333}
+body[data-theme="kitkat"] .pill{background:#161616;border:none;border-bottom:2px solid #33b5e5;border-radius:0;min-height:44px}
+body[data-theme="kitkat"] #inp{color:#fff}
+body[data-theme="kitkat"] #sendbtn,body[data-theme="kitkat"] .plus{background:transparent;color:#33b5e5;border:none;border-radius:2px;box-shadow:none}
+body[data-theme="kitkat"] #sendbtn:active,body[data-theme="kitkat"] .plus:active{background:rgba(51,181,229,.35)}
+body[data-theme="kitkat"] #sendbtn svg{stroke:#33b5e5}
+body[data-theme="kitkat"] #onpop{background:#222;border-radius:2px;border:1px solid #444}
+body[data-theme="kitkat"] ::-webkit-scrollbar{width:4px;height:4px}
+body[data-theme="kitkat"] ::-webkit-scrollbar-thumb{background:#33b5e5;border-radius:0}
+body[data-theme="kitkat"] ::-webkit-scrollbar-track{background:transparent}
 </style>
 <script>
 /* ---------- panic key: one press jumps to a site you chose ---------- */
