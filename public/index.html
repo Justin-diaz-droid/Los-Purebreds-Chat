@@ -27,6 +27,7 @@ if(L.getItem("pb_autologin")==="1"&&L.getItem("pb_code")==="lospurebrochat"&&L.g
 <link rel="dns-prefetch" href="https://purebred-chat.226739.workers.dev">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.cdnfonts.com" crossorigin>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <script>
 /* Nothing here blocks the first paint: PeerJS (voice/video calls only) and the Google fonts are fetched once the page has loaded.
@@ -35,7 +36,8 @@ if(L.getItem("pb_autologin")==="1"&&L.getItem("pb_code")==="lospurebrochat"&&L.g
   var FONTS = [
     "https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap",
     "https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue&family=Dancing+Script&family=Lobster&family=Orbitron&family=Pacifico&family=Press+Start+2P&family=Roboto+Mono&display=swap",
-    "https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;600;700&display=swap"
+    "https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;600;700&display=swap",
+    "https://fonts.cdnfonts.com/css/minecraft"
   ];
   function go(){
     var sc = document.createElement("script"); sc.async = true; sc.src = "https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"; document.head.appendChild(sc);
@@ -675,7 +677,7 @@ html.px-on #gate{visibility:hidden!important}
     <a class="goback" href="https://docs.google.com/document/d/1oa90mU-jYczqySulirTvHqqNWTSaNwPGnnArgBdVGrs/edit?tab=t.pqncc0vmsgzp" rel="noopener">← Go back</a>
   </div>
     <div id="gver">Version 2.5</div>
-  <label class="fld" id="g-themefld"><span>Themes</span><select id="g-theme"><option value="imessage">iMessage</option><option value="ios6">iOS 6</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option><option value="material">Material 3 Expressive</option><option value="kitkat">Android 4.4 KitKat</option><option value="terminal">Terminal</option><option value="simple">Simple</option><option value="glass">Liquid Glass</option><option value="win95">Windows 95</option><option value="winxp">Windows XP</option></select></label>
+  <label class="fld" id="g-themefld"><span>Themes</span><select id="g-theme"><option value="imessage">iMessage</option><option value="ios6">iOS 6</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option><option value="material">Material 3 Expressive</option><option value="kitkat">Android 4.4 KitKat</option><option value="terminal">Terminal</option><option value="simple">Simple</option><option value="glass">Liquid Glass</option><option value="win95">Windows 95</option><option value="winxp">Windows XP</option><option value="minecraft">Minecraft</option></select></label>
 </div>
 
 <div id="sb">
@@ -728,7 +730,7 @@ html.px-on #gate{visibility:hidden!important}
       </div>
       <div class="stg-card"><h3>🎨 Appearance</h3>
         <label>Theme</label>
-        <select id="theme"><option value="imessage">iMessage</option><option value="ios6">iOS 6</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option><option value="material">Material 3 Expressive</option><option value="kitkat">Android 4.4 KitKat</option><option value="terminal">Terminal</option><option value="simple">Simple</option><option value="glass">Liquid Glass</option><option value="win95">Windows 95</option><option value="winxp">Windows XP</option></select>
+        <select id="theme"><option value="imessage">iMessage</option><option value="ios6">iOS 6</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option><option value="material">Material 3 Expressive</option><option value="kitkat">Android 4.4 KitKat</option><option value="terminal">Terminal</option><option value="simple">Simple</option><option value="glass">Liquid Glass</option><option value="win95">Windows 95</option><option value="winxp">Windows XP</option><option value="minecraft">Minecraft</option></select>
         <label>Wallpaper &amp; accent color (also tints top bar, message bar &amp; left bar)</label><input type="color" id="wcol" value="#000000">
         <label>Wallpaper image (syncs to your other devices)</label>
         <div class="stg-row"><button id="wimg" type="button" class="btn">Choose image</button><button id="wreset" type="button" class="btn alt">Reset wallpaper</button><input type="file" id="wfile" accept="image/*" style="display:none"></div>
@@ -814,9 +816,9 @@ let usr = "User", peer = null, conns = [], isHost = false, logs = [];
 /* private DM state */
 let dmWith = "", dmNm = "", chipT = null;
 let seen = {}; try { seen = JSON.parse(load("dm_seen", "{}")) || {}; } catch(e){ seen = {}; }
-const PH = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage",ios6:"iMessage",material:"Text message",kitkat:"Type a message",terminal:"enter message…",simple:"Message",glass:"Message",win95:"Type a message",winxp:"Type a message"};
-const THEMES = ["imessage","ios6","discord","whatsapp","tiktok","roblox","instagram","twitter","material","kitkat","terminal","simple","glass","win95","winxp"];
-const CHNAME = {discord:"# purebred-chat",whatsapp:"WhatsApp Group",tiktok:"TikTok Inbox",roblox:"Roblox Chat",instagram:"Instagram Direct",twitter:"Twitter Messages",imessage:"iMessage Channel",ios6:"Messages",material:"Messages",kitkat:"Hangouts",terminal:"/dev/purebred",simple:"Messages",glass:"Messages",win95:"Messages",winxp:"Messenger"};
+const PH = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage",ios6:"iMessage",material:"Text message",kitkat:"Type a message",terminal:"enter message…",simple:"Message",glass:"Message",win95:"Type a message",winxp:"Type a message",minecraft:"Type a message or /command"};
+const THEMES = ["imessage","ios6","discord","whatsapp","tiktok","roblox","instagram","twitter","material","kitkat","terminal","simple","glass","win95","winxp","minecraft"];
+const CHNAME = {discord:"# purebred-chat",whatsapp:"WhatsApp Group",tiktok:"TikTok Inbox",roblox:"Roblox Chat",instagram:"Instagram Direct",twitter:"Twitter Messages",imessage:"iMessage Channel",ios6:"Messages",material:"Messages",kitkat:"Hangouts",terminal:"/dev/purebred",simple:"Messages",glass:"Messages",win95:"Messages",winxp:"Messenger",minecraft:"Minecraft Chat"};
 let draft = null, stgOpen = false, pvLoaded = false, pvq = 0;
 const shownKeys = new Set();
 let groups = {};
@@ -877,11 +879,11 @@ const myDevice = detectDevice();
 
 /* ---------- theme ---------- */
 function setTheme(t){
-  if(!["imessage","ios6","discord","whatsapp","tiktok","roblox","instagram","twitter","material","kitkat","terminal","simple","glass","win95","winxp"].includes(t)) t = "imessage";
+  if(!["imessage","ios6","discord","whatsapp","tiktok","roblox","instagram","twitter","material","kitkat","terminal","simple","glass","win95","winxp","minecraft"].includes(t)) t = "imessage";
   document.body.dataset.theme = t;
   $("theme").value = t; $("g-theme").value = t;
-  $("chname").textContent = {discord:"# purebred-chat",whatsapp:"WhatsApp Group",tiktok:"TikTok Inbox",roblox:"Roblox Chat",instagram:"Instagram Direct",twitter:"Twitter Messages",imessage:"iMessage Channel",ios6:"Messages",material:"Messages",kitkat:"Hangouts",terminal:"/dev/purebred",simple:"Messages",glass:"Messages",win95:"Messages",winxp:"Messenger"}[t];
-  $("inp").placeholder = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage",ios6:"iMessage",material:"Text message",kitkat:"Type a message",terminal:"enter message…",simple:"Message",glass:"Message",win95:"Type a message",winxp:"Type a message"}[t];
+  $("chname").textContent = {discord:"# purebred-chat",whatsapp:"WhatsApp Group",tiktok:"TikTok Inbox",roblox:"Roblox Chat",instagram:"Instagram Direct",twitter:"Twitter Messages",imessage:"iMessage Channel",ios6:"Messages",material:"Messages",kitkat:"Hangouts",terminal:"/dev/purebred",simple:"Messages",glass:"Messages",win95:"Messages",winxp:"Messenger",minecraft:"Minecraft Chat"}[t];
+  $("inp").placeholder = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage",ios6:"iMessage",material:"Text message",kitkat:"Type a message",terminal:"enter message…",simple:"Message",glass:"Message",win95:"Type a message",winxp:"Type a message",minecraft:"Type a message or /command"}[t];
   save("chat_theme", t); if(curCh === "dm") updateDmBar();
   applyWall();
   restyleAll();
@@ -1026,7 +1028,7 @@ const FONT_MAP = {
   "Courier New":"'Courier New', monospace", "Trebuchet MS":"'Trebuchet MS', sans-serif", "Impact":"Impact, sans-serif",
   "Comic Neue":"'Comic Neue', 'Comic Sans MS', cursive", "Pacifico":"Pacifico, cursive", "Lobster":"Lobster, cursive",
   "Dancing Script":"'Dancing Script', cursive", "Bangers":"Bangers, cursive", "Orbitron":"Orbitron, sans-serif",
-  "Press Start 2P":"'Press Start 2P', monospace", "Roboto Mono":"'Roboto Mono', monospace"
+  "Minecraft":"Minecraft, 'MC Local', 'Press Start 2P', monospace", "Press Start 2P":"'Press Start 2P', monospace", "Roboto Mono":"'Roboto Mono', monospace"
 };
 let myFont = "", myAvatar = "";
 const avatars = {};
@@ -1132,7 +1134,7 @@ window.addEventListener("load", () => {
   });
   logs.sort((a, b) => (a.ts || 0) - (b.ts || 0));
   try { const c = JSON.parse(load("chat_groups", "{}")); Object.keys(c).forEach(k => { const g = cleanGroup(c[k]); if(g) groups[g.id] = g; }); } catch(e){}
-  rerender();
+  resetWin(); rerender();                                  // start at the newest messages only
 });
 
 $("g-go").onclick = () => {
@@ -1738,7 +1740,12 @@ async function loadEmojiLib(){
   emoLoading = false;
   if(window.refreshEmojiPicker) window.refreshEmojiPicker();
 }
-if(emoLoading) loadEmojiLib();
+let emoStarted = false;
+function ensureEmoji(){ if(emoStarted || !emoLoading) return; emoStarted = true; loadEmojiLib(); }
+if(emoLoading){                                          // the full emoji set (hundreds of KB) isn't needed to open the chat:
+  const kick = () => setTimeout(ensureEmoji, 4000);      // fetch it a few seconds after the page is up, or the moment the picker is opened
+  if(document.readyState === "complete") kick(); else window.addEventListener("load", kick);
+}
 
 /* ---------- emoji picker (Google Docs style, light) ---------- */
 function insertAtCursor(t){
@@ -1792,7 +1799,7 @@ function insertAtCursor(t){
   show("0");
 })();
 $("emo-panel").classList.add("anim-pop");
-$("emo-btn").onclick = () => { if(window.__rxPick){ cancelReact(); return; } const p = $("emo-panel"), open = p.style.display === "flex" && !p.classList.contains("closing"); setShown(p, !open, "flex"); if(!open) $("emo-q").focus(); };
+$("emo-btn").onclick = () => { ensureEmoji(); if(window.__rxPick){ cancelReact(); return; } const p = $("emo-panel"), open = p.style.display === "flex" && !p.classList.contains("closing"); setShown(p, !open, "flex"); if(!open) $("emo-q").focus(); };
 
 /* ---------- :shortcodes: popup (searches every emoji name) ---------- */
 function suggest(q){
@@ -1931,7 +1938,7 @@ function setChannel(c){
   if(c !== "dm") $("inp").placeholder = c === "polls" ? "Polls only: tap + then Create poll" : (PH[document.body.dataset.theme] || "Message");
   $("sb").classList.remove("open");
   updateDmBar(); renderDMList();
-  regroup();
+  resetWin(); rerender(); regroup();                      // draw only the newest messages of this channel
   const b = $("box"); b.scrollTop = b.scrollHeight; if(window.__jump) window.__jump.reset();
   b.classList.remove("swap"); void b.offsetWidth; b.classList.add("swap"); setTimeout(() => b.classList.remove("swap"), 300);
 }
@@ -2081,6 +2088,7 @@ function toggleReaction(id, em){
   persist(); renderRx(l); sendEntry(l);
 }
 function startReact(id){
+  ensureEmoji();
   const w = $(id); if(w) w.classList.remove("tap");
   const p = $("emo-panel");
   window.__rxPick = em => { cancelReact(); toggleReaction(id, em); };
@@ -2095,12 +2103,15 @@ function cancelReact(){
 $("emo-q").addEventListener("keydown", e => { if(e.key === "Escape" && window.__rxPick) cancelReact(); });
 
 function jumpTo(id){
-  const e = $(id);
-  if(!e || e.dataset.ch === "gal"){ sys("That message is no longer here."); return; }
-  if(!visibleHere(e)){                                   // original lives in another channel: go there first
-    if(e.dataset.dm){ sys("That message is in a private chat."); return; }
-    setChannel(e.dataset.ch || "main");
+  const l = logs.find(x => x.i === id);
+  if(!l || !canSeeMsg(l) || l.ch === "gal"){ sys("That message is no longer here."); return; }
+  if(!viewMatch(l)){                                     // original lives in another channel: go there first
+    if(l.to || l.g){ sys("That message is in a private chat."); return; }
+    setChannel(l.ch || "main");
   }
+  let e = $(id);
+  if(!e){ loadAround(l); e = $(id); }                    // an old message that isn't loaded yet: load the part around it
+  if(!e){ sys("That message is no longer here."); return; }
   e.scrollIntoView({ block: "center", behavior: "smooth" });
   e.classList.remove("flash"); void e.offsetWidth; e.classList.add("flash");
   setTimeout(() => e.classList.remove("flash"), 1400);
@@ -2190,11 +2201,102 @@ function setEditedTag(wrap, on){
   if(!t){ t = document.createElement("span"); t.className = "edited"; t.textContent = "(edited)"; wrap.insertBefore(t, wrap.querySelector(":scope > .act")); }
 }
 
+/* ---------- windowed message list ----------
+   Only the newest ~15 messages of the channel you are looking at are drawn. Scroll up and older ones load in
+   (15 at a time); rows that are far off-screen are removed again, so the page stays light however long the history is. */
+const WIN_INIT = 15, WIN_STEP = 15, WIN_CAP = 45;
+let winLo = 0, winHi = Infinity, winLoading = false, winTopDone = false, winRaf = 0, winIdle = 0;   // a row is drawn when winLo <= its time <= winHi
+function viewMatch(m){                                   // does this message belong to the channel / chat on screen?
+  const ch = m.ch || "";
+  return curCh === "dm" ? ((ch === "dm" || ch === "grp") && dmKey(m) === dmWith) : curCh === "gal" ? ch === "gal" : curCh === "polls" ? ch === "polls" : curCh === "shame" ? ch === "shame" : !ch;
+}
+const canSeeMsg = m => !m.del && !(m.to && m.to !== uid && m.c !== uid) && !(m.g && !isMember(m.g));
+function viewLogs(){ return logs.filter(m => m && canSeeMsg(m) && !m.pn && viewMatch(m)).sort((a, b) => (a.ts || 0) - (b.ts || 0)); }
+function resetWin(){ const v = viewLogs(); winLo = v.length > WIN_INIT ? (v[v.length - WIN_INIT].ts || 0) : 0; winHi = Infinity; winTopDone = false; }
+function winOK(m){ if(!viewMatch(m)) return false; if(m.pn) return true; const t = m.ts || 0; return t >= winLo && t <= winHi; }
+const winRows = () => [...$("box").querySelectorAll(".msg[data-ts]:not(.pinned)")];
+const relTop = (e, bx) => e.getBoundingClientRect().top - bx.getBoundingClientRect().top + bx.scrollTop;
+function winSkip(m, animate, mine){                      // a message that is outside the drawn window
+  if(!viewMatch(m)) return;
+  const t = m.ts || 0;
+  if(animate && mine && t > winHi){ resetWin(); rerender(); const b = $("box"); b.scrollTop = b.scrollHeight; return; }   // you sent something while far up: jump to the newest
+  if(animate && t > winHi && Date.now() - t < 60000 && window.__jump) window.__jump.add(1);                              // someone sent something new while you read old messages
+}
+function capTop(){                                       // pinned to the bottom: keep only the newest WIN_CAP rows
+  if(winHi !== Infinity || winLoading) return;
+  const bx = $("box"), rows = winRows(); if(rows.length <= WIN_CAP) return;
+  const cut = rows.length - WIN_CAP, h0 = bx.scrollHeight, t0 = bx.scrollTop;
+  rows.slice(0, cut).forEach(e => e.remove());
+  winLo = +rows[cut].dataset.ts || 0; winTopDone = false;
+  bx.scrollTop = t0 - (h0 - bx.scrollHeight);
+}
+function trimFar(margin, minKeep){                       // unload rows that are well away from the screen (top and bottom ends only)
+  const bx = $("box"); if(winLoading || !bx.clientHeight) return;
+  const rows = winRows(); if(rows.length <= minKeep) return;
+  const topY = bx.scrollTop - margin, botY = bx.scrollTop + bx.clientHeight + margin;
+  let a = 0; while(a < rows.length - minKeep && relTop(rows[a], bx) + rows[a].offsetHeight < topY) a++;
+  let b = rows.length; while(b > a + minKeep && relTop(rows[b - 1], bx) > botY) b--;
+  if(!a && b === rows.length) return;
+  const t0 = bx.scrollTop, h0 = bx.scrollHeight;
+  rows.slice(0, a).forEach(e => e.remove());
+  const dTop = h0 - bx.scrollHeight;
+  rows.slice(b).forEach(e => e.remove());
+  if(a){ winLo = +rows[a].dataset.ts || 0; winTopDone = false; }
+  if(b < rows.length) winHi = +rows[b - 1].dataset.ts || 0;
+  bx.scrollTop = t0 - dTop;
+  queueRegroup();
+}
+function loadOlder(){
+  if(winTopDone) return false;
+  const older = viewLogs().filter(m => (m.ts || 0) < winLo);
+  if(!older.length){ winTopDone = true; return false; }
+  const oldLo = winLo, newLo = older[Math.max(0, older.length - WIN_STEP)].ts || 0;
+  const bx = $("box"), h0 = bx.scrollHeight, t0 = bx.scrollTop;
+  winLoading = true; winLo = newLo;
+  try { older.filter(m => (m.ts || 0) >= newLo).forEach(m => renderRow(m)); regroup(); } finally { winLoading = false; }
+  bx.scrollTop = t0 + (bx.scrollHeight - h0);            // keep what you were reading exactly where it was
+  if(winRows().length > WIN_CAP) trimFar(bx.clientHeight, 20);
+  return true;
+}
+function loadNewer(){
+  if(winHi === Infinity) return false;
+  const newer = viewLogs().filter(m => (m.ts || 0) > winHi);
+  if(!newer.length){ winHi = Infinity; return false; }
+  const toEnd = newer.length <= WIN_STEP, last = newer[Math.min(newer.length, WIN_STEP) - 1].ts || 0, bx = $("box");
+  winHi = toEnd ? Infinity : last;
+  winLoading = true;
+  try { newer.filter(m => toEnd || (m.ts || 0) <= last).forEach(m => renderRow(m)); regroup(); } finally { winLoading = false; }
+  if(winRows().length > WIN_CAP) trimFar(bx.clientHeight, 20);
+  return true;
+}
+function loadAround(l){                                  // make sure one particular (old) message is drawn
+  const v = viewLogs(), k = v.findIndex(x => x.i === l.i); if(k < 0) return;
+  const lo = Math.max(0, k - 8), hi = Math.min(v.length - 1, k + 8);
+  winLo = v[lo].ts || 0; winHi = hi >= v.length - 1 ? Infinity : (v[hi].ts || 0); winTopDone = false;
+  rerender();
+}
+function winFill(){                                      // very short messages on a tall screen: load more until there is something to scroll
+  const bx = $("box"); if(winLoading || !bx.clientHeight) return;
+  for(let n = 0; n < 6 && bx.scrollHeight < bx.clientHeight + 300 && !winTopDone; n++) if(!loadOlder()) break;
+}
+window.__pbEnd = () => { if(winHi !== Infinity){ resetWin(); rerender(); } };   // "jump to latest" needs the newest rows drawn
+$("box").addEventListener("scroll", () => {
+  if(winRaf) return;
+  winRaf = requestAnimationFrame(() => {
+    winRaf = 0; if(winLoading) return;
+    const bx = $("box");
+    if(bx.scrollTop < 250) loadOlder();
+    else if(bx.scrollHeight - bx.scrollTop - bx.clientHeight < 250 && winHi !== Infinity) loadNewer();
+    clearTimeout(winIdle); winIdle = setTimeout(() => trimFar(bx.clientHeight * 1.5, 10), 400);
+  });
+}, { passive: true });
+
 function renderRow(m, animate){
   if(m.del) return;
   if(m.to && m.to !== uid && m.c !== uid) return;   // not our DM
   if(m.g && !isMember(m.g)) return;                  // not our group
   const box = $("box"), mine = isMine(m);
+  if(!winOK(m)){ winSkip(m, animate, mine); return; }       // outside the loaded window: not drawn (loads when you scroll to it)
   const wasNear = box.scrollHeight - box.scrollTop - box.clientHeight < 120;   // were they reading the latest messages?
   const w = document.createElement("div");
   w.className = "msg " + (mine ? "me" : "peer"); w.id = m.i;
@@ -2261,11 +2363,13 @@ function renderRow(m, animate){
     queueRegroup(); return;
   }
   const nxt = m.ts ? [...box.querySelectorAll(".msg[data-ts]:not(.pinned)")].find(r => +r.dataset.ts > m.ts) : null;
-  if(nxt) box.insertBefore(w, nxt);
+  if(nxt){ box.insertBefore(w, nxt); if(!animate) capTop(); }
   else {
     box.appendChild(w);
-    if(!animate || mine || wasNear) box.scrollTop = box.scrollHeight;        // history loading, your own message, or you were already at the bottom
-    else if(window.__jump && visibleHere(w)) window.__jump.add(1);          // reading further up: stay put, the arrow shows what's new
+    if(!winLoading){
+      if(!animate || mine || wasNear){ box.scrollTop = box.scrollHeight; capTop(); }   // history loading, your own message, or you were already at the bottom
+      else if(window.__jump && visibleHere(w)) window.__jump.add(1);          // reading further up: stay put, the arrow shows what's new
+    }
   }
   queueRegroup();
 }
@@ -2292,7 +2396,7 @@ function rerender(){
   document.querySelectorAll("#box .msg[data-ts]").forEach(e => e.remove());
   logs.forEach(m => renderRow(m)); renderDMList();
   if(far) bx.scrollTop = keep;
-  queueRegroup();
+  queueRegroup(); requestAnimationFrame(winFill);
 }
 
 /* ---------- grouping, time stamps, "Delivered" (used by the iMessage theme) ---------- */
@@ -2897,12 +3001,13 @@ $("dmleave").onclick = () => {
 
   /* ---------- local media ---------- */
   const AUDIO_OPTS = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+  const audioOpts = () => (window.PBM ? window.PBM.audio() : Object.assign({}, AUDIO_OPTS));
   async function openLocal(){
     if(!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
       toast("Calls need the site opened over https (or localhost)."); return null;
     }
     let at = null, silent = false;
-    try { at = (await navigator.mediaDevices.getUserMedia({ audio: AUDIO_OPTS })).getAudioTracks()[0]; }
+    try { at = (await navigator.mediaDevices.getUserMedia({ audio: audioOpts() })).getAudioTracks()[0]; }
     catch(e){
       silent = true;
       toast("Mic blocked or not found — you're listen-only. Pick a microphone at the top of the call.");
@@ -3099,7 +3204,7 @@ $("dmleave").onclick = () => {
   $$("cmicsel").onchange = async e => {
     const cs = CALL.cs; if(!cs) return; const L = cs.L;
     try {
-      const opts = Object.assign({}, AUDIO_OPTS); if(e.target.value && e.target.value !== "default") opts.deviceId = { exact: e.target.value };
+      const opts = audioOpts(); if(e.target.value && e.target.value !== "default") opts.deviceId = { exact: e.target.value };
       const nt = (await navigator.mediaDevices.getUserMedia({ audio: opts })).getAudioTracks()[0];
       nt.enabled = L.micOn;
       Object.values(cs.tiles).forEach(t => {
@@ -3122,7 +3227,7 @@ $("dmleave").onclick = () => {
   $$("ccam").onclick = async () => {
     const cs = CALL.cs; if(!cs) return; const L = cs.L;
     if(!L.camOn){
-      try { L.cam = (await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: "user" } })).getVideoTracks()[0]; }
+      try { L.cam = (await navigator.mediaDevices.getUserMedia({ video: window.PBM ? window.PBM.video() : { width: 640, height: 480, facingMode: "user" } })).getVideoTracks()[0]; }
       catch(e){ toast("Camera blocked or not available."); return; }
       if(CALL.cs !== cs){ L.cam.stop(); return; }
       setVideoTrack(L.cam); L.camOn = true;
@@ -3798,11 +3903,21 @@ label.plus.open{transform:rotate(45deg)}
   const blEntry=s=>{ const star=/\*\s*$/.test(String(s==null?"":s)); const t=blTokens(s).join(" ").slice(0,40); return t?(star?t+"*":t):""; };   // "word", "two words", or "pref*" (anything starting with pref)
   let blw=[]; try{ blw=JSON.parse(load("pb_blw","[]")).map(blEntry).filter(Boolean).slice(0,200); }catch(e){ blw=[]; }
   const saveBL=()=>save("pb_blw",JSON.stringify(blw));
+  const BL_RACIST_BLACK=["nigger","niggers","nigga","niggas","niggaz","niggah","niggahs","nigguh","nigguhs","niggur","niggurs","nigg","niggs","nigra","nigras","nigr","nig","nigs","nignog","nignogs","nig nog","nig nogs",
+    "jigaboo","jigaboos","jiggaboo","jiggaboos","jigg","coon","coons","darkie","darkies","darky","sambo","sambos","pickaninny","pickaninnies","piccaninny","porch monkey","porch monkeys",
+    "jungle bunny","jungle bunnies","junglebunny","junglebunnies","tar baby","tarbaby","cotton picker","cotton pickers","spearchucker","spearchuckers","spear chucker","spear chuckers",
+    "bluegum","bluegums","blue gum","blue gums","moolie","moolies","mulignan","mulignans","burrhead","burrheads","burr head","burr heads","bootlip","bootlips","boot lip","boot lips",
+    "dindu","dindus","kaffir","kaffirs","kaffer","kaffers","gator bait","alligator bait"];
+  try{ if(load("pb_blw_seed1","")!=="1"){                       // one-time: add the built-in list; admins can still remove words later
+    blw=[...new Set([...blw,...BL_RACIST_BLACK.map(blEntry).filter(Boolean)])].slice(0,200); saveBL(); save("pb_blw_seed1","1"); } }catch(e){}
+  const blLeet=t=>String(t).replace(/[@$!|]/g,c=>({"@":"a","$":"s","!":"i","|":"i"})[c]).replace(/[013457]/g,c=>({"0":"o","1":"i","3":"e","4":"a","5":"s","7":"t"})[c]);   // n1gger, n!gger → nigger
+  const blJoin=toks=>{ const o=[]; let run=""; toks.forEach(t=>{ if(t.length===1) run+=t; else { if(run){ o.push(run); run=""; } o.push(t); } }); if(run) o.push(run); return o; };   // n i g g e r → nigger
   function blHit(text){
     if(!blw.length||typeof text!=="string") return false;
-    const toks=blTokens(text); if(!toks.length) return false;
-    const joined=" "+toks.join(" ");
-    return blw.some(w=>w.endsWith("*")?joined.includes(" "+w.slice(0,-1)):(joined+" ").includes(" "+w+" "));
+    const test=toks=>{ if(!toks.length) return false; const joined=" "+toks.join(" ");
+      return blw.some(w=>w.endsWith("*")?joined.includes(" "+w.slice(0,-1)):(joined+" ").includes(" "+w+" ")); };
+    const a=blTokens(text), b=blTokens(blLeet(text));
+    return test(a)||test(blJoin(a))||test(b)||test(blJoin(b));
   }
   function blPush(){ conns.forEach(c=>{ if(c.ok2&&c.admin&&c.open){ try{ c.send({t:"BL",i:newId(),w:blw}); }catch(e){} } }); try{ renderBL(); }catch(e){} }
   const BL_MSG="🚫 Your message wasn't sent: it contains a word that isn't allowed here.";
@@ -4503,7 +4618,7 @@ label.plus.open{transform:rotate(45deg)}
   }
   ["pointerdown","keydown","touchstart"].forEach(ev=>window.addEventListener(ev,jsUnlock,{passive:true}));
   function jumpscare(){
-    if(jsTimer) return;                       // already scaring
+    if(jsTimer||window.__pbNoScare) return;                       // already scaring
     let ov=document.getElementById("jsov");
     if(!ov){
       ov=document.createElement("div"); ov.id="jsov";
@@ -5179,7 +5294,7 @@ body[data-theme="discord"] .bubble.voice{background:var(--row)}
   async function start(){
     if($$("inp").disabled) return;
     if(!window.isSecureContext||!navigator.mediaDevices||!window.MediaRecorder){ sys("Voice messages need https and a browser that supports recording."); return; }
-    try{ stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}}); }
+    try{ stream=await navigator.mediaDevices.getUserMedia({audio:window.PBM?window.PBM.audio():{echoCancellation:true,noiseSuppression:true}}); }
     catch(e){ sys("Microphone blocked or not found."); return; }
     chunks=[]; cancelled=false;
     const mt=pick(); let r0;
@@ -8203,6 +8318,7 @@ body[data-theme="ios6"] #replybar *,body[data-theme="ios6"] #dmbar *{color:inher
   tick(update, 700);
   btn.addEventListener("click", () => {
     unread = 0; hold = Date.now() + 700; btn.classList.remove("on");
+    if(window.__pbEnd) window.__pbEnd();
     box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });
   });
   window.__jump = { add(n){ unread += n || 1; update(); }, reset(){ unread = 0; hold = 0; update(); } };
@@ -9670,7 +9786,7 @@ body.in-tier #box,body.in-tier #typing,body.in-tier #replybar,body.in-tier #tray
   function showLoad(){ if(active) return; active=true; finishing=false; p=0; paint(); ld.classList.remove("out"); ld.classList.add("on"); timer=setInterval(tick,100); }
   function finishLoad(){
     if(!active) return; finishing=true; clearInterval(timer); p=100; paint();
-    setTimeout(function(){ ld.classList.add("out"); setTimeout(hideLoad,300); },450);
+    setTimeout(function(){ ld.classList.add("out"); setTimeout(hideLoad,160); },90);
   }
   $("g-go").addEventListener("click",function(){ if(window.__entering) showLoad(); });
   var _rv=window.revealChat;
@@ -10703,6 +10819,7 @@ html body #stg.sx{background:var(--sx-bg);color:var(--sx-text);padding:env(safe-
         {id:"profile",    t:"Profile",           ic:"\uD83D\uDC64",         bg:"#8e8e93", prev:true},
         {id:"messages",   t:"Messages",          ic:"\uD83D\uDCAC",         bg:"#34c759", prev:true},
         {id:"appearance", t:"Appearance",        ic:"\uD83C\uDFA8",         bg:"#007aff", prev:true},
+        {id:"access",     t:"Accessibility",     ic:"\u267F",              bg:"#0a84ff", prev:false},
         {id:"layout",     t:"Layout",            ic:"\uD83E\uDDE9",         bg:"#5e5ce6", prev:true},
         {id:"account",    t:"Account & Privacy", ic:"\uD83D\uDD12",         bg:"#636366", prev:false},
         {id:"anim",       t:"Animation Lab",     ic:"\uD83C\uDF9E\uFE0F",   bg:"#ff9f0a", prev:false},
@@ -10715,6 +10832,7 @@ html body #stg.sx{background:var(--sx-bg);color:var(--sx-text);padding:env(safe-
         var h = c.querySelector("h3"), t = h ? h.textContent : "";
         if(c.id === "stg-anim") return "anim";
         if(c.id === "stg-exp") return "exp";
+        if(c.dataset.a11y) return "access";
         if(/read receipts|password|role tag|account/i.test(t)) return "account";
         if(/profile/i.test(t)) return "profile";
         if(/messages/i.test(t)) return "messages";
@@ -10768,7 +10886,7 @@ html body #stg.sx{background:var(--sx-bg);color:var(--sx-text);padding:env(safe-
       var av = me.querySelector(".sx-av"), nameEl = me.querySelector(".sx-name");
       function grp(items){ var g = document.createElement("div"); g.className = "sx-grp"; items.forEach(function(i){ g.appendChild(i); }); list.appendChild(g); groups.push({el:g, rows:items}); }
       grp([me]);
-      grp([mkRow(PMAP.messages), mkRow(PMAP.appearance), mkRow(PMAP.layout)]);
+      grp([mkRow(PMAP.messages), mkRow(PMAP.appearance), mkRow(PMAP.access), mkRow(PMAP.layout)]);
       grp([mkRow(PMAP.account)]);
       grp([mkRow(PMAP.anim), mkRow(PMAP.exp)]);
       var empty = document.createElement("div"); empty.className = "sx-empty"; empty.hidden = true; empty.textContent = "No results"; list.appendChild(empty);
@@ -11466,6 +11584,456 @@ body[data-theme="kitkat"] ::-webkit-scrollbar-track{background:transparent}
     fill();
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
+})();
+</script>
+<style id="mc-and-settings-themes">
+/* =================== MINECRAFT THEME =================== */
+body[data-theme="minecraft"]{
+  color-scheme:dark;
+  --bg:#4a331f; --side:#6f6f6f; --row:#4b4b4b; --input:#000; --line:#000; --text:#fff; --muted:#b4b4b4;
+  --accent:#55ff55; --me:#3c8527; --peer:#2a2a2a; --on-accent:#000; --bar-text:#fff;
+  font-family:"Press Start 2P","Roboto Mono",ui-monospace,Menlo,Consolas,monospace,"Noto Color Emoji","Apple Color Emoji";
+  --mc-dirt:#7a5636; --mc-stone:#7d7d7d;
+  --mc-btn:#707070; --mc-btn-hi:#bdbdbd; --mc-btn-lo:#383838;
+}
+body[data-theme="minecraft"]{text-shadow:1px 1px 0 rgba(0,0,0,.55)}
+body[data-theme="minecraft"] #box{background-color:var(--mc-dirt);background-image:conic-gradient(rgba(0,0,0,.20) 25%,rgba(255,255,255,.04) 0 50%,rgba(0,0,0,.12) 0 75%,rgba(255,255,255,.02) 0);background-size:32px 32px;image-rendering:pixelated;gap:4px;padding:12px}
+body[data-theme="minecraft"] #box::after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 90px rgba(0,0,0,.45)}
+body[data-theme="minecraft"] :is(#hdr,#sb .hdr-sb){background:linear-gradient(#5d9b3b 0 6px,#3b3b3b 6px);border-bottom:3px solid #000;box-shadow:inset 0 -3px 0 #1d1d1d;color:#fff}
+body[data-theme="minecraft"] #hdr{min-height:48px}
+body[data-theme="minecraft"] .hdr-sb{font-size:12px;padding:16px 14px 10px}
+body[data-theme="minecraft"] #sb{background-color:#6e6e6e;background-image:radial-gradient(rgba(0,0,0,.22) 1.2px,transparent 1.8px),radial-gradient(rgba(255,255,255,.14) 1.2px,transparent 1.8px);background-size:10px 10px;background-position:0 0,5px 5px;border-right:4px solid #000}
+body[data-theme="minecraft"] .row-ch{margin:4px 6px;padding:8px 10px;border:2px solid #000 !important;border-radius:0;background:#8b8b8b;box-shadow:inset 2px 2px 0 #c6c6c6,inset -2px -2px 0 #555;color:#fff}
+body[data-theme="minecraft"] .row-ch b{font-size:10px}
+body[data-theme="minecraft"] .row-ch .csub{color:#e0e0e0;font-size:8px}
+body[data-theme="minecraft"] .row-ch:hover{background:#9a9fd8}
+body[data-theme="minecraft"] .row-ch.active{outline:3px solid #fff;outline-offset:-1px;background:#7c7c7c}
+body[data-theme="minecraft"] .av-sb,body[data-theme="minecraft"] .av{border-radius:0;image-rendering:pixelated;border:2px solid #000}
+body[data-theme="minecraft"] #chtabs{background:transparent;gap:4px;padding:0}
+body[data-theme="minecraft"] :is(.btn,.stg-btn,.goback,#g-go,#chtabs button,.plus,#sendbtn,#emo-btn,#vbtn,.act button,.seg button){border-radius:0 !important}
+body[data-theme="minecraft"] #chtabs button,body[data-theme="minecraft"] .goback{background:var(--mc-btn);color:#fff;border:2px solid #000;box-shadow:inset 2px 2px 0 var(--mc-btn-hi),inset -2px -2px 0 var(--mc-btn-lo);font-size:9px;padding:7px 10px;text-shadow:2px 2px 0 #3e3e3e}
+body[data-theme="minecraft"] #chtabs button:hover,body[data-theme="minecraft"] .goback:hover{background:#7d85c8}
+body[data-theme="minecraft"] #chtabs button.on{background:#5a5a5a;box-shadow:inset 2px 2px 0 #2b2b2b,inset -2px -2px 0 #8a8a8a}
+body[data-theme="minecraft"] #onpop{background:#3b3b3b;border:3px solid #000;border-radius:0;box-shadow:inset 2px 2px 0 #6a6a6a,inset -2px -2px 0 #1e1e1e}
+body[data-theme="minecraft"] .msg{max-width:88%}
+body[data-theme="minecraft"] .lbl{color:var(--uc,#ffff55);font-size:9px;margin:0 0 3px 2px;text-shadow:2px 2px 0 rgba(0,0,0,.7)}
+body[data-theme="minecraft"] .lbl::before{content:"<"}
+body[data-theme="minecraft"] .lbl::after{content:">"}
+body[data-theme="minecraft"] .me .lbl,body[data-theme="minecraft"] .msg:not(.first) .lbl{display:none}
+body[data-theme="minecraft"] .tsep{display:block;align-self:center;margin:10px 0 2px;font-size:8px;color:#ffff55;text-shadow:2px 2px 0 #3f3f00}
+body[data-theme="minecraft"] .bubble{padding:8px 10px;border-radius:0;font-size:10px;line-height:1.7;background-color:var(--bub,rgba(0,0,0,.58));color:#fff;text-shadow:2px 2px 0 #3f3f3f;border:none;box-shadow:none}
+body[data-theme="minecraft"] .me .bubble{background-color:var(--bub,rgba(46,100,28,.82))}
+body[data-theme="minecraft"] .bubble::before,body[data-theme="minecraft"] .bubble::after{display:none}
+body[data-theme="minecraft"] .img{border-radius:0;border:4px solid #000;box-shadow:inset 0 0 0 2px #8b8b8b;image-rendering:auto}
+body[data-theme="minecraft"] .quote{border-radius:0;background:rgba(0,0,0,.45);border-left:4px solid #55ff55;color:#ddd}
+body[data-theme="minecraft"] .msg.sys{color:#ffff55;font-size:9px;text-shadow:2px 2px 0 #3f3f00}
+body[data-theme="minecraft"] .rx .chip{border-radius:0;background:rgba(0,0,0,.6);border:2px solid #000}
+body[data-theme="minecraft"] .rx .chip.mine{border-color:#55ff55}
+body[data-theme="minecraft"] .act{background:#3b3b3b;border:2px solid #000;border-radius:0}
+body[data-theme="minecraft"] :is(#tray,#replybar,#dmbar){background:#3b3b3b;border-top:3px solid #000;box-shadow:inset 0 3px 0 #6a6a6a;color:#fff}
+body[data-theme="minecraft"] #tray{gap:8px;padding:8px 10px}
+body[data-theme="minecraft"] .pill{background:#000;border:2px solid #a0a0a0;border-radius:0;box-shadow:none;padding:4px 8px}
+body[data-theme="minecraft"] .pill:focus-within{border-color:#fff}
+body[data-theme="minecraft"] #inp{color:#fff;font-size:10px;caret-color:#fff}
+body[data-theme="minecraft"] #inp::placeholder{color:#777}
+body[data-theme="minecraft"] :is(.plus,#sendbtn){background:var(--mc-btn);color:#fff;border:2px solid #000;box-shadow:inset 2px 2px 0 var(--mc-btn-hi),inset -2px -2px 0 var(--mc-btn-lo)}
+body[data-theme="minecraft"] :is(.plus,#sendbtn):hover{background:#7d85c8}
+body[data-theme="minecraft"] #sendbtn svg{stroke:#fff}
+
+/* ---- Minecraft: the settings screen becomes the game's Options screen (dirt background, grey buttons) ---- */
+body[data-theme="minecraft"] #stg{background-color:#4a331f;background-image:conic-gradient(rgba(0,0,0,.28) 25%,rgba(255,255,255,.03) 0 50%,rgba(0,0,0,.18) 0 75%,rgba(255,255,255,.02) 0);background-size:32px 32px}
+body[data-theme="minecraft"] .stg-ctl{background:rgba(0,0,0,.55);border-right:4px solid #000}
+body[data-theme="minecraft"] .stg-top{border-bottom:3px solid #000;background:rgba(0,0,0,.35)}
+body[data-theme="minecraft"] .stg-top h2{font-size:16px;color:#fff;text-shadow:3px 3px 0 #3f3f3f;letter-spacing:1px}
+body[data-theme="minecraft"] .stg-x{border-radius:0;background:var(--mc-btn);color:#fff;border:2px solid #000;box-shadow:inset 2px 2px 0 var(--mc-btn-hi),inset -2px -2px 0 var(--mc-btn-lo)}
+body[data-theme="minecraft"] .stg-card{background:rgba(0,0,0,.45);border:2px solid #000;border-radius:0;box-shadow:inset 2px 2px 0 rgba(255,255,255,.12),inset -2px -2px 0 rgba(0,0,0,.4)}
+body[data-theme="minecraft"] .stg-card h3{font-size:11px;color:#ffff55;text-shadow:2px 2px 0 #3f3f00}
+body[data-theme="minecraft"] #stg label{color:#b4b4b4;font-size:8px;line-height:1.6;letter-spacing:0;text-shadow:1px 1px 0 #000}
+body[data-theme="minecraft"] #stg label.chk{color:#fff;font-size:9px}
+body[data-theme="minecraft"] #stg :is(input[type=text],select){background:#000;border:2px solid #a0a0a0;border-radius:0;color:#fff;font-size:10px;font-family:inherit}
+body[data-theme="minecraft"] #stg :is(input[type=text],select):focus{border-color:#fff}
+body[data-theme="minecraft"] #stg input[type=color]{border:2px solid #000;border-radius:0}
+body[data-theme="minecraft"] #stg :is(input[type=range],input[type=checkbox]){accent-color:#55ff55}
+body[data-theme="minecraft"] #stg .btn{border-radius:0;background:var(--mc-btn);color:#fff;border:2px solid #000;box-shadow:inset 2px 2px 0 var(--mc-btn-hi),inset -2px -2px 0 var(--mc-btn-lo);font-size:9px;font-family:inherit;text-shadow:2px 2px 0 #3e3e3e}
+body[data-theme="minecraft"] #stg .btn:hover{background:#7d85c8}
+body[data-theme="minecraft"] #stg .btn.alt{background:var(--mc-btn);border:2px solid #000;font-weight:400}
+body[data-theme="minecraft"] #stg #save{background:#3c8527;box-shadow:inset 2px 2px 0 #7fd15a,inset -2px -2px 0 #1f4a13}
+body[data-theme="minecraft"] .stg-foot{border-top:3px solid #000;background:rgba(0,0,0,.45)}
+body[data-theme="minecraft"] .stg-prev{background:rgba(0,0,0,.35)}
+body[data-theme="minecraft"] #stgerr{font-size:9px}
+
+/* =================== iOS 6 SETTINGS SCREEN (grouped table, like the real Settings app) =================== */
+body[data-theme="ios6"] #stg{background-color:#c5ccd4;background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.35) 0 2px,rgba(0,0,0,.025) 2px 4px)}
+body[data-theme="ios6"] .stg-ctl{background:transparent;border-right:1px solid #8e98aa}
+body[data-theme="ios6"] .stg-top{padding:0 10px;min-height:44px;position:relative;justify-content:center;background:linear-gradient(#b3c0d6 0%,#8397b8 50%,#6f86ab 50%,#627ba3 100%);border-bottom:1px solid #2d4575;box-shadow:0 1px 2px rgba(0,0,0,.35)}
+body[data-theme="ios6"] .stg-top h2{font:700 20px "Helvetica Neue",Helvetica,Arial,sans-serif;color:#fff;text-shadow:0 -1px 0 rgba(0,0,0,.5);margin:0}
+body[data-theme="ios6"] .stg-x{position:absolute;right:8px;top:7px;width:auto;height:30px;padding:0 12px;border-radius:6px;border:1px solid #2f4a7e;background:linear-gradient(#a9bbd6,#6d87b3 50%,#5f7aa9 50%,#7089b4);color:#fff;font:700 13px "Helvetica Neue",Helvetica,Arial,sans-serif;text-shadow:0 -1px 0 rgba(0,0,0,.45);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 1px 0 rgba(255,255,255,.3)}
+body[data-theme="ios6"] .stg-scroll{padding:16px 12px 24px;gap:20px}
+body[data-theme="ios6"] .stg-card{background:#fff;border:1px solid #a8aeb9;border-radius:10px;padding:0;gap:0;overflow:hidden;box-shadow:0 1px 0 rgba(255,255,255,.8)}
+body[data-theme="ios6"] .stg-card>*{margin:0;padding:11px 14px;border-bottom:1px solid #d3d6db}
+body[data-theme="ios6"] .stg-card>*:last-child{border-bottom:none}
+body[data-theme="ios6"] .stg-card>label:not(.chk){border-bottom:none;padding-bottom:0}
+body[data-theme="ios6"] .stg-card>label:not(.chk)+*{padding-top:6px}
+body[data-theme="ios6"] .stg-card h3{font:700 15px "Helvetica Neue",Helvetica,Arial,sans-serif;color:#4c566c;text-shadow:0 1px 0 #fff;background:linear-gradient(#fdfdfe,#eceef2)}
+body[data-theme="ios6"] #stg label{font:700 16px "Helvetica Neue",Helvetica,Arial,sans-serif;letter-spacing:0;text-transform:none;color:#000}
+body[data-theme="ios6"] #stg label.chk{display:flex;align-items:center;justify-content:space-between;gap:12px;font-weight:700;color:#000}
+body[data-theme="ios6"] #stg :is(input[type=text],select){background:#fff;border:1px solid #c3c9d4;border-radius:7px;color:#385487;font:500 16px "Helvetica Neue",Helvetica,Arial,sans-serif;box-shadow:inset 0 1px 2px rgba(0,0,0,.12)}
+body[data-theme="ios6"] #stg :is(input[type=text],select):focus{border-color:#3d7fd1;box-shadow:0 0 0 2px rgba(61,127,209,.3)}
+body[data-theme="ios6"] #stg input[type=checkbox]{-webkit-appearance:none;appearance:none;position:relative;flex:none;order:2;margin:0 0 0 auto;width:77px;height:27px;border-radius:14px;border:1px solid #8a8f98;background:linear-gradient(#bfc4cc,#f6f6f6);box-shadow:inset 0 2px 4px rgba(0,0,0,.4);cursor:pointer;transition:background .2s}
+body[data-theme="ios6"] #stg input[type=checkbox]::before{content:"OFF";position:absolute;right:9px;top:5px;font:700 13px "Helvetica Neue",Helvetica,Arial,sans-serif;color:#7b8190;text-shadow:0 1px 0 #fff}
+body[data-theme="ios6"] #stg input[type=checkbox]::after{content:"";position:absolute;left:-1px;top:-1px;width:27px;height:27px;border-radius:50%;border:1px solid #7b8190;background:linear-gradient(#fff,#d4d8de);box-shadow:0 1px 2px rgba(0,0,0,.4);transition:left .2s}
+body[data-theme="ios6"] #stg input[type=checkbox]:checked{background:linear-gradient(#1a54b0,#4a90e8);border-color:#1d4a94}
+body[data-theme="ios6"] #stg input[type=checkbox]:checked::before{content:"ON";left:11px;right:auto;color:#fff;text-shadow:0 -1px 0 rgba(0,0,0,.4)}
+body[data-theme="ios6"] #stg input[type=checkbox]:checked::after{left:49px}
+body[data-theme="ios6"] #stg .btn{border-radius:8px;border:1px solid #1d4a94;background:linear-gradient(#6fa8ee,#2a66c8);color:#fff;font:700 14px "Helvetica Neue",Helvetica,Arial,sans-serif;text-shadow:0 -1px 0 rgba(0,0,0,.35);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 1px 1px rgba(0,0,0,.3)}
+body[data-theme="ios6"] #stg .btn.alt{border:1px solid #8b93a3;background:linear-gradient(#fdfdfd,#c9ced6);color:#2b3442;text-shadow:0 1px 0 #fff;font-weight:700;box-shadow:inset 0 1px 0 #fff,0 1px 1px rgba(0,0,0,.25)}
+body[data-theme="ios6"] .stg-foot{border-top:1px solid #3d5380;background:linear-gradient(#a0aec4,#6a7d9d);box-shadow:inset 0 1px 0 rgba(255,255,255,.4)}
+body[data-theme="ios6"] .stg-prev{background:#aeb6c1}
+body[data-theme="ios6"] #stgerr{color:#c0392b}
+
+/* =================== WINDOWS 95 / XP SETTINGS (classic dialog look) =================== */
+body[data-theme="win95"] #stg{background:#008080}
+body[data-theme="win95"] .stg-ctl{background:#c0c0c0;border-right:2px solid #000;box-shadow:inset 2px 2px 0 #fff,inset -2px -2px 0 #808080}
+body[data-theme="win95"] .stg-top{background:linear-gradient(90deg,#000080,#1084d0);color:#fff;margin:3px;padding:4px 8px}
+body[data-theme="win95"] .stg-top h2{font:700 14px Tahoma,"MS Sans Serif",Arial,sans-serif;color:#fff}
+body[data-theme="win95"] .stg-card{background:#c0c0c0;border-radius:0;border:none;box-shadow:inset 1px 1px 0 #fff,inset -1px -1px 0 #808080,inset 2px 2px 0 #dfdfdf,inset -2px -2px 0 #404040}
+body[data-theme="win95"] #stg :is(.btn,.stg-x){border-radius:0;background:#c0c0c0;color:#000;border:none;font:400 12px Tahoma,"MS Sans Serif",Arial,sans-serif;box-shadow:inset 1px 1px 0 #fff,inset -1px -1px 0 #000,inset 2px 2px 0 #dfdfdf,inset -2px -2px 0 #808080}
+body[data-theme="win95"] #stg :is(input[type=text],select){border-radius:0;background:#fff;color:#000;border:none;box-shadow:inset 1px 1px 0 #808080,inset -1px -1px 0 #fff,inset 2px 2px 0 #404040}
+body[data-theme="win95"] #stg label{color:#000;text-transform:none;font:400 12px Tahoma,"MS Sans Serif",Arial,sans-serif;letter-spacing:0}
+body[data-theme="win95"] .stg-card h3{font:700 12px Tahoma,"MS Sans Serif",Arial,sans-serif;color:#000}
+body[data-theme="win95"] .stg-foot{background:#c0c0c0;border-top:2px solid #808080}
+body[data-theme="winxp"] #stg{background:#3a6ea5}
+body[data-theme="winxp"] .stg-ctl{background:#ece9d8;border-right:3px solid #0a246a}
+body[data-theme="winxp"] .stg-top{background:linear-gradient(#3d95ff,#0058e6 40%,#0049c9);border-radius:8px 8px 0 0;color:#fff}
+body[data-theme="winxp"] .stg-top h2{font:700 15px Tahoma,Verdana,sans-serif;color:#fff;text-shadow:1px 1px 0 #0a246a}
+body[data-theme="winxp"] .stg-x{background:linear-gradient(#e98a73,#d04a2c);color:#fff;border:1px solid #fff;border-radius:4px}
+body[data-theme="winxp"] .stg-card{background:#fff;border:1px solid #7f9db9;border-radius:4px}
+body[data-theme="winxp"] #stg label{color:#1c1c1c;text-transform:none;font:400 12px Tahoma,Verdana,sans-serif;letter-spacing:0}
+body[data-theme="winxp"] #stg .btn{border-radius:3px;background:linear-gradient(#fff,#ece9d8 85%,#d6d0c0);color:#000;border:1px solid #003c74;font:400 12px Tahoma,Verdana,sans-serif}
+body[data-theme="winxp"] #stg #save{background:linear-gradient(#8ed07c,#3b9b2a);color:#fff;font-weight:700}
+body[data-theme="winxp"] .stg-foot{background:#ece9d8;border-top:1px solid #aca899}
+</style>
+<style id="a11y-css">
+/* ===== Minecraft font ===== */
+@font-face{font-family:"MC Local";src:local("Minecraft"),local("Minecraft Regular"),local("Minecraftia"),url("fonts/Minecraft.woff2") format("woff2"),url("fonts/Minecraft.ttf") format("truetype"),url("fonts/Minecraft.otf") format("opentype");font-display:swap}
+body[data-theme="minecraft"]{font-family:"Minecraft","MC Local","Press Start 2P","Roboto Mono",ui-monospace,Menlo,Consolas,monospace,"Noto Color Emoji","Apple Color Emoji"}
+body[data-theme="minecraft"] :is(#inp,button,select,input,textarea){font-family:inherit}
+/* the Minecraft font is smaller on the line than Press Start 2P, so everything is a bit bigger */
+body[data-theme="minecraft"] .bubble{font-size:16px;line-height:1.35}
+body[data-theme="minecraft"] .lbl{font-size:15px}
+body[data-theme="minecraft"] .tsep{font-size:13px}
+body[data-theme="minecraft"] .msg.sys{font-size:15px}
+body[data-theme="minecraft"] #inp{font-size:16px}
+body[data-theme="minecraft"] .hdr-sb{font-size:18px}
+body[data-theme="minecraft"] .row-ch b{font-size:16px}
+body[data-theme="minecraft"] .row-ch .csub{font-size:13px}
+body[data-theme="minecraft"] #chtabs button,body[data-theme="minecraft"] .goback{font-size:15px;padding:6px 10px}
+body[data-theme="minecraft"] .stg-top h2{font-size:26px}
+body[data-theme="minecraft"] .stg-card h3{font-size:18px}
+body[data-theme="minecraft"] #stg label{font-size:14px}
+body[data-theme="minecraft"] #stg label.chk{font-size:15px}
+body[data-theme="minecraft"] #stg :is(input[type=text],select){font-size:16px}
+body[data-theme="minecraft"] #stg .btn{font-size:15px}
+body[data-theme="minecraft"] #stgerr{font-size:14px}
+
+/* ===== Accessibility ===== */
+html.a11y-bold body *{font-weight:700 !important}
+html.a11y-ts :is(.bubble,.lbl,.quote,.csub,.row-ch b,.msg.sys,.tsep,#inp,.chip){zoom:var(--a11y-ts,1)}
+html.a11y-shapes :is(button,.btn,.plus,select,.row-ch,[role=button],.sx-row){outline:2px solid currentColor !important;outline-offset:-2px;text-decoration:underline}
+html.a11y-onoff input[type=checkbox]{-webkit-appearance:none !important;appearance:none !important;width:26px !important;height:26px !important;border:2px solid currentColor !important;border-radius:6px !important;display:inline-grid !important;place-content:center;background:none !important;box-shadow:none !important;position:relative !important;flex:none;margin:0 8px 0 0 !important;order:0 !important;color:inherit;transform:none !important}
+html.a11y-onoff input[type=checkbox]::before{content:"O" !important;position:static !important;left:auto !important;right:auto !important;top:auto !important;font:700 14px/1 sans-serif !important;color:inherit !important;text-shadow:none !important}
+html.a11y-onoff input[type=checkbox]:checked::before{content:"I" !important}
+html.a11y-onoff input[type=checkbox]::after{display:none !important}
+html.a11y-transp *{-webkit-backdrop-filter:none !important;backdrop-filter:none !important}
+html.a11y-transp :is(#sb,#hdr,#tray,#replybar,#dmbar,.stg-card,#onpop,.act,#stg){background-color:var(--side,#1c1c1e) !important;background-image:none !important}
+html.a11y-contrast body{--muted:var(--text) !important;--line:color-mix(in srgb,var(--text) 65%,transparent) !important}
+html.a11y-contrast :is(button,input,select,.bubble,.row-ch,.pill){outline:1px solid color-mix(in srgb,var(--text) 70%,transparent)}
+html.a11y-nocolor .me .bubble{border-right:5px solid currentColor !important}
+html.a11y-nocolor .msg:not(.me):not(.sys) .bubble{border-left:5px solid currentColor !important}
+html.a11y-nocolor :is(a,.mention,.row-ch.active){text-decoration:underline !important}
+html.a11y-smart :is(img,video,canvas,iframe,.av,.cav,.img,.has-pfp){filter:invert(1) hue-rotate(180deg)}
+html.a11y-rm *,html.a11y-rm *::before,html.a11y-rm *::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}
+html.a11y-nomirror .ct.loc video,html.a11y-nomirror #a11y-cprev{transform:none !important}
+#a11y-cprev{display:none;width:100%;max-width:320px;border-radius:10px;background:#000;transform:scaleX(-1)}
+#a11y-cprev.on{display:block}
+.a11y-meter{height:10px;border-radius:5px;background:rgba(128,128,128,.35);overflow:hidden;max-width:320px}
+.a11y-meter i{display:block;height:100%;width:0;background:#34c759;transition:width .06s linear}
+#a11y-spk{position:fixed;z-index:2147483000;display:none;padding:6px 10px;border-radius:999px;border:none;background:#0a84ff;color:#fff;font:700 13px system-ui,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.4);cursor:pointer}
+#a11y-mag{position:fixed;inset:0;z-index:2147483100;background:#000;display:flex;flex-direction:column;color:#fff;font:14px system-ui,sans-serif}
+#a11y-mag .am-view{flex:1;min-height:0;overflow:hidden;display:grid;place-items:center}
+#a11y-mag video{max-width:100%;max-height:100%;transform-origin:center;object-fit:contain}
+#a11y-mag .am-bar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;justify-content:center;padding:12px;background:rgba(28,28,30,.96)}
+#a11y-mag .am-bar label{display:flex;align-items:center;gap:6px}
+#a11y-mag .am-bar button,#a11y-mag .am-bar select{padding:8px 12px;border-radius:999px;border:none;background:#3a3a3c;color:#fff;font:600 14px system-ui,sans-serif;cursor:pointer}
+#a11y-mag .am-bar .am-x{background:#ff453a}
+#a11y-mag .am-msg{position:absolute;top:12px;left:12px;right:12px;text-align:center;text-shadow:0 1px 3px #000}
+</style>
+<script id="a11y-js">
+(function(){
+"use strict";
+var KEY="pb_a11y";
+var D={bold:0,ts:100,shapes:0,onoff:0,transp:0,contrast:0,nocolor:0,invert:"off",cf:"off",cfk:100,tint:200,wp:0,
+ rm:0,noscare:0,ptr:"normal",ptrc:"#ffffff",
+ sp_new:0,sp_sel:0,sp_typ:0,sp_voice:"",sp_rate:1,
+ a11y_mon:0,cam:"",mic:"",spk:"",res:"480",fps:"24",echo:1,noise:1,agc:1,mirror:1};
+var S=Object.assign({},D);
+try{ Object.assign(S,JSON.parse(localStorage.getItem(KEY)||"{}")); }catch(e){}
+function persist(){ try{ localStorage.setItem(KEY,JSON.stringify(S)); }catch(e){} }
+var root=document.documentElement;
+
+/* ---- used by the call code (mic / camera choices) ---- */
+window.PBM={
+  audio:function(){ var o={echoCancellation:!!S.echo,noiseSuppression:!!S.noise,autoGainControl:!!S.agc}; if(S.mic) o.deviceId={ideal:S.mic}; return o; },
+  video:function(){
+    var h=+S.res||480, w=h>=720?Math.round(h*16/9):640;
+    var o={width:{ideal:w},height:{ideal:h},frameRate:{ideal:+S.fps||24}};
+    if(S.cam) o.deviceId={ideal:S.cam}; else o.facingMode="user";
+    return o;
+  }
+};
+
+/* ---- colour filters (SVG matrix) ---- */
+var svgNS="http://www.w3.org/2000/svg";
+var sv=document.createElementNS(svgNS,"svg"); sv.setAttribute("width","0"); sv.setAttribute("height","0"); sv.setAttribute("aria-hidden","true"); sv.style.cssText="position:absolute;pointer-events:none";
+sv.innerHTML='<filter id="pb-cf" color-interpolation-filters="sRGB"><feColorMatrix id="pb-cm" type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 1 0"/></filter>';
+document.body.appendChild(sv);
+var SIM={prot:[.567,.433,0,.558,.442,0,0,.242,.758],deut:[.625,.375,0,.7,.3,0,0,.3,.7],trit:[.95,.05,0,0,.433,.567,0,.475,.525]};
+var SHIFT={prot:[0,0,0,.7,1,0,.7,0,1],deut:[0,0,0,.7,1,0,.7,0,1],trit:[1,0,.7,0,1,.7,0,0,0]};
+function hue2rgb(h){ h=((h%360)+360)%360/60; var x=1-Math.abs(h%2-1), r=0,g=0,b=0;
+  if(h<1){r=1;g=x;}else if(h<2){r=x;g=1;}else if(h<3){g=1;b=x;}else if(h<4){g=x;b=1;}else if(h<5){r=x;b=1;}else{r=1;b=x;} return [r,g,b]; }
+function matrix(){
+  var k=S.cfk/100, m=[1,0,0,0,1,0,0,0,1], f=S.cf;
+  if(f==="tint"){ var t=hue2rgb(+S.tint); m=[1-k*.6*(1-t[0]),0,0,0,1-k*.6*(1-t[1]),0,0,0,1-k*.6*(1-t[2])]; }
+  else if(SIM[f]){
+    var s=SIM[f], M=SHIFT[f], I=[1,0,0,0,1,0,0,0,1], E=I.map(function(v,i){return v-s[i];}), C=[];
+    for(var r=0;r<3;r++)for(var c=0;c<3;c++){ var a=0; for(var j=0;j<3;j++) a+=M[r*3+j]*E[j*3+c]; C.push(I[r*3+c]+k*a); }
+    m=C;
+  }
+  return m[0]+" "+m[1]+" "+m[2]+" 0 0 "+m[3]+" "+m[4]+" "+m[5]+" 0 0 "+m[6]+" "+m[7]+" "+m[8]+" 0 0 0 0 0 1 0";
+}
+
+/* ---- pointer ---- */
+var ptrStyle=document.createElement("style"); ptrStyle.id="a11y-ptr"; document.head.appendChild(ptrStyle);
+function pointer(){
+  var px={large:36,xlarge:56}[S.ptr]; if(!px){ ptrStyle.textContent=""; return; }
+  var svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+px+'" height="'+Math.round(px*1.1)+'" viewBox="0 0 24 26"><path d="M2 2 L2 21 L7 16.5 L10.5 24.5 L14 23 L10.6 15.2 L17 15 Z" fill="'+S.ptrc+'" stroke="#000" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+  ptrStyle.textContent='html,html *{cursor:url("data:image/svg+xml,'+encodeURIComponent(svg)+'") 3 3,auto !important}';
+}
+
+/* ---- apply everything ---- */
+function tog(c,on){ root.classList.toggle(c,!!on); }
+function apply(){
+  tog("a11y-bold",S.bold); tog("a11y-shapes",S.shapes); tog("a11y-onoff",S.onoff); tog("a11y-transp",S.transp);
+  tog("a11y-contrast",S.contrast); tog("a11y-nocolor",S.nocolor); tog("a11y-rm",S.rm); tog("a11y-nomirror",!S.mirror);
+  tog("a11y-ts",S.ts!==100); root.style.setProperty("--a11y-ts",S.ts/100);
+  tog("a11y-smart",S.invert==="smart");
+  window.__pbNoScare=!!S.noscare;
+  var f=[];
+  if(S.invert==="smart") f.push("invert(1) hue-rotate(180deg)"); else if(S.invert==="classic") f.push("invert(1)");
+  if(S.cf==="gray") f.push("grayscale("+S.cfk/100+")");
+  else if(S.cf!=="off"){ var cm=document.getElementById("pb-cm"); if(cm) cm.setAttribute("values",matrix()); f.push("url(#pb-cf)"); }
+  if(S.wp>0) f.push("brightness("+(1-S.wp/100)+")");
+  root.style.filter=f.join(" ");
+  pointer();
+}
+apply();
+
+/* ---- spoken content ---- */
+var syn=window.speechSynthesis;
+function speak(t,now){ if(!syn||!t) return; if(now) syn.cancel(); var u=new SpeechSynthesisUtterance(String(t).slice(0,600)); u.rate=+S.sp_rate||1;
+  var v=syn.getVoices().filter(function(x){return x.voiceURI===S.sp_voice;})[0]; if(v) u.voice=v; syn.speak(u); }
+var t0=Date.now(), burst=0, burstT=0;
+function watchBox(){
+  var box=document.getElementById("box"); if(!box) return;
+  new MutationObserver(function(list){
+    if(!S.sp_new||Date.now()-t0<4000) return;
+    list.forEach(function(m){ m.addedNodes.forEach(function(n){
+      if(!n.classList||!n.classList.contains("msg")||n.classList.contains("me")) return;
+      clearTimeout(burstT); burst++; burstT=setTimeout(function(){burst=0;},400);
+      if(burst>3) return;                       /* history loading, not a new message */
+      var l=n.querySelector(".lbl"), b=n.querySelector(".bubble")||n;
+      var txt=((l?l.textContent.replace(/[<>]/g,"")+" says ":"")+b.textContent).trim(); if(txt) speak(txt,false);
+    }); });
+  }).observe(box,{childList:true});
+}
+var spk=document.createElement("button"); spk.id="a11y-spk"; spk.type="button"; spk.textContent="🔊 Speak"; document.body.appendChild(spk);
+spk.addEventListener("mousedown",function(e){e.preventDefault();});
+spk.addEventListener("click",function(){ var s=String(window.getSelection()); if(s.trim()) speak(s,true); spk.style.display="none"; });
+document.addEventListener("selectionchange",function(){
+  if(!S.sp_sel){ spk.style.display="none"; return; }
+  var sel=window.getSelection(); if(!sel||sel.isCollapsed||!String(sel).trim()){ spk.style.display="none"; return; }
+  try{ var r=sel.getRangeAt(0).getBoundingClientRect(); spk.style.left=Math.max(6,Math.min(innerWidth-90,r.left))+"px"; spk.style.top=Math.max(6,r.top-38)+"px"; spk.style.display="block"; }catch(e){}
+});
+document.addEventListener("input",function(e){
+  if(!S.sp_typ||!e.target||e.target.id!=="inp") return;
+  if(e.data===" "){ var w=(e.target.value||e.target.textContent||"").trim().split(/\s+/).pop(); speak(w,true); }
+  else if(e.data&&e.data.length===1) speak(e.data,true);
+},true);
+
+/* ---- magnifier (uses the camera) ---- */
+function magnifier(){
+  if(document.getElementById("a11y-mag")) return;
+  if(!window.isSecureContext||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ alert("The magnifier needs the site opened over https (or localhost)."); return; }
+  var ov=document.createElement("div"); ov.id="a11y-mag"; ov.setAttribute("role","dialog"); ov.setAttribute("aria-label","Magnifier");
+  ov.innerHTML='<div class="am-view"><video autoplay playsinline muted></video></div><div class="am-msg"></div>'+
+   '<div class="am-bar"><button class="am-x" type="button">✕ Close</button>'+
+   '<label>🔍 <input type="range" class="am-z" min="1" max="8" step="0.1" value="2"><b class="am-zv">2.0×</b></label>'+
+   '<label>☀ <input type="range" class="am-b" min="50" max="200" value="100"></label>'+
+   '<label>◐ <input type="range" class="am-c" min="50" max="300" value="100"></label>'+
+   '<select class="am-f"><option value="">Normal</option><option value="invert(1)">Invert</option><option value="grayscale(1) contrast(1.6)">Grayscale</option><option value="grayscale(1) contrast(3) brightness(1.1)">High contrast</option><option value="grayscale(1) contrast(3) invert(1)">White on black</option><option value="sepia(1) saturate(4) hue-rotate(-20deg) contrast(1.6)">Yellow</option></select>'+
+   '<button class="am-fz" type="button">⏸ Freeze</button><button class="am-t" type="button" hidden>🔦 Light</button></div>';
+  document.body.appendChild(ov);
+  var q=function(s){return ov.querySelector(s);}, v=q("video"), msg=q(".am-msg"), stream=null, track=null, hw=false, torch=false;
+  function paint(){ var z=+q(".am-z").value; q(".am-zv").textContent=z.toFixed(1)+"×";
+    var capZ=hw&&track.getCapabilities().zoom; if(capZ){ try{ track.applyConstraints({advanced:[{zoom:Math.min(capZ.max,Math.max(capZ.min,z))}]}); }catch(e){} v.style.transform=""; } else v.style.transform="scale("+z+")";
+    v.style.filter=(q(".am-f").value+" brightness("+q(".am-b").value/100+") contrast("+q(".am-c").value/100+")").trim(); }
+  ["input","change"].forEach(function(ev){ ov.addEventListener(ev,paint); });
+  function close(){ if(stream) stream.getTracks().forEach(function(t){t.stop();}); ov.remove(); document.removeEventListener("keydown",esc); }
+  function esc(e){ if(e.key==="Escape") close(); }
+  document.addEventListener("keydown",esc); q(".am-x").onclick=close;
+  q(".am-fz").onclick=function(){ if(v.paused){ v.play(); this.textContent="⏸ Freeze"; } else { v.pause(); this.textContent="▶ Resume"; } };
+  q(".am-t").onclick=function(){ torch=!torch; try{ track.applyConstraints({advanced:[{torch:torch}]}); }catch(e){} };
+  var vid={width:{ideal:1920},height:{ideal:1080}}; if(S.cam) vid.deviceId={ideal:S.cam}; else vid.facingMode={ideal:"environment"};
+  navigator.mediaDevices.getUserMedia({video:vid}).then(function(s){
+    stream=s; track=s.getVideoTracks()[0]; v.srcObject=s;
+    var cap=track.getCapabilities?track.getCapabilities():{}; hw=!!cap.zoom; if(cap.torch) q(".am-t").hidden=false; paint();
+  }).catch(function(){ msg.textContent="Couldn't open the camera. Check that it is allowed for this site."; });
+}
+
+/* ---- settings cards ---- */
+function card(title,html){ var c=document.createElement("div"); c.className="stg-card"; c.dataset.a11y="1"; c.innerHTML="<h3>"+title+"</h3>"+html; return c; }
+function chk(k,t){ return '<label class="chk"><input type="checkbox" data-k="'+k+'">'+t+'</label>'; }
+function rng(k,t,min,max,step,u){ return '<label>'+t+' <b data-v="'+k+'" data-u="'+u+'"></b></label><input type="range" data-k="'+k+'" min="'+min+'" max="'+max+'" step="'+step+'">'; }
+function sel(k,t,opts){ return '<label>'+t+'</label><select data-k="'+k+'">'+opts.map(function(o){return '<option value="'+o[0]+'">'+o[1]+'</option>';}).join("")+'</select>'; }
+var scroll=document.querySelector(".stg-scroll"); if(!scroll) return;
+var cards=[
+ card("♿ Accessibility",'<div class="stg-note">Vision, spoken content, motion, pointer, magnifier, camera and microphone. These apply right away and are saved on this device (no need to press Save changes).</div><div class="stg-row"><button type="button" class="btn alt" id="a11y-reset">Reset accessibility settings</button></div>'),
+ card("🗣 Spoken Content",
+   chk("sp_new","Speak new messages aloud")+chk("sp_sel","Speak Selection (shows a Speak button when you select text)")+chk("sp_typ","Speak Typing (letters and words as you type)")+
+   '<label>Voice</label><select data-k="sp_voice" id="a11y-voice"><option value="">Default</option></select>'+rng("sp_rate","Speaking rate",0.5,2,0.1,"×")+
+   '<div class="stg-row"><button type="button" class="btn" id="a11y-say">Test voice</button><button type="button" class="btn alt" id="a11y-hush">Stop speaking</button></div>'),
+ card("🔠 Display &amp; Text Size",
+   chk("bold","Bold Text")+rng("ts","Larger Text (messages)",100,250,10,"%")+chk("shapes","Button Shapes")+chk("onoff","On/Off Labels")+
+   chk("transp","Reduce Transparency")+chk("contrast","Increase Contrast")+chk("nocolor","Differentiate Without Color")+
+   sel("invert","Invert Colors",[["off","Off"],["smart","Smart Invert (keeps photos normal)"],["classic","Classic Invert"]])+
+   sel("cf","Color Filters",[["off","Off"],["gray","Grayscale"],["prot","Red/Green Filter (Protanopia)"],["deut","Green/Red Filter (Deuteranopia)"],["trit","Blue/Yellow Filter (Tritanopia)"],["tint","Color Tint"]])+
+   rng("cfk","Filter intensity",0,100,5,"%")+rng("tint","Tint hue",0,360,5,"°")+rng("wp","Reduce White Point",0,75,5,"%")),
+ card("🏃 Motion",chk("rm","Reduce Motion (stops slides, bounces and other animations)")+chk("noscare","Block jumpscares and flashing screens")),
+ card("🖱 Pointer",sel("ptr","Pointer size",[["normal","Normal"],["large","Large"],["xlarge","Extra large"]])+'<label>Pointer color</label><input type="color" data-k="ptrc">'),
+ card("🔍 Magnifier",'<div class="stg-note">Use your camera as a magnifying glass: zoom, freeze, brightness, contrast, color filters and the light if your phone has one.</div><div class="stg-row"><button type="button" class="btn" id="a11y-mag-open">Open Magnifier</button></div>'),
+ card("🎥 Camera &amp; Microphone",
+   '<div class="stg-note" id="a11y-perm">Checking permissions…</div><div class="stg-row"><button type="button" class="btn" id="a11y-allow">Allow camera &amp; microphone</button></div>'+
+   '<label>Camera</label><select data-k="cam" id="a11y-cam"><option value="">Default</option></select>'+
+   sel("res","Video quality",[["360","360p"],["480","480p (default)"],["720","720p HD"],["1080","1080p Full HD"]])+
+   sel("fps","Frame rate",[["15","15 fps"],["24","24 fps"],["30","30 fps"],["60","60 fps"]])+
+   chk("mirror","Mirror my own video (like a selfie)")+
+   '<label>Microphone</label><select data-k="mic" id="a11y-mic"><option value="">Default</option></select>'+
+   chk("echo","Echo cancellation")+chk("noise","Noise suppression")+chk("agc","Automatic volume (auto gain)")+
+   '<label id="a11y-spk-l">Speaker</label><select data-k="spk" id="a11y-spk-s"><option value="">Default</option></select>'+
+   '<label>Test</label><div class="stg-row"><button type="button" class="btn" id="a11y-tcam">Test camera</button><button type="button" class="btn" id="a11y-tmic">Test microphone</button><button type="button" class="btn" id="a11y-tspk">Test speaker</button></div>'+
+   '<video id="a11y-cprev" autoplay playsinline muted></video><div class="stg-note" id="a11y-cinfo"></div><div class="a11y-meter"><i id="a11y-lvl"></i></div>'+
+   chk("a11y_mon","Hear myself while testing the microphone (use headphones!)")+
+   '<div class="stg-note">Calls use these choices the next time you start or join one. Inside a call you can still switch microphone from the top bar.</div>')
+];
+cards.forEach(function(c){ scroll.appendChild(c); });
+var $=function(i){return document.getElementById(i);};
+
+function refreshUI(){
+  document.querySelectorAll("[data-k]").forEach(function(el){
+    var k=el.dataset.k; if(!(k in S)) return;
+    if(el.type==="checkbox") el.checked=!!S[k]; else el.value=S[k];
+  });
+  document.querySelectorAll("[data-v]").forEach(function(b){ b.textContent=S[b.dataset.v]+b.dataset.u; });
+}
+refreshUI();
+document.addEventListener("input",function(e){
+  var el=e.target; if(!el||!el.dataset||!el.dataset.k||!(el.dataset.k in S)) return;
+  var k=el.dataset.k, v=el.type==="checkbox"?(el.checked?1:0):(typeof D[k]==="number"&&el.type==="range"?+el.value:el.value);
+  if(typeof D[k]==="number"&&el.type!=="range"&&el.type!=="checkbox") v=+el.value;
+  S[k]=v; persist(); apply(); refreshUI();
+  if(k==="spk") applySink();
+});
+document.addEventListener("change",function(e){ if(e.target&&e.target.dataset&&e.target.dataset.k) e.target.dispatchEvent(new Event("input",{bubbles:true})); });
+$("a11y-reset").onclick=function(){ if(!confirm("Reset all accessibility settings?")) return; S=Object.assign({},D); persist(); apply(); refreshUI(); };
+$("a11y-mag-open").onclick=magnifier;
+$("a11y-say").onclick=function(){ speak("This is how I will sound when I read your messages.",true); };
+$("a11y-hush").onclick=function(){ if(syn) syn.cancel(); };
+
+/* voices */
+function fillVoices(){
+  if(!syn) return; var s=$("a11y-voice"), vs=syn.getVoices(); if(!s||!vs.length) return;
+  s.innerHTML='<option value="">Default</option>'+vs.map(function(v){return '<option value="'+v.voiceURI.replace(/"/g,"&quot;")+'">'+v.name+" ("+v.lang+")</option>";}).join("");
+  s.value=S.sp_voice;
+}
+if(syn){ fillVoices(); syn.onvoiceschanged=fillVoices; } else { $("a11y-voice").disabled=true; }
+
+/* devices */
+var MD=navigator.mediaDevices;
+function fillDevices(){
+  if(!MD||!MD.enumerateDevices) return;
+  MD.enumerateDevices().then(function(devs){
+    function fill(id,kind,label){ var s=$(id); if(!s) return; var n=0;
+      s.innerHTML='<option value="">Default</option>'+devs.filter(function(d){return d.kind===kind;}).map(function(d){ n++; return '<option value="'+d.deviceId+'">'+(d.label||label+" "+n)+"</option>"; }).join("");
+      s.value=S[s.dataset.k]; if(s.value!==S[s.dataset.k]){ s.value=""; } }
+    fill("a11y-cam","videoinput","Camera"); fill("a11y-mic","audioinput","Microphone"); fill("a11y-spk-s","audiooutput","Speaker");
+    var hasSink=("setSinkId" in HTMLMediaElement.prototype); $("a11y-spk-s").hidden=!hasSink; $("a11y-spk-l").hidden=!hasSink; $("a11y-tspk").hidden=false;
+  }).catch(function(){});
+}
+function perms(){
+  var el=$("a11y-perm"), out=[]; if(!navigator.permissions||!navigator.permissions.query){ el.textContent="Press the button below to let the site use your camera and microphone."; return; }
+  Promise.all(["camera","microphone"].map(function(n){ return navigator.permissions.query({name:n}).then(function(p){ p.onchange=perms; return n+": "+({granted:"allowed",denied:"blocked",prompt:"not asked yet"}[p.state]||p.state); }).catch(function(){ return null; }); }))
+   .then(function(r){ r=r.filter(Boolean); el.textContent=r.length?"Permissions — "+r.join(" · ")+(r.join().indexOf("blocked")>-1?". Blocked? Click the lock icon in the address bar to allow it.":""):"Press the button below to let the site use your camera and microphone."; });
+}
+$("a11y-allow").onclick=function(){
+  if(!MD){ alert("This browser can't use the camera or microphone here (needs https)."); return; }
+  MD.getUserMedia({audio:true,video:true}).then(function(s){ s.getTracks().forEach(function(t){t.stop();}); }).catch(function(){
+    return MD.getUserMedia({audio:true}).then(function(s){s.getTracks().forEach(function(t){t.stop();});}).catch(function(){});
+  }).then(function(){ fillDevices(); perms(); });
+};
+if(MD&&MD.addEventListener) MD.addEventListener("devicechange",fillDevices);
+fillDevices(); perms();
+
+/* speaker routing for calls */
+function applySink(){
+  document.querySelectorAll("#calltiles video").forEach(function(v){ if(v.setSinkId) v.setSinkId(S.spk||"").catch(function(){}); });
+}
+var ct=$("calltiles"); if(ct) new MutationObserver(applySink).observe(ct,{childList:true,subtree:true});
+
+/* tests */
+var camS=null, micS=null, micCtx=null, raf=0;
+function stopCam(){ if(camS){ camS.getTracks().forEach(function(t){t.stop();}); camS=null; } var p=$("a11y-cprev"); p.classList.remove("on"); p.srcObject=null; $("a11y-cinfo").textContent=""; $("a11y-tcam").textContent="Test camera"; }
+function stopMic(){ cancelAnimationFrame(raf); if(micS){ micS.getTracks().forEach(function(t){t.stop();}); micS=null; } if(micCtx){ try{micCtx.close();}catch(e){} micCtx=null; } $("a11y-lvl").style.width="0"; $("a11y-tmic").textContent="Test microphone"; }
+$("a11y-tcam").onclick=function(){
+  if(camS){ stopCam(); return; }
+  if(!MD){ alert("Needs https."); return; }
+  MD.getUserMedia({video:window.PBM.video()}).then(function(s){
+    camS=s; var p=$("a11y-cprev"); p.srcObject=s; p.classList.add("on"); $("a11y-tcam").textContent="Stop camera test";
+    var st=s.getVideoTracks()[0].getSettings(); $("a11y-cinfo").textContent=(s.getVideoTracks()[0].label||"Camera")+" — "+(st.width||"?")+"×"+(st.height||"?")+" @ "+Math.round(st.frameRate||0)+" fps";
+    fillDevices(); perms();
+  }).catch(function(){ $("a11y-cinfo").textContent="Couldn't open that camera. Is it allowed and not used by another app?"; });
+};
+$("a11y-tmic").onclick=function(){
+  if(micS){ stopMic(); return; }
+  if(!MD){ alert("Needs https."); return; }
+  MD.getUserMedia({audio:window.PBM.audio()}).then(function(s){
+    micS=s; var AC=window.AudioContext||window.webkitAudioContext; micCtx=new AC(); var src=micCtx.createMediaStreamSource(s), an=micCtx.createAnalyser(); an.fftSize=512; src.connect(an);
+    if(S.a11y_mon) src.connect(micCtx.destination);
+    var buf=new Uint8Array(an.fftSize); $("a11y-tmic").textContent="Stop microphone test";
+    (function tick(){ an.getByteTimeDomainData(buf); var m=0; for(var i=0;i<buf.length;i++){ var x=Math.abs(buf[i]-128)/128; if(x>m)m=x; } $("a11y-lvl").style.width=Math.min(100,m*140)+"%"; raf=requestAnimationFrame(tick); })();
+    $("a11y-cinfo").textContent="Listening to: "+(s.getAudioTracks()[0].label||"microphone")+" — speak and watch the bar."; fillDevices(); perms();
+  }).catch(function(){ $("a11y-cinfo").textContent="Couldn't open that microphone."; });
+};
+$("a11y-tspk").onclick=function(){
+  var sr=22050, n=Math.floor(sr*.7), b=new DataView(new ArrayBuffer(44+n*2)), w=function(o,s){for(var i=0;i<s.length;i++)b.setUint8(o+i,s.charCodeAt(i));};
+  w(0,"RIFF"); b.setUint32(4,36+n*2,true); w(8,"WAVEfmt "); b.setUint32(16,16,true); b.setUint16(20,1,true); b.setUint16(22,1,true); b.setUint32(24,sr,true); b.setUint32(28,sr*2,true); b.setUint16(32,2,true); b.setUint16(34,16,true); w(36,"data"); b.setUint32(40,n*2,true);
+  for(var i=0;i<n;i++){ var f=i<n/2?523:659, env=Math.min(1,i/400,(n-i)/400); b.setInt16(44+i*2,Math.sin(2*Math.PI*f*i/sr)*9000*env,true); }
+  var a=new Audio(URL.createObjectURL(new Blob([b.buffer],{type:"audio/wav"})));
+  var go=function(){ a.play().catch(function(){}); };
+  if(a.setSinkId) a.setSinkId(S.spk||"").then(go,go); else go();
+};
+new MutationObserver(function(){ var st=$("stg"); if(st&&!st.classList.contains("open")){ stopCam(); stopMic(); } }).observe($("stg"),{attributes:true,attributeFilter:["class"]});
+
+if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",watchBox); else watchBox();
 })();
 </script>
 </body>
