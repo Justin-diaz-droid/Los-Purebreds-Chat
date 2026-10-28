@@ -27,7 +27,7 @@ if(L.getItem("pb_autologin")==="1"&&L.getItem("pb_code")==="lospurebrochat"&&L.g
 <link rel="dns-prefetch" href="https://purebred-chat.226739.workers.dev">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.cdnfonts.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <script>
 /* Nothing here blocks the first paint: PeerJS (voice/video calls only) and the Google fonts are fetched once the page has loaded.
@@ -37,7 +37,8 @@ if(L.getItem("pb_autologin")==="1"&&L.getItem("pb_code")==="lospurebrochat"&&L.g
     "https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap",
     "https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue&family=Dancing+Script&family=Lobster&family=Orbitron&family=Pacifico&family=Press+Start+2P&family=Roboto+Mono&display=swap",
     "https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;600;700&display=swap",
-    "https://fonts.cdnfonts.com/css/minecraft"
+        "https://fonts.googleapis.com/css2?family=Roboto+Flex&display=swap",
+    "https://fonts.googleapis.com/css2?family=Google+Sans+Flex&display=swap"
   ];
   function go(){
     var sc = document.createElement("script"); sc.async = true; sc.src = "https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"; document.head.appendChild(sc);
@@ -64,13 +65,13 @@ if(L.getItem("pb_autologin")==="1"&&L.getItem("pb_code")==="lospurebrochat"&&L.g
   body[data-theme="whatsapp"] .pill{border-radius:8px;border:none}
   body[data-theme="whatsapp"] .av-sb{background:var(--accent)}
   #tray{position:relative}
-  .stg-box{max-height:55vh;overflow-y:auto}
+  
   .av.has-pfp{display:flex}
   .av,.oav{background-size:cover;background-position:center}
   #pfpprev{width:48px;height:48px;border-radius:50%;margin:4px 0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;background-size:cover;background-position:center}
   .goback{display:block;text-align:center;padding:8px;border-radius:8px;background:var(--row);color:var(--text);text-decoration:none;font-size:13px;font-weight:600;margin-bottom:8px}
   .goback:hover{filter:brightness(1.2)}
-  .stg-box input[type=checkbox]{width:auto;margin-right:6px;vertical-align:middle}
+  
   #hdr{gap:12px;flex-wrap:wrap}
   #online{display:flex;align-items:center;font-size:12px;color:var(--bar-text,var(--muted))}
   .oav{position:relative;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;border:2px solid var(--bg);margin-left:-8px}
@@ -155,8 +156,8 @@ if(L.getItem("pb_autologin")==="1"&&L.getItem("pb_code")==="lospurebrochat"&&L.g
   details.sec summary::-webkit-details-marker{display:none}
   details.sec summary::after{content:"▾";float:right;color:var(--muted)}
   details.sec[open] summary::after{content:"▴"}
-  details.sec .sec-body{padding:0 12px 12px;border-top:1px solid var(--line)}
-  .stg-box button.alt{background:var(--input);color:var(--text);border:1px solid var(--line);font-weight:normal}
+  
+  
   *{box-sizing:border-box}
   body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif,"Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji";background:var(--bg);color:var(--text);margin:0;display:flex;height:100vh;height:100dvh;overflow:hidden}
   /* --bar / --bar-text are set by the accent color picker and tint the three bars */
@@ -171,11 +172,11 @@ if(L.getItem("pb_autologin")==="1"&&L.getItem("pb_code")==="lospurebrochat"&&L.g
   .stg-sb{padding:14px;border-top:1px solid var(--line)}
   .stg-btn{background:none;border:none;color:var(--bar-text,var(--accent));font-size:14px;cursor:pointer;font-weight:500}
   #youare{font-size:12px;color:var(--bar-text,var(--muted));margin-bottom:6px;opacity:.85}
-  .stg-box{display:none;background:var(--row);color:var(--text);padding:10px;border-radius:8px;margin-top:6px}
-  .stg-box label{font-size:11px;color:var(--muted);display:block;margin:6px 0 2px}
-  .stg-box input,.stg-box select{width:100%;padding:6px;background:var(--input);border:1px solid var(--line);color:var(--text);border-radius:6px}
-  .stg-box button{width:100%;margin-top:8px;background:var(--accent);border:none;color:var(--on-accent,#fff);padding:6px;border-radius:6px;font-weight:bold;cursor:pointer}
-  .stg-box .clr-btn{background:none;color:#ff453a;font-size:11px;text-align:left;padding:0;font-weight:normal}
+  
+  
+  
+  
+  
   #main{flex-grow:1;display:flex;flex-direction:column;background:var(--bg);min-width:0}
   #hdr{min-height:55px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--line);font-size:13px;color:var(--bar-text,var(--muted));background:var(--bar,transparent);text-align:center;padding:6px}
   #box{flex-grow:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:10px}
@@ -338,7 +339,7 @@ if(L.getItem("pb_autologin")==="1"&&L.getItem("pb_code")==="lospurebrochat"&&L.g
 
   /* sidebar scrolls as a whole, so Settings can always be scrolled to the very bottom */
   #sb{overflow-y:auto;overflow-x:hidden}
-  .stg-box{max-height:none;overflow:visible}
+  
   .stg-sb{padding-bottom:28px}
   /* "(edited)" sits beside the bubble, not inside it */
   .me .bwrap{flex-direction:row-reverse}
@@ -540,7 +541,7 @@ if(L.getItem("pb_autologin")==="1"&&L.getItem("pb_code")==="lospurebrochat"&&L.g
   .prow.enter{animation:rowIn .26s cubic-bezier(.2,.9,.3,1)}
   .prow.leaving{animation:rowOut .2s ease-in forwards;pointer-events:none}
   .msg:hover .act,.msg.tap .act,.act:focus-within{animation:actIn .15s cubic-bezier(.2,.9,.3,1.2)}
-  details.sec[open] .sec-body{animation:secIn .22s ease-out}
+  
   #dmchip{animation:popIn .2s cubic-bezier(.2,.9,.3,1.3)}
   .dmbadge{animation:popIn .25s cubic-bezier(.2,.9,.3,1.4)}
 
@@ -657,7 +658,6 @@ if(L.getItem("pb_autologin")==="1"&&L.getItem("pb_code")==="lospurebrochat"&&L.g
 <style id="px-head-css">
 html.px-on #gate{visibility:hidden!important}
 #autoload,html.autoload #autoload{display:none!important}
-#lbar,#sg-setup,.su-root{display:none!important}
 </style>
 <script>(function(){try{document.documentElement.classList.add("px-on");localStorage.setItem("pb_setup2","1")}catch(e){}})();</script>
 </head>
@@ -677,7 +677,7 @@ html.px-on #gate{visibility:hidden!important}
     <a class="goback" href="https://docs.google.com/document/d/1oa90mU-jYczqySulirTvHqqNWTSaNwPGnnArgBdVGrs/edit?tab=t.pqncc0vmsgzp" rel="noopener">← Go back</a>
   </div>
     <div id="gver">Version 2.5</div>
-  <label class="fld" id="g-themefld"><span>Themes</span><select id="g-theme"><option value="imessage">iMessage</option><option value="ios6">iOS 6</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option><option value="material">Material 3 Expressive</option><option value="kitkat">Android 4.4 KitKat</option><option value="terminal">Terminal</option><option value="simple">Simple</option><option value="glass">Liquid Glass</option><option value="win95">Windows 95</option><option value="winxp">Windows XP</option><option value="minecraft">Minecraft</option></select></label>
+  <label class="fld" id="g-themefld"><span>Themes</span><select id="g-theme"><option value="imessage">iMessage</option><option value="ios6">iOS 6</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option><option value="material">Android 17 (Material 3 Expressive)</option><option value="kde">KDE Plasma (Breeze)</option><option value="kitkat">Android 4.4 KitKat</option><option value="terminal">Terminal</option><option value="simple">Simple</option><option value="glass">Liquid Glass</option><option value="win95">Windows 95</option><option value="winxp">Windows XP</option><option value="minecraft">Minecraft</option></select></label>
 </div>
 
 <div id="sb">
@@ -730,7 +730,7 @@ html.px-on #gate{visibility:hidden!important}
       </div>
       <div class="stg-card"><h3>🎨 Appearance</h3>
         <label>Theme</label>
-        <select id="theme"><option value="imessage">iMessage</option><option value="ios6">iOS 6</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option><option value="material">Material 3 Expressive</option><option value="kitkat">Android 4.4 KitKat</option><option value="terminal">Terminal</option><option value="simple">Simple</option><option value="glass">Liquid Glass</option><option value="win95">Windows 95</option><option value="winxp">Windows XP</option><option value="minecraft">Minecraft</option></select>
+        <select id="theme"><option value="imessage">iMessage</option><option value="ios6">iOS 6</option><option value="discord">Discord</option><option value="whatsapp">WhatsApp</option><option value="tiktok">TikTok</option><option value="roblox">Roblox</option><option value="instagram">Instagram</option><option value="twitter">Twitter</option><option value="material">Android 17 (Material 3 Expressive)</option><option value="kde">KDE Plasma (Breeze)</option><option value="kitkat">Android 4.4 KitKat</option><option value="terminal">Terminal</option><option value="simple">Simple</option><option value="glass">Liquid Glass</option><option value="win95">Windows 95</option><option value="winxp">Windows XP</option><option value="minecraft">Minecraft</option></select>
         <label>Wallpaper &amp; accent color (also tints top bar, message bar &amp; left bar)</label><input type="color" id="wcol" value="#000000">
         <label>Wallpaper image (syncs to your other devices)</label>
         <div class="stg-row"><button id="wimg" type="button" class="btn">Choose image</button><button id="wreset" type="button" class="btn alt">Reset wallpaper</button><input type="file" id="wfile" accept="image/*" style="display:none"></div>
@@ -794,9 +794,7 @@ html.px-on #gate{visibility:hidden!important}
 </div>
 
 <script>
-/* >>> PASTE YOUR ORIGINAL "const EMO_DATA={...};" LINE OVER THE NEXT LINE <<< */
 const EMO_DATA = {};
-/* >>> PASTE YOUR LOGO between the quotes: the full  data:image/png;base64,....  string from your original file <<< */
 const LOGO = "data:image/webp;base64,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";
 const LOGO_FAV = "data:image/png;base64,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";
 const ROOM_CODE = "lospurebrochat";
@@ -816,9 +814,9 @@ let usr = "User", peer = null, conns = [], isHost = false, logs = [];
 /* private DM state */
 let dmWith = "", dmNm = "", chipT = null;
 let seen = {}; try { seen = JSON.parse(load("dm_seen", "{}")) || {}; } catch(e){ seen = {}; }
-const PH = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage",ios6:"iMessage",material:"Text message",kitkat:"Type a message",terminal:"enter message…",simple:"Message",glass:"Message",win95:"Type a message",winxp:"Type a message",minecraft:"Type a message or /command"};
-const THEMES = ["imessage","ios6","discord","whatsapp","tiktok","roblox","instagram","twitter","material","kitkat","terminal","simple","glass","win95","winxp","minecraft"];
-const CHNAME = {discord:"# purebred-chat",whatsapp:"WhatsApp Group",tiktok:"TikTok Inbox",roblox:"Roblox Chat",instagram:"Instagram Direct",twitter:"Twitter Messages",imessage:"iMessage Channel",ios6:"Messages",material:"Messages",kitkat:"Hangouts",terminal:"/dev/purebred",simple:"Messages",glass:"Messages",win95:"Messages",winxp:"Messenger",minecraft:"Minecraft Chat"};
+const PH = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage",ios6:"iMessage",material:"Text message",kitkat:"Type a message",terminal:"enter message…",simple:"Message",glass:"Message",win95:"Type a message",winxp:"Type a message",minecraft:"Type a message or /command",kde:"Type a message…"};
+const THEMES = ["imessage","ios6","discord","whatsapp","tiktok","roblox","instagram","twitter","material","kde","kitkat","terminal","simple","glass","win95","winxp","minecraft"];
+const CHNAME = {discord:"# purebred-chat",whatsapp:"WhatsApp Group",tiktok:"TikTok Inbox",roblox:"Roblox Chat",instagram:"Instagram Direct",twitter:"Twitter Messages",imessage:"iMessage Channel",ios6:"Messages",material:"Messages",kitkat:"Hangouts",terminal:"/dev/purebred",simple:"Messages",glass:"Messages",win95:"Messages",winxp:"Messenger",minecraft:"Minecraft Chat",kde:"Konversation"};
 let draft = null, stgOpen = false, pvLoaded = false, pvq = 0;
 const shownKeys = new Set();
 let groups = {};
@@ -879,11 +877,11 @@ const myDevice = detectDevice();
 
 /* ---------- theme ---------- */
 function setTheme(t){
-  if(!["imessage","ios6","discord","whatsapp","tiktok","roblox","instagram","twitter","material","kitkat","terminal","simple","glass","win95","winxp","minecraft"].includes(t)) t = "imessage";
+  if(!["imessage","ios6","discord","whatsapp","tiktok","roblox","instagram","twitter","material","kde","kitkat","terminal","simple","glass","win95","winxp","minecraft"].includes(t)) t = "imessage";
   document.body.dataset.theme = t;
   $("theme").value = t; $("g-theme").value = t;
-  $("chname").textContent = {discord:"# purebred-chat",whatsapp:"WhatsApp Group",tiktok:"TikTok Inbox",roblox:"Roblox Chat",instagram:"Instagram Direct",twitter:"Twitter Messages",imessage:"iMessage Channel",ios6:"Messages",material:"Messages",kitkat:"Hangouts",terminal:"/dev/purebred",simple:"Messages",glass:"Messages",win95:"Messages",winxp:"Messenger",minecraft:"Minecraft Chat"}[t];
-  $("inp").placeholder = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage",ios6:"iMessage",material:"Text message",kitkat:"Type a message",terminal:"enter message…",simple:"Message",glass:"Message",win95:"Type a message",winxp:"Type a message",minecraft:"Type a message or /command"}[t];
+  $("chname").textContent = {discord:"# purebred-chat",whatsapp:"WhatsApp Group",tiktok:"TikTok Inbox",roblox:"Roblox Chat",instagram:"Instagram Direct",twitter:"Twitter Messages",imessage:"iMessage Channel",ios6:"Messages",material:"Messages",kitkat:"Hangouts",terminal:"/dev/purebred",simple:"Messages",glass:"Messages",win95:"Messages",winxp:"Messenger",minecraft:"Minecraft Chat",kde:"Konversation"}[t];
+  $("inp").placeholder = {discord:"Message #purebred-chat",whatsapp:"Type a message",tiktok:"Send a message...",roblox:"To chat click here or press / key",instagram:"Message...",twitter:"Start a new message",imessage:"iMessage",ios6:"iMessage",material:"Text message",kitkat:"Type a message",terminal:"enter message…",simple:"Message",glass:"Message",win95:"Type a message",winxp:"Type a message",minecraft:"Type a message or /command",kde:"Type a message…"}[t];
   save("chat_theme", t); if(curCh === "dm") updateDmBar();
   applyWall();
   restyleAll();
@@ -932,7 +930,6 @@ function setCx(st, hex, dim){
   if(lum > 0.5){ st.setProperty("--cx-text", "#111"); st.setProperty("--cx-muted", "#3a3a40"); }
   else { st.setProperty("--cx-text", "#fff"); st.setProperty("--cx-muted", "rgba(255,255,255,.78)"); }
 }
-const TC_VARS = ["--text", "--cx-text", "--cx-muted"];
 function okTc(c){ return /^#[0-9a-f]{6}$/i.test(c || "") ? c : ""; }
 function applyTc(st, tc){            // custom text color: overrides the theme's text + the text drawn over the wallpaper
   tc = okTc(tc); if(!tc) return;
@@ -1028,7 +1025,7 @@ const FONT_MAP = {
   "Courier New":"'Courier New', monospace", "Trebuchet MS":"'Trebuchet MS', sans-serif", "Impact":"Impact, sans-serif",
   "Comic Neue":"'Comic Neue', 'Comic Sans MS', cursive", "Pacifico":"Pacifico, cursive", "Lobster":"Lobster, cursive",
   "Dancing Script":"'Dancing Script', cursive", "Bangers":"Bangers, cursive", "Orbitron":"Orbitron, sans-serif",
-  "Minecraft":"Minecraft, 'MC Local', 'Press Start 2P', monospace", "Press Start 2P":"'Press Start 2P', monospace", "Roboto Mono":"'Roboto Mono', monospace"
+  "Minecraft":"Minecraft, 'Press Start 2P', monospace", "Press Start 2P":"'Press Start 2P', monospace", "Roboto Mono":"'Roboto Mono', monospace"
 };
 let myFont = "", myAvatar = "";
 const avatars = {};
@@ -2250,7 +2247,7 @@ function loadOlder(){
   if(winTopDone) return false;
   const older = viewLogs().filter(m => (m.ts || 0) < winLo);
   if(!older.length){ winTopDone = true; return false; }
-  const oldLo = winLo, newLo = older[Math.max(0, older.length - WIN_STEP)].ts || 0;
+  const newLo = older[Math.max(0, older.length - WIN_STEP)].ts || 0;
   const bx = $("box"), h0 = bx.scrollHeight, t0 = bx.scrollTop;
   winLoading = true; winLo = newLo;
   try { older.filter(m => (m.ts || 0) >= newLo).forEach(m => renderRow(m)); regroup(); } finally { winLoading = false; }
@@ -2768,74 +2765,11 @@ $("dmleave").onclick = () => {
 };
 </script>
 <style id="pv-upgrade-css">
-.stg-wrap{display:flex !important;height:100%}
-.stg-wrap.dock-right{flex-direction:row}
-.stg-wrap.dock-left{flex-direction:row-reverse}
-.stg-wrap.dock-bottom{flex-direction:column}
-.stg-wrap.dock-top{flex-direction:column-reverse}
-.stg-wrap .stg-ctl{flex:1 1 0;border:none}
-.stg-wrap.dock-left .stg-ctl,.stg-wrap.dock-right .stg-ctl{min-width:300px}
-.stg-wrap.dock-top .stg-ctl,.stg-wrap.dock-bottom .stg-ctl{min-height:200px}
-.stg-wrap .stg-prev{position:relative;flex:0 0 auto;order:0}
-.stg-wrap.dock-left .stg-prev,.stg-wrap.dock-right .stg-prev{width:var(--pvw,58%);min-width:240px;max-width:80%}
-.stg-wrap.dock-top .stg-prev,.stg-wrap.dock-bottom .stg-prev{height:var(--pvh,50%);min-height:170px;max-height:80%}
-.stg-wrap.dock-right .stg-prev{border-left:1px solid var(--line)}
-.stg-wrap.dock-left .stg-prev{border-right:1px solid var(--line)}
-.stg-wrap.dock-top .stg-prev{border-bottom:1px solid var(--line)}
-.stg-wrap.dock-bottom .stg-prev{border-top:1px solid var(--line)}
-.stg-wrap.hide-prev .stg-prev{display:none}
 .stg-prevhead{flex-wrap:wrap}
-.pv-handle{position:absolute;z-index:5;transition:background .15s}
-.pv-handle:hover,.stg-wrap.dragging .pv-handle{background:var(--accent)}
-.dock-right .pv-handle{left:-4px;top:0;bottom:0;width:8px;cursor:col-resize}
-.dock-left .pv-handle{right:-4px;top:0;bottom:0;width:8px;cursor:col-resize}
-.dock-bottom .pv-handle{top:-4px;left:0;right:0;height:8px;cursor:row-resize}
-.dock-top .pv-handle{bottom:-4px;left:0;right:0;height:8px;cursor:row-resize}
-.stg-wrap.dragging{user-select:none}
-.stg-wrap.dragging #pvframe{pointer-events:none}
-#pvshow{margin-left:auto;margin-right:8px}
 .stg-top{gap:8px}
 </style>
 <script id="pv-upgrade-js">
 (function(){
-  const head = document.querySelector(".stg-prevhead"), prev = document.querySelector(".stg-prev"), stgWrap = document.querySelector(".stg-wrap");
-  const dock = document.createElement("div"); dock.className = "seg"; dock.id = "pvdock";
-  dock.innerHTML = '<button type="button" data-d="left" title="Dock left">◀</button><button type="button" data-d="top" title="Dock top">▲</button><button type="button" data-d="bottom" title="Dock bottom">▼</button><button type="button" data-d="right" title="Dock right">▶</button>';
-  const hide = document.createElement("button"); hide.type = "button"; hide.id = "pvhide"; hide.className = "stg-x"; hide.title = "Hide preview"; hide.textContent = "✕";
-  head.append(dock, hide);
-  const handle = document.createElement("div"); handle.id = "pvhandle"; handle.className = "pv-handle"; handle.title = "Drag to resize";
-  prev.prepend(handle);
-  const show = document.createElement("button"); show.type = "button"; show.id = "pvshow"; show.className = "btn alt"; show.textContent = "👁 Show preview"; show.style.display = "none";
-  document.querySelector(".stg-top").insertBefore(show, document.getElementById("stgx"));
-
-  let pvDock = load("pv_dock", window.innerWidth <= 800 ? "top" : "right"), pvHidden = load("pv_hide", "0") === "1";
-  function applyDock(){
-    if(!["left","right","top","bottom"].includes(pvDock)) pvDock = "right";
-    stgWrap.classList.remove("dock-left","dock-right","dock-top","dock-bottom","hide-prev");
-    stgWrap.classList.add("dock-" + pvDock);
-    if(pvHidden) stgWrap.classList.add("hide-prev");
-    dock.querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.d === pvDock));
-    show.style.display = pvHidden ? "" : "none";
-    if(!pvHidden && stgOpen) renderPreview();
-  }
-  dock.querySelectorAll("button").forEach(b => b.onclick = () => { pvDock = b.dataset.d; save("pv_dock", pvDock); applyDock(); });
-  hide.onclick = () => { pvHidden = true; save("pv_hide", "1"); applyDock(); };
-  show.onclick = () => { pvHidden = false; save("pv_hide", "0"); applyDock(); };
-
-  let drag = false;
-  handle.addEventListener("pointerdown", e => { e.preventDefault(); drag = true; handle.setPointerCapture(e.pointerId); stgWrap.classList.add("dragging"); });
-  handle.addEventListener("pointermove", e => {
-    if(!drag) return;
-    const r = stgWrap.getBoundingClientRect();
-    if(pvDock === "right") stgWrap.style.setProperty("--pvw", Math.round(r.right - e.clientX) + "px");
-    else if(pvDock === "left") stgWrap.style.setProperty("--pvw", Math.round(e.clientX - r.left) + "px");
-    else if(pvDock === "bottom") stgWrap.style.setProperty("--pvh", Math.round(r.bottom - e.clientY) + "px");
-    else stgWrap.style.setProperty("--pvh", Math.round(e.clientY - r.top) + "px");
-  });
-  const end = () => { drag = false; stgWrap.classList.remove("dragging"); };
-  handle.addEventListener("pointerup", end); handle.addEventListener("pointercancel", end);
-  applyDock();
-
   // make the preview scrollable
   const origPvHTML = pvHTML;
   pvHTML = function(){
@@ -3653,10 +3587,52 @@ label.plus.open{transform:rotate(45deg)}
     }
   };
 
-  /* ---------- the + menu (photos · file · poll) ---------- */
+  /* ---------- take a photo with the camera (instead of picking one); it is sent the same way as an uploaded photo ---------- */
+  const shot = document.createElement("input"); shot.type = "file"; shot.accept = "image/*"; shot.setAttribute("capture", "environment"); shot.style.display = "none"; document.body.appendChild(shot);
+  function sendPhoto(f){ const dt = new DataTransfer(); dt.items.add(f); pp.files = dt.files; pp.onchange(); }
+  shot.onchange = () => { const f = shot.files && shot.files[0]; shot.value = ""; if(f) sendPhoto(f); };
+  function takePhoto(){
+    const md = navigator.mediaDevices;
+    if(!window.isSecureContext || !md || !md.getUserMedia){ shot.click(); return; }       // no https / old browser: open the phone's own camera app
+    if(document.getElementById("cam-ov")) return;
+    const ov = document.createElement("div"); ov.id = "cam-ov"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-label", "Take a photo");
+    ov.innerHTML = '<video autoplay playsinline muted></video><canvas hidden></canvas><div class="cm-msg"></div><div class="cm-bar"><button type="button" class="cm-x" title="Close">✕</button><button type="button" class="cm-snap" title="Take photo"></button><button type="button" class="cm-flip" title="Switch camera">🔄</button><button type="button" class="cm-retake" hidden>↺ Retake</button><button type="button" class="cm-use" hidden>✔ Send photo</button></div>';
+    document.body.appendChild(ov);
+    const q = x => ov.querySelector(x), vid = q("video"), cv = q("canvas"), msg = q(".cm-msg");
+    let stream = null, facing = "environment", blob = null, first = true;
+    const stop = () => { if(stream){ stream.getTracks().forEach(t => t.stop()); stream = null; } };
+    const esc = e => { if(e.key === "Escape") close(); };
+    const close = () => { stop(); ov.remove(); document.removeEventListener("keydown", esc); };
+    document.addEventListener("keydown", esc);
+    function start(){
+      stop(); msg.textContent = "";
+      const v = { width: { ideal: 1920 }, height: { ideal: 1080 } };
+      const saved = first && window.PBM ? window.PBM.video().deviceId : null;          // the camera picked in Settings > Accessibility
+      if(saved) v.deviceId = saved; else v.facingMode = { ideal: facing };
+      first = false;
+      md.getUserMedia({ video: v }).then(st => {
+        stream = st; vid.srcObject = st;
+        const fm = st.getVideoTracks()[0].getSettings().facingMode; if(fm) facing = fm;
+        vid.classList.toggle("mir", facing === "user");
+      }).catch(() => { close(); shot.click(); });
+    }
+    function review(on){ q(".cm-snap").hidden = q(".cm-flip").hidden = on; q(".cm-retake").hidden = q(".cm-use").hidden = !on; }
+    q(".cm-x").onclick = close;
+    q(".cm-flip").onclick = () => { facing = facing === "user" ? "environment" : "user"; start(); };
+    q(".cm-snap").onclick = () => {
+      if(!vid.videoWidth) return;
+      cv.width = vid.videoWidth; cv.height = vid.videoHeight; cv.getContext("2d").drawImage(vid, 0, 0);
+      cv.toBlob(b => { if(!b) return; blob = b; vid.pause(); review(true); }, "image/jpeg", 0.92);
+    };
+    q(".cm-retake").onclick = () => { blob = null; vid.play(); review(false); };
+    q(".cm-use").onclick = () => { if(!blob) return; const f = new File([blob], "photo-" + Date.now() + ".jpg", { type: "image/jpeg", lastModified: Date.now() }); close(); sendPhoto(f); };
+    start();
+  }
+
+  /* ---------- the + menu (photos · camera · file · poll) ---------- */
   const plus = document.querySelector("label.plus");
   const menu = document.createElement("div"); menu.id = "plusmenu";
-  menu.innerHTML = '<button type="button" data-a="photo"><i>🖼️</i>Upload photos</button><button type="button" data-a="gif"><i>🎞️</i>Send a GIF</button><button type="button" data-a="file"><i>📎</i>Upload a file</button><button type="button" data-a="poll"><i>📊</i>Create poll</button>';
+  menu.innerHTML = '<button type="button" data-a="photo"><i>🖼️</i>Upload photos</button><button type="button" data-a="camera"><i>📷</i>Take a photo</button><button type="button" data-a="gif"><i>🎞️</i>Send a GIF</button><button type="button" data-a="file"><i>📎</i>Upload a file</button><button type="button" data-a="poll"><i>📊</i>Create poll</button>';
   document.body.appendChild(menu);
   const closeMenu = () => { menu.classList.remove("open"); plus.classList.remove("open"); };
   plus.addEventListener("click", e => {
@@ -3666,7 +3642,7 @@ label.plus.open{transform:rotate(45deg)}
     if($$("attach") && $$("attach").classList.contains("on")){ window.__pbDirect = true; plus.click(); return; }   // panel open: close it
     if(menu.classList.contains("open")){ closeMenu(); return; }
     const gal = curCh === "gal", pl = curCh === "polls";
-    menu.querySelectorAll('[data-a]').forEach(b => { const a = b.dataset.a; b.style.display = pl ? (a === "poll" ? "" : "none") : (gal && a !== "photo") ? "none" : ""; });
+    menu.querySelectorAll('[data-a]').forEach(b => { const a = b.dataset.a; b.style.display = pl ? (a === "poll" ? "" : "none") : (gal && a !== "photo" && a !== "camera") ? "none" : ""; });
     const r = plus.getBoundingClientRect();
     menu.style.left = Math.max(8, Math.min(r.left, innerWidth - 230)) + "px"; menu.style.bottom = (innerHeight - r.top + 10) + "px";
     menu.classList.add("open"); plus.classList.add("open");
@@ -3675,6 +3651,7 @@ label.plus.open{transform:rotate(45deg)}
     const b = e.target.closest("button[data-a]"); if(!b) return; const a = b.dataset.a;
     closeMenu();
     if(a === "photo") pp.click();
+    else if(a === "camera") takePhoto();
     else if(a === "file") pf.click();
     else if(a === "poll") openPoll();
     else if(a === "gif") setTimeout(() => { const g = document.getElementById("gif-btn"); if(g) g.click(); }, 0);
@@ -5430,17 +5407,6 @@ body:not(.in-dm) #dmbar{border-bottom-width:0 !important}
   new ResizeObserver(fit).observe(wrap);
   ["pvdesk", "pvphone"].forEach(id => $$(id).addEventListener("click", () => setTimeout(fit, 0)));
   fit();
-
-  /* ---- dock buttons: little icons that show where the preview goes ---- */
-  const inner = { left: "x=2.6 y=3.6 width=4 height=8.8", right: "x=9.4 y=3.6 width=4 height=8.8", top: "x=2.6 y=3.6 width=10.8 height=3.8", bottom: "x=2.6 y=8.6 width=10.8 height=3.8" };
-  document.querySelectorAll("#pvdock button").forEach(b => {
-    const d = b.dataset.d; if(!inner[d]) return;
-    const a = inner[d].split(" ").map(p => p.split("=")), r = a.map(([k, v]) => k + '="' + v + '"').join(" ");
-    b.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="2" width="14" height="12" rx="3" stroke="currentColor" stroke-width="1.4"/><rect ' + r + ' rx="1.2" fill="currentColor"/></svg>';
-    b.title = "Preview on the " + d;
-    b.style.padding = "5px 9px";
-  });
-  const hide = $$("pvhide"); if(hide) hide.title = "Hide the preview";
 })();
 </script>
 <style id="draw-css">
@@ -5504,6 +5470,11 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
   const myBid = "p" + uid;                        // everybody owns exactly one private board: "p" + their id
   const okBid = b => typeof b === "string" && /^p[A-Za-z0-9_-]{1,40}$/.test(b) && b !== "p__proto__";
   const ownerOf = b => b.slice(1);
+  /* shared sub-tabs: everybody can see + draw, only the person who made one can clear or delete it. id = "c" + owner id + "." + a short code */
+  const okSub = b => typeof b === "string" && /^c[A-Za-z0-9_-]{1,40}\.[a-z0-9]{3,10}$/.test(b) && b.slice(1, b.indexOf(".")) !== "__proto__";
+  const subOwner = b => b.slice(1, b.indexOf("."));
+  const cleanName = n => String(n || "").replace(/[\u0000-\u001f\u007f<>]/g, "").replace(/\s+/g, " ").trim().slice(0, 18);
+  const MAXSUB_EACH = 5, MAXSUB = 40;
   const jget = (k, fb) => { try { const v = JSON.parse(load(k, "")); return v && typeof v === "object" ? v : fb; } catch(e){ return fb; } };
 
   /* ---------- UI: sidebar row, header tab, board ---------- */
@@ -5523,6 +5494,7 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
       <select id="dboard" class="dsel" title="Which drawing board"></select>
       <span id="dtag" class="dtag"></span>
       <button class="dbtn" id="dinv" type="button" title="Invite people into your private board">👥 Invite</button>
+      <button class="dbtn red" id="dsubdel" type="button" title="Delete this sub-tab for everyone (only you, its maker, can)" style="display:none">🗑 Delete tab</button>
       <span class="dsep"></span>
       <div class="dmw"><button class="dbtn" id="dtoolbtn" type="button" title="Drawing tools" aria-haspopup="true" aria-expanded="false">✏️ Pen ▾</button>
         <div class="dmenu" id="dmtools"><div class="dmh">Tools</div><div class="dgrid">
@@ -5571,6 +5543,11 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
   pboards[uid] = new Set(members.map(m => m.u));
   const saveJoined = () => save("pb_pvj", JSON.stringify(joined));
   const saveMembers = () => save("pb_pvm", JSON.stringify(members));
+  let subs = jget("pb_subs", {}), subDel = jget("pb_subdel", {});     // shared sub-tabs: id -> { n: name, on: owner's name, ts, clr } · ids that were deleted
+  if(Array.isArray(subs)) subs = {}; if(Array.isArray(subDel)) subDel = {};
+  Object.keys(subs).forEach(b => { const e = subs[b]; if(!okSub(b) || !e || typeof e !== "object" || subDel[b]) delete subs[b]; else subs[b] = { n: cleanName(e.n) || "Sub-tab", on: String(e.on || "Someone").slice(0, 12), ts: +e.ts || 0, clr: +e.clr || 0 }; });
+  Object.keys(subs).slice(0, MAXSUB).forEach(b => states.set(b, mk(b)));
+  const saveSubs = () => { save("pb_subs", JSON.stringify(subs)); save("pb_subdel", JSON.stringify(subDel)); };
 
   let tool = "pen", prevTool = "pen", color = COLORS[0], size = 6, shapeKind = "line", shapeFill = false;
   let sel = null, lz = null;                      // lasso: the current selection · the pointer action in progress
@@ -5755,11 +5732,10 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
   function sendD(o, bid){
     if(bid === undefined) bid = S.id;
     o.t = "D"; o.i = newId(); o.f = uid; o.n = usr; if(bid) o.b = bid;
-    if(bid && isHost) routeHost(o, null); else send(o);
+    if(bid && isHost){ if(okSub(bid)) routeSub(o, null); else routeHost(o, null); } else send(o);
     return o;
   }
   const snapBody = st => { cap(st); return { k: "snap", clr: st.clr, strokes: st.strokes.slice(), gone: [...st.gone].slice(-1500) }; };
-  function snapObj(st){ return Object.assign({ t: "D", i: newId() }, snapBody(st)); }
   function snapParts(st){                                  // pictures make a board heavy: split it so no single message is too big
     cap(st); const gone = [...st.gone].slice(-1500), parts = []; let cur = [], size = 0;
     st.strokes.forEach(s => { const n = (s.im ? s.im.length : 0) + s.p.length * 7 + 120; if(cur.length && (size + n > 420000 || cur.length >= 1500)){ parts.push(cur); cur = []; size = 0; } cur.push(s); size += n; });
@@ -5783,7 +5759,7 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
   }
   function who(t){ const e = $$("dwho"); e.textContent = t; clearTimeout(whoT); whoT = setTimeout(() => { e.textContent = ""; }, 1800); }
   function rm(st, id){ if(!st.byId.has(id)) return; st.strokes = st.strokes.filter(s => s.id !== id); st.gone.add(id); reindex(st); if(st === S) redraw(); persistSoon(st); }
-  function applyClr(st, t){ st.clr = Math.max(st.clr, t); st.strokes = st.strokes.filter(s => s.ts > st.clr); st.gone.clear(); st.mine = []; st.redoS = []; st.opHist.clear(); reindex(st); if(st === S){ redraw(); updBtns(); } persistSoon(st); }
+  function applyClr(st, t){ if(st.id && subs[st.id] && t > (subs[st.id].clr || 0)){ subs[st.id].clr = t; saveSubs(); } st.clr = Math.max(st.clr, t); st.strokes = st.strokes.filter(s => s.ts > st.clr); st.gone.clear(); st.mine = []; st.redoS = []; st.opHist.clear(); reindex(st); if(st === S){ redraw(); updBtns(); } persistSoon(st); }
 
   /* ---------- everyone's cursors (only people on the board you're looking at) ---------- */
   const curs = new Map();
@@ -5844,6 +5820,7 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
   /* ----- the public board (works exactly like before) ----- */
   function onPub(d, fromConn){
     const host = isHost;
+    if(d.k === "sl"){ if(!host) applyList(d); return; }          // the host's list of shared sub-tabs
     if(d.k === "snap"){
       if(host){ if(fromConn.snapIn) return; fromConn.snapIn = 1; if(merge(P, d)) snapObjs(P).forEach(o => send(o, fromConn)); }
       else {
@@ -5898,6 +5875,82 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     }
     applyMsg(st, d, String(d.n || "Someone").slice(0, 12));
   }
+  /* ----- shared sub-tabs ----- */
+  function routeSub(d, fromConn){            // HOST: pass a sub-tab message to everybody (or just the person it is for); returns true when the host should apply it too
+    if(!subs[d.b]) return false;
+    if(d.to){ if(!okUid(d.to)) return false; conns.forEach(x => { if(x !== fromConn && x.open && x.uid === d.to) x.send(d); }); return d.to === uid && d.f !== uid; }
+    conns.forEach(x => { if(x !== fromConn && x.open && x.uid && x.uid !== d.f) x.send(d); });
+    return d.f !== uid;
+  }
+  function addSub(b, name, ownerName, ts){
+    name = cleanName(name); if(!okSub(b) || !name || subs[b] || subDel[b] || Object.keys(subs).length >= MAXSUB) return false;
+    subs[b] = { n: name, on: String(ownerName || "Someone").slice(0, 12), ts: +ts || Date.now(), clr: 0 };
+    const st = mk(b); states.set(b, st); loadBoard(st); saveSubs(); buildSelect(); chrome(); return true;
+  }
+  function delSub(b){
+    if(!subs[b] && !states.has(b)) return;
+    const st = states.get(b); delete subs[b]; subDel[b] = Date.now();
+    const ks = Object.keys(subDel); if(ks.length > 200) ks.sort((a, c) => subDel[a] - subDel[c]).slice(0, ks.length - 200).forEach(k => delete subDel[k]);
+    saveSubs();
+    if(st){ states.delete(b); dirty.delete(st); dropSaved(st); if(S === st) openBoard(""); }
+    buildSelect(); chrome();
+  }
+  function applyList(d){                      // the host tells a newcomer which sub-tabs exist (and which were cleared / deleted)
+    (Array.isArray(d.del) ? d.del : []).slice(0, 200).forEach(b => { if(okSub(b)){ if(subs[b]) delSub(b); else subDel[b] = subDel[b] || Date.now(); } });
+    (Array.isArray(d.list) ? d.list : []).slice(0, MAXSUB).forEach(e => {
+      if(!e || !okSub(e.b)) return;
+      addSub(e.b, e.n, e.on, e.ts);
+      const st = states.get(e.b); if(st && +e.clr > st.clr) applyClr(st, Math.min(+e.clr, Date.now() + 60000));
+    });
+    saveSubs();
+  }
+  function sendSubList(conn){ try { if(conn.open) conn.send({ t: "D", i: newId(), f: uid, n: usr, k: "sl", list: Object.keys(subs).map(b => ({ b, n: subs[b].n, on: subs[b].on, ts: subs[b].ts, clr: subs[b].clr || 0 })), del: Object.keys(subDel).slice(-100) }); } catch(e){} }
+  function onSub(d, b, fromConn){
+    const owner = subOwner(b), fu = d.f, k = d.k;
+    if(!okUid(fu)) return;
+    if(isHost){
+      if(k === "sc"){
+        const name = cleanName(d.name);
+        if(fu !== owner || !name || subs[b] || subDel[b] || Object.keys(subs).length >= MAXSUB || Object.keys(subs).filter(x => subOwner(x) === fu).length >= MAXSUB_EACH) return;
+        conns.forEach(x => { if(x !== fromConn && x.open && x.uid && x.uid !== fu) x.send(d); });
+      } else if(k === "sd"){
+        if(fu !== owner) return;                                                  // only the person who made the sub-tab can delete it
+        conns.forEach(x => { if(x !== fromConn && x.open && x.uid && x.uid !== fu) x.send(d); });
+      } else {
+        if(k === "clr" && fu !== owner) return;                                   // ...or clear it
+        if(!routeSub(d, fromConn)) return;
+      }
+    }
+    applySub(d, b);
+  }
+  function applySub(d, b){
+    const owner = subOwner(b), k = d.k, fu = d.f;
+    if(!okUid(fu) || fu === uid) return;
+    if(d.to && d.to !== uid) return;
+    if(k === "sc"){ if(fu === owner && addSub(b, d.name, d.n, d.ts) && Date.now() - (+d.ts || 0) < 60000) sys("📌 " + String(d.n || "Someone").slice(0, 12) + " added a drawing sub-tab: " + subs[b].n + ". Open the 🎨 Draw tab to see it."); return; }
+    if(k === "sd"){ if(fu === owner) delSub(b); return; }
+    const st = states.get(b); if(!st) return;
+    if(k === "clr" && fu !== owner) return;                                          // only the owner wipes a sub-tab
+    if(k === "snap"){ merge(st, fu === owner ? d : Object.assign({}, d, { clr: 0 })); return; }     // other people can't clear it by sending a picture
+    if(k === "sr"){
+      const mine = owner === uid, ownerOn = mine || (lastRoster || []).some(e => e.c === owner);
+      if(st.strokes.length && (mine || !ownerOn)){ const to = fu; setTimeout(() => snapParts(st).forEach(pt => sendD(Object.assign(pt, { to }), b)), 100 + Math.random() * 600); }
+      return;
+    }
+    applyMsg(st, d, String(d.n || "Someone").slice(0, 12));
+  }
+  function createSub(){
+    const mineN = Object.keys(subs).filter(x => subOwner(x) === uid).length;
+    if(mineN >= MAXSUB_EACH){ alert("You already made " + MAXSUB_EACH + " sub-tabs. Delete one first."); return; }
+    if(Object.keys(subs).length >= MAXSUB){ alert("There are too many sub-tabs already."); return; }
+    const name = cleanName(prompt("Name your new sub-tab (everyone can see and draw in it, only you can clear it):", ""));
+    if(!name) return;
+    const b = "c" + uid + "." + Date.now().toString(36).slice(-7);
+    if(!addSub(b, name, usr, Date.now())) return;
+    sendD({ k: "sc", name, ts: subs[b].ts }, b);
+    openBoard(b);
+  }
+
   function requestSync(st){
     if(!st || !st.id || (!isHost && !conns.length) || Date.now() - st.srAt < 8000) return;
     st.srAt = Date.now(); sendD({ k: "sr" }, st.id);
@@ -5907,7 +5960,7 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     if(isHost) pboards[uid] = new Set(members.map(m => m.u));
     else if(conns.length) sendD({ k: "pm", mem: members.map(m => m.u) }, myBid);
   }
-  function afterConnect(){ announceMembers(); Object.keys(joined).forEach(b => requestSync(states.get(b))); if(S.id) requestSync(S); }
+  function afterConnect(){ announceMembers(); Object.keys(subs).forEach(b => { if(subOwner(b) === uid) sendD({ k: "sc", name: subs[b].n, ts: subs[b].ts }, b); }); Object.keys(joined).forEach(b => requestSync(states.get(b))); if(S.id) requestSync(S); }
   setInterval(() => { if(!isHost && conns.length) announceMembers(); }, 20000);
 
   function invite(u, n){
@@ -5960,19 +6013,19 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
   handle = function(d, from){
     if(d && typeof d === "object" && d.t === "D"){
       if(!validId(d.i)) return;
-      if(d.b !== undefined && !okBid(d.b)) return;
+      if(d.b !== undefined && !okBid(d.b) && !okSub(d.b)) return;
       if(isHost){
         if(!from.ok2 || from.denied || !from.uid) return;
         if(window.__pbMuted && window.__pbMuted(from.userName, from) && d.k !== "c" && d.k !== "pl" && d.k !== "pm") return;
         d.f = from.uid; d.n = String(from.userName || "").slice(0, 12);
-        if(d.b !== undefined) onPriv(d, d.b, from); else onPub(d, from);
+        if(d.b !== undefined){ if(okSub(d.b)) onSub(d, d.b, from); else onPriv(d, d.b, from); } else onPub(d, from);
       } else {
-        if(d.b !== undefined) onPriv(d, d.b, null); else onPub(d, null);
+        if(d.b !== undefined){ if(okSub(d.b)) onSub(d, d.b, null); else onPriv(d, d.b, null); } else onPub(d, null);
       }
       return;
     }
     _h(d, from);
-    if(isHost && d && d.t === "P" && from.ok2 && !from.denied && !from.bsent){ from.bsent = 1; sendSnap(from); }   // newcomer gets the current public board
+    if(isHost && d && d.t === "P" && from.ok2 && !from.denied && !from.bsent){ from.bsent = 1; sendSnap(from); sendSubList(from); }   // newcomer gets the current public board
     if(!isHost && d && d.t === "R") setTimeout(afterConnect, 900);
   };
 
@@ -5989,15 +6042,28 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     add("", "🌐 Public board");
     add(myBid, "🔒 My private board" + dot(states.get(myBid)));
     Object.keys(joined).forEach(b => add(b, "🔒 " + joined[b] + "'s board" + dot(states.get(b))));
-    sel.value = v;
+    subList().forEach(b => add(b, "📌 " + subs[b].n + " · by " + (subOwner(b) === uid ? "you" : subs[b].on) + dot(states.get(b))));
+    if(!states.has(v)) v = "";
+    sel.value = v; buildSubs();
+  }
+  const subList = () => Object.keys(subs).filter(b => states.has(b)).sort((a, c) => (subs[a].ts || 0) - (subs[c].ts || 0));
+  const strip = document.createElement("div"); strip.id = "dsubs"; $$("dtools").after(strip);
+  function buildSubs(){                       // the sub-tab strip under the toolbar: Public board, every shared sub-tab, and a + to make one
+    strip.replaceChildren();
+    const chip = (id, txt, tip) => { const b = document.createElement("button"); b.type = "button"; b.className = "dchip" + (S.id === id ? " on" : ""); b.textContent = txt; if(tip) b.title = tip; b.onclick = () => openBoard(id); strip.appendChild(b); };
+    chip("", "🌐 Public", "The public drawing board");
+    subList().forEach(b => chip(b, "📌 " + subs[b].n + (states.get(b).unread && S.id !== b ? " ●" : ""), "Sub-tab by " + (subOwner(b) === uid ? "you" : subs[b].on) + ": everyone can draw, only they can clear it"));
+    const add = document.createElement("button"); add.type = "button"; add.className = "dchip add"; add.textContent = "➕ Sub-tab"; add.title = "Make a new shared sub-tab (everyone can draw in it, only you can clear it)"; add.onclick = createSub; strip.appendChild(add);
   }
   function chrome(){
-    const priv = !!S.id, own = S.id === myBid;
+    const sub = okSub(S.id), priv = !!S.id && !sub, own = S.id === myBid, subMine = sub && subOwner(S.id) === uid, subBy = sub && subs[S.id] ? subs[S.id].on : "the maker";
     $$("dinv").style.display = priv ? "" : "none";
     $$("dinv").textContent = own ? "👥 Invite" : "👥 Members";
-    $$("dclr").style.display = (!priv || own) ? "" : "none";             // only the owner can wipe a private board
+    $$("dclr").style.display = sub ? (subMine ? "" : "none") : (!priv || own) ? "" : "none";             // only the owner can wipe a private board or a sub-tab
+    $$("dsubdel").style.display = subMine ? "" : "none";
     const t = $$("dtag"); t.className = "dtag" + (priv ? " pv" : "");
-    t.textContent = !priv ? "🌐 Everyone can see & draw here"
+    t.textContent = sub ? "📌 " + (subMine ? "Your" : subBy + "'s") + " sub-tab · everyone can see & draw · only " + (subMine ? "you" : subBy) + " can clear it"
+      : !priv ? "🌐 Everyone can see & draw here"
       : own ? (members.length ? "🔒 Private · you + " + members.length + " invited" : "🔒 Private · only you can see this")
       : "🔒 " + (joined[S.id] || "Someone") + "'s private board";
   }
@@ -6053,6 +6119,7 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
     }
     invp.scrollTop = y;
   }
+  $$("dsubdel").onclick = () => { const b = S.id; if(!okSub(b) || subOwner(b) !== uid) return; if(!confirm("Delete the sub-tab \"" + (subs[b] ? subs[b].n : "") + "\" and everything drawn in it, for everyone?")) return; sendD({ k: "sd" }, b); delSub(b); };
   $$("dinv").onclick = () => { invp.style.display = invp.style.display === "block" ? "none" : "block"; renderInvp(); };
   tick(() => { if(invp.style.display === "block") renderInvp(); }, 2500);
   document.addEventListener("pointerdown", e => { if(invp.style.display === "block" && !invp.contains(e.target) && e.target !== $$("dinv")) invp.style.display = "none"; });
@@ -6124,7 +6191,7 @@ body.in-draw #box,body.in-draw #typing,body.in-draw #replybar,body.in-draw #tray
   }
   $$("dundo").onclick = undo; $$("dredo").onclick = redo;
   const clearBoard = () => { const t = Date.now(); applyClr(S, t); sendD({ k: "clr", ts: t }); };
-  $$("dclr").onclick = () => { if(!confirm(S.id ? "Clear your private board for everyone on it?" : "Clear the whole drawing board for everyone?")) return; clearBoard(); };
+  $$("dclr").onclick = () => { if(okSub(S.id) && subOwner(S.id) !== uid) return; if(!confirm(okSub(S.id) ? "Clear this sub-tab for everyone?" : S.id ? "Clear your private board for everyone on it?" : "Clear the whole drawing board for everyone?")) return; clearBoard(); };
   $$("dsave").onclick = () => cv.toBlob(b => {
     if(!b) return; const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = S.id ? "purebred-private-drawing.png" : "purebred-drawing.png";
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
@@ -7409,99 +7476,6 @@ body.tab-dragging,body.tab-dragging *{user-select:none !important;-webkit-user-s
   document.addEventListener("click",e=>{ if(Date.now()<noClickUntil&&noClickEl&&noClickEl.contains(e.target)){ e.stopImmediatePropagation(); e.preventDefault(); } },true);
 })();
 </script>
-<style id="material-css">
-/* =====================================================================
-   Material You — Android 13 → 17 look (Material 3 / 3 Expressive)
-   tonal surfaces, big rounded shapes, pill navigation, follows the phone's light / dark setting
-   ===================================================================== */
-body[data-theme="material"]{
-  color-scheme:dark;
-  --m-pri:#D0BCFF; --m-on-pri:#381E72; --m-pri-c:#4F378B; --m-on-pri-c:#EADDFF;
-  --m-sec-c:#4A4458; --m-on-sec-c:#E8DEF8; --m-ter-c:#633B48; --m-on-ter-c:#FFD8E4;
-  --m-surf:#141218; --m-s1:#1D1B20; --m-s2:#211F26; --m-s3:#2B2930; --m-s4:#36343B;
-  --m-on-surf:#E6E0E9; --m-on-var:#CAC4D0; --m-outline:#49454F;
-  --bg:var(--m-surf); --side:var(--m-s2); --row:var(--m-s3); --input:var(--m-s4); --line:var(--m-outline);
-  --text:var(--m-on-surf); --muted:var(--m-on-var); --accent:var(--m-pri); --me:var(--m-pri-c); --peer:var(--m-s3);
-  --m-on-me:var(--m-on-pri-c); --r:28px; --r-sm:16px; --m-ease:cubic-bezier(.2,0,0,1);
-  font-family:"Google Sans","Google Sans Text","Product Sans",Roboto,"Segoe UI",system-ui,sans-serif,"Noto Color Emoji","Apple Color Emoji";
-}
-@media (prefers-color-scheme:light){
-  body[data-theme="material"]{
-    color-scheme:light;
-    --m-pri:#6750A4; --m-on-pri:#FFFFFF; --m-pri-c:#EADDFF; --m-on-pri-c:#21005D;
-    --m-sec-c:#E8DEF8; --m-on-sec-c:#1D192B; --m-ter-c:#FFD8E4; --m-on-ter-c:#31111D;
-    --m-surf:#FEF7FF; --m-s1:#F7F2FA; --m-s2:#F3EDF7; --m-s3:#ECE6F0; --m-s4:#E6E0E9;
-    --m-on-surf:#1D1B20; --m-on-var:#49454F; --m-outline:#CAC4D0;
-  }
-}
-
-/* navigation drawer */
-body[data-theme="material"] #sb{border-right:none;border-radius:0 28px 28px 0;padding-top:6px}
-body[data-theme="material"] .hdr-sb{font-size:22px;font-weight:500;letter-spacing:0;border-bottom:none;padding:20px 24px 12px}
-body[data-theme="material"] .row-ch{margin:2px 12px;padding:10px 16px;border-radius:999px;border-left:none !important;transition:background .2s var(--m-ease)}
-body[data-theme="material"] .row-ch:hover{background:color-mix(in srgb,var(--text) 8%,transparent)}
-body[data-theme="material"] .row-ch.active{background:var(--m-sec-c);color:var(--m-on-sec-c)}
-body[data-theme="material"] .row-ch.active .csub{color:inherit;opacity:.75}
-body[data-theme="material"] .av-sb{border-radius:16px;background:var(--m-pri-c);color:var(--m-on-pri-c)}
-body[data-theme="material"] .av-sb.lp{border-radius:16px;color:#fff}
-body[data-theme="material"] .stg-sb{border-top:none;padding:10px 20px 16px}
-body[data-theme="material"] .stg-btn{font-weight:500}
-body[data-theme="material"] .goback{border-radius:999px;background:var(--m-sec-c);color:var(--m-on-sec-c)}
-body[data-theme="material"] #sbdm .prow:hover,body[data-theme="material"] #sbroster .prow:hover{background:color-mix(in srgb,var(--text) 8%,transparent)}
-
-/* top app bar + segmented tabs */
-body[data-theme="material"] #hdr{min-height:64px;border-bottom:none;background:var(--bar,var(--bg))}
-body[data-theme="material"] #chtabs{background:var(--m-s3);padding:4px;gap:2px;border-radius:999px}
-body[data-theme="material"] #chtabs button{padding:7px 16px;font-weight:500;font-size:13px;letter-spacing:.1px;transition:background .25s var(--m-ease),color .25s var(--m-ease)}
-body[data-theme="material"] #chtabs button.on{background:var(--accent);color:var(--on-accent,var(--m-on-pri))}
-body[data-theme="material"] #onpop{background:var(--m-s3);border-radius:20px}
-
-/* messages */
-body[data-theme="material"] #box{gap:6px;padding:12px 16px}
-body[data-theme="material"] .msg{max-width:80%}
-body[data-theme="material"] .lbl{font-size:12px;font-weight:500;margin:0 6px 2px;color:var(--m-on-var)}
-body[data-theme="material"] .bubble{border-radius:22px;padding:9px 16px;font-size:15px;line-height:1.4;letter-spacing:.1px}
-body[data-theme="material"] .me .bubble{background:var(--me);color:var(--on-accent,var(--m-on-me));border-bottom-right-radius:6px}
-body[data-theme="material"] .peer .bubble{background:var(--peer);color:var(--text);border-bottom-left-radius:6px}
-body[data-theme="material"] .img{border-radius:20px}
-body[data-theme="material"] .quote{border-radius:12px;background:color-mix(in srgb,var(--text) 8%,transparent)}
-body[data-theme="material"] .rx .chip{border-radius:10px;background:var(--m-s3);border-color:var(--m-outline)}
-body[data-theme="material"] .rx .chip.mine{background:var(--m-sec-c);border-color:transparent;color:var(--m-on-sec-c)}
-body[data-theme="material"] .act{background:var(--m-s4);border:none;box-shadow:0 1px 3px rgba(0,0,0,.3),0 4px 8px 3px rgba(0,0,0,.15)}
-body[data-theme="material"] .msg.sys{color:var(--m-on-var)}
-
-/* message bar */
-body[data-theme="material"] #tray{padding:8px 14px 14px;border-top:none;background:var(--bar,var(--bg));gap:8px}
-body[data-theme="material"] .pill{background:var(--m-s4);border:none;border-radius:999px;padding:4px 8px 4px 18px;min-height:46px}
-body[data-theme="material"] .plus{background:var(--m-sec-c);color:var(--m-on-sec-c);width:42px;height:42px;border-radius:16px}
-body[data-theme="material"] #emo-btn,body[data-theme="material"] #vbtn{width:42px;height:42px}
-body[data-theme="material"] #sendbtn{width:38px;height:38px;border-radius:14px;background:var(--accent);color:var(--on-accent,var(--m-on-pri));margin-left:6px}
-body[data-theme="material"] #sendbtn svg{width:18px;height:18px}
-body[data-theme="material"] #replybar{border-top:none;background:var(--m-s3);margin:0 14px;border-radius:20px 20px 0 0}
-body[data-theme="material"] #typing:not(:empty){background:var(--bar,var(--bg))}
-
-/* dialogs, settings, DM bar */
-body[data-theme="material"] #dmbar button{background:var(--m-sec-c);color:var(--m-on-sec-c);border:none}
-body[data-theme="material"] #dmbar #callbtn{background:var(--accent) !important;color:var(--on-accent,var(--m-on-pri)) !important}
-body[data-theme="material"] .stg-card,body[data-theme="material"] #gate .card,body[data-theme="material"] #gmod .gcard,body[data-theme="material"] #amod .acard{background:var(--m-s2);border:none}
-body[data-theme="material"] .stg-box{background:var(--m-s3);border-radius:20px}
-body[data-theme="material"] .stg-box button,body[data-theme="material"] #stg .btn{border-radius:999px;color:var(--on-accent,var(--m-on-pri))}
-body[data-theme="material"] .seg button.on{color:var(--on-accent,var(--m-on-pri))}
-body[data-theme="material"] #gate{background:var(--m-surf)}
-body[data-theme="material"] #emo-panel{box-shadow:0 1px 3px rgba(0,0,0,.3),0 4px 8px 3px rgba(0,0,0,.15)}
-body[data-theme="material"] .pill{min-width:0}
-body[data-theme="material"] #inp{width:100%}
-
-/* phones: tabs scroll sideways instead of running off the screen, tighter message bar */
-@media (max-width:640px){
-  body[data-theme="material"] #chtabs{max-width:100%;overflow-x:auto;scrollbar-width:none}
-  body[data-theme="material"] #chtabs::-webkit-scrollbar{display:none}
-  body[data-theme="material"] #chtabs button{padding:7px 12px}
-  body[data-theme="material"] #tray{gap:4px;padding:8px 10px 12px}
-  body[data-theme="material"] .plus,body[data-theme="material"] #emo-btn,body[data-theme="material"] #vbtn{width:38px;height:38px}
-  body[data-theme="material"] .pill{padding:3px 6px 3px 14px}
-}
-</style>
 <style id="terminal-css">
 /* =====================================================================
    Terminal — phosphor-green CRT: monospace, prompts, square corners, scanlines + glow
@@ -7601,7 +7575,7 @@ body[data-theme="terminal"] #gate{background:var(--bg)}
 body[data-theme="terminal"] #gate h1::before{content:"> "}
 body[data-theme="terminal"] #gate h1::after{content:"_";animation:t-blink 1s steps(1) infinite}
 body[data-theme="terminal"] .stg-card,body[data-theme="terminal"] #gate .card,body[data-theme="terminal"] #gmod .gcard,body[data-theme="terminal"] #amod .acard,body[data-theme="terminal"] #mmod .acard{background:var(--side);border:1px solid var(--accent);border-radius:2px;box-shadow:0 0 18px color-mix(in srgb,var(--accent) 25%,transparent)}
-body[data-theme="terminal"] .stg-box{background:var(--row);border-radius:0}
+
 body[data-theme="terminal"] .stg-box button,body[data-theme="terminal"] #stg .btn{border-radius:0;color:var(--on-accent,var(--t-on));text-shadow:none}
 body[data-theme="terminal"] .seg button.on{color:var(--on-accent,var(--t-on));text-shadow:none}
 body[data-theme="terminal"] #dmbar button{border-radius:0;background:transparent;border:1px solid var(--line);color:var(--accent)}
@@ -7616,59 +7590,9 @@ body[data-theme="terminal"] #emo-panel{box-shadow:0 0 14px color-mix(in srgb,var
 </style>
 <style id="theme-accent-fix">
 /* =====================================================================
-   Material You + Terminal now follow the colour picked in Settings.
+   Terminal follows the colour picked in Settings (Android 17 / Material 3 Expressive does the same in its own block).
    (The picker sets --accent inline on <body>; [style*="--accent"] is "a colour is picked".)
    ===================================================================== */
-
-/* ---------- Material You: dynamic colour from the picked seed ---------- */
-body[data-theme="material"][style*="--accent"]{
-  --m-pri:var(--accent); --m-on-pri:var(--on-accent,#fff);
-  --m-pri-c:color-mix(in srgb,var(--accent) 38%,#101010);
-  --m-on-pri-c:color-mix(in srgb,var(--accent) 16%,#fff);
-  --m-sec-c:color-mix(in srgb,var(--accent) 24%,#1c1c1c);
-  --m-on-sec-c:color-mix(in srgb,var(--accent) 14%,#fff);
-  --m-ter-c:color-mix(in srgb,var(--accent) 30%,#1c1c1c);
-  --m-on-ter-c:color-mix(in srgb,var(--accent) 14%,#fff);
-  --m-surf:color-mix(in srgb,var(--accent) 6%,#111);
-  --m-s1:color-mix(in srgb,var(--accent) 8%,#151515);
-  --m-s2:color-mix(in srgb,var(--accent) 10%,#181818);
-  --m-s3:color-mix(in srgb,var(--accent) 14%,#1f1f1f);
-  --m-s4:color-mix(in srgb,var(--accent) 18%,#262626);
-  --m-on-surf:color-mix(in srgb,var(--accent) 8%,#ececec);
-  --m-on-var:color-mix(in srgb,var(--accent) 16%,#cdcdcd);
-  --m-outline:color-mix(in srgb,var(--accent) 26%,#4a4a4a);
-}
-@media (prefers-color-scheme:light){
-  body[data-theme="material"][style*="--accent"]{
-    --m-pri-c:color-mix(in srgb,var(--accent) 26%,#fff);
-    --m-on-pri-c:color-mix(in srgb,var(--accent) 35%,#000);
-    --m-sec-c:color-mix(in srgb,var(--accent) 18%,#fff);
-    --m-on-sec-c:color-mix(in srgb,var(--accent) 30%,#000);
-    --m-ter-c:color-mix(in srgb,var(--accent) 22%,#fff);
-    --m-on-ter-c:color-mix(in srgb,var(--accent) 30%,#000);
-    --m-surf:color-mix(in srgb,var(--accent) 5%,#fff);
-    --m-s1:color-mix(in srgb,var(--accent) 7%,#fff);
-    --m-s2:color-mix(in srgb,var(--accent) 9%,#fff);
-    --m-s3:color-mix(in srgb,var(--accent) 12%,#fff);
-    --m-s4:color-mix(in srgb,var(--accent) 16%,#fff);
-    --m-on-surf:color-mix(in srgb,var(--accent) 12%,#111);
-    --m-on-var:color-mix(in srgb,var(--accent) 18%,#444);
-    --m-outline:color-mix(in srgb,var(--accent) 22%,#bbb);
-  }
-}
-/* my bubbles use the tonal container (readable on any wallpaper); a personal bubble colour still wins (inline) */
-body[data-theme="material"][style*="--accent"] .me .bubble{background:var(--m-pri-c);color:var(--m-on-pri-c)}
-body[data-theme="material"][style*="--accent"] .row-ch.active{background:var(--m-sec-c);color:var(--m-on-sec-c)}
-/* labels / system lines sit on the wallpaper colour: use the contrast colour picked for it */
-body[data-theme="material"][style*="--accent"] :is(.lbl,.msg.sys,.tsep){color:var(--on-accent,var(--m-on-var))}
-body[data-theme="material"] #sbdm .sbh button{background:var(--m-sec-c);color:var(--m-on-sec-c)}
-/* bits that were hard-coded to the default purple */
-body[data-theme="material"] .stg-btn{color:var(--bar-text,var(--m-pri))}
-body[data-theme="material"] a{color:var(--m-pri)}
-/* roomier rows so names + subtitles don't wrap into 3 lines in the 220px drawer */
-body[data-theme="material"] .row-ch{gap:12px;padding:8px 14px}
-body[data-theme="material"] .row-ch b{font-size:14.5px !important}
-body[data-theme="material"] .row-ch .csub{font-size:12px;line-height:1.25}
 
 /* ---------- Terminal: phosphor in the picked colour ---------- */
 body[data-theme="terminal"][style*="--accent"]{
@@ -7689,73 +7613,6 @@ body[data-theme="terminal"][style*="--accent"] #box{background-color:var(--bg) !
 /* image wallpapers: keep the log lines readable on top of the picture */
 body[data-theme="terminal"] #box[style*="url("] .msg .bubble{background:rgba(0,0,0,.62) !important;padding:1px 6px !important}
 body[data-theme="terminal"] #box[style*="url("] .msg .lbl{background:rgba(0,0,0,.62);padding:0 4px}
-
-</style>
-<style id="pixel-css">
-/* =====================================================================
-   Pixel look (Google Messages, Material 3): Google-blue palette, circular avatars,
-   grouped bubbles with tight inner corners, pill composer, round send button.
-   Colours below only apply when no custom colour is picked (the picker still wins).
-   ===================================================================== */
-body[data-theme="material"]:not([style*="--accent"]){
-  --m-pri:#A8C7FA; --m-on-pri:#062E6F; --m-pri-c:#0842A0; --m-on-pri-c:#D3E3FD;
-  --m-sec-c:#004A77; --m-on-sec-c:#C2E7FF; --m-ter-c:#0F5223; --m-on-ter-c:#C4EED0;
-  --m-surf:#131314; --m-s1:#1B1B1D; --m-s2:#1E1F20; --m-s3:#282A2C; --m-s4:#333537;
-  --m-on-surf:#E3E3E3; --m-on-var:#C4C7C5; --m-outline:#444746;
-  --m-sent:#0842A0; --m-on-sent:#D3E3FD; --m-recv:#282A2C;
-}
-@media (prefers-color-scheme:light){
-  body[data-theme="material"]:not([style*="--accent"]){
-    --m-pri:#0B57D0; --m-on-pri:#FFFFFF; --m-pri-c:#D3E3FD; --m-on-pri-c:#041E49;
-    --m-sec-c:#C2E7FF; --m-on-sec-c:#001D35; --m-ter-c:#C4EED0; --m-on-ter-c:#072711;
-    --m-surf:#FFFFFF; --m-s1:#F8FAFD; --m-s2:#F3F6FC; --m-s3:#E9EEF6; --m-s4:#DDE3EA;
-    --m-on-surf:#1F1F1F; --m-on-var:#444746; --m-outline:#C4C7C5;
-    --m-sent:#0B57D0; --m-on-sent:#FFFFFF; --m-recv:#E9EEF6;
-  }
-}
-body[data-theme="material"]:not([style*="--accent"]) .me .bubble{background:var(--m-sent);color:var(--m-on-sent)}
-body[data-theme="material"]:not([style*="--accent"]) .peer .bubble{background:var(--m-recv)}
-body[data-theme="material"]{font-family:"Google Sans","Google Sans Text","Product Sans",Roboto,"Segoe UI",system-ui,sans-serif,"Noto Color Emoji","Apple Color Emoji"}
-
-/* conversation list: round contact avatars, tonal selected row */
-body[data-theme="material"] .av-sb,body[data-theme="material"] .av-sb.lp{border-radius:50%}
-body[data-theme="material"] .av-sb:not(.lp){background:var(--m-sec-c);color:var(--m-on-sec-c)}
-body[data-theme="material"] .hdr-sb{font-size:22px;font-weight:500;padding:22px 24px 10px}
-body[data-theme="material"] .row-ch{border-radius:28px}
-
-/* messages: Google Messages grouping */
-body[data-theme="material"] #box{gap:2px;padding:12px 16px 8px}
-body[data-theme="material"] .msg{max-width:78%;gap:8px}
-body[data-theme="material"] .msg.first{margin-top:10px}
-body[data-theme="material"] .tsep{display:block;align-self:center;margin:16px 0 6px;font-size:12px;font-weight:500;color:var(--m-on-var)}
-body[data-theme="material"] .me .lbl,body[data-theme="material"] .msg:not(.first) .lbl{display:none}
-body[data-theme="material"] .peer .av{display:flex;width:32px;height:32px;font-size:13px;align-self:flex-end;visibility:hidden}
-body[data-theme="material"] .peer.last .av{visibility:visible}
-body[data-theme="material"] .bubble{border-radius:20px;padding:10px 16px;font-size:16px;line-height:1.35}
-body[data-theme="material"] .peer:not(.first) .bubble{border-top-left-radius:6px}
-body[data-theme="material"] .peer:not(.last) .bubble{border-bottom-left-radius:6px}
-body[data-theme="material"] .me:not(.first) .bubble{border-top-right-radius:6px}
-body[data-theme="material"] .me:not(.last) .bubble{border-bottom-right-radius:6px}
-body[data-theme="material"] .peer.last .bubble{border-bottom-left-radius:20px}
-body[data-theme="material"] .me.last .bubble{border-bottom-right-radius:20px}
-body[data-theme="material"] .me.lastmine .col::after{content:"Delivered";align-self:flex-end;margin:3px 6px 0 0;font-size:11px;color:var(--m-on-var)}
-
-/* composer: round "+", pill field, round send button */
-body[data-theme="material"] #tray{padding:8px 12px 14px;gap:6px;align-items:center}
-body[data-theme="material"] .plus{width:44px;height:44px;border-radius:50%;background:var(--m-s3);color:var(--m-on-surf)}
-body[data-theme="material"] .pill{background:var(--m-s3);border-radius:28px;min-height:48px;padding:4px 6px 4px 18px}
-body[data-theme="material"] #inp{font-size:16px}
-body[data-theme="material"] #sendbtn{width:40px;height:40px;border-radius:50%;background:var(--m-pri);color:var(--m-on-pri);margin-left:6px}
-
-/* top bar: flat surface, segmented pill tabs */
-body[data-theme="material"] #hdr{min-height:64px}
-body[data-theme="material"] #chtabs{background:var(--m-s3)}
-body[data-theme="material"] #chtabs button.on{background:var(--m-sec-c);color:var(--m-on-sec-c)}
-body[data-theme="material"][style*="--accent"] #chtabs button.on{background:var(--accent);color:var(--on-accent,#fff)}
-@media (max-width:640px){
-  body[data-theme="material"] .msg{max-width:86%}
-  body[data-theme="material"] .plus{width:40px;height:40px}
-}
 
 </style>
 <style id="opts-css">
@@ -8775,7 +8632,7 @@ body.sb-switch #main,body.sb-switch #sb{animation:slideUp .3s cubic-bezier(.2,.9
   body.sb-bottom .stg-btn,body.sb-bottom .goback{font-size:12px;padding:2px 0}
   body.sb-bottom #youare{flex:1 0 100%;margin:0;max-width:240px;overflow:hidden;text-overflow:ellipsis;font-size:11px}
   /* the opened Settings box floats above the bar instead of being squeezed inside it */
-  body.sb-bottom .stg-box{position:fixed;right:10px;bottom:98px;width:min(320px,calc(100vw - 20px));max-height:calc(100dvh - 140px);overflow-y:auto;z-index:70;box-shadow:0 8px 30px rgba(0,0,0,.5);margin:0}
+  
 }
 @media(max-width:600px){
   /* phone bottom sheet: let long names wrap-free but never clip */
@@ -9719,146 +9576,6 @@ body.in-tier #box,body.in-tier #typing,body.in-tier #replybar,body.in-tier #tray
   update();
 })();
 </script>
-<style id="setup-css">
-#setup,#lbar{position:fixed;inset:0;display:none;align-items:center;justify-content:center;font-family:"Google Sans","Product Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#e6e6ee}
-#setup{z-index:2000;background:#0e0e10}
-#setup.on{display:flex}
-#setup .su-phone{position:relative;width:min(480px,100%);height:min(100%,840px);background:#1f1f25;display:flex;flex-direction:column;overflow:hidden}
-@media (min-width:560px){#setup .su-phone{border-radius:28px;height:min(94%,840px);box-shadow:0 20px 60px rgba(0,0,0,.6)}}
-#setup .su-body{flex:1;min-height:0;overflow-y:auto;padding:max(40px,env(safe-area-inset-top)) 28px 12px}
-#setup .su-step{display:none;flex-direction:column;min-height:100%}
-#setup .su-step.on{display:flex;animation:suIn .28s ease}
-@keyframes suIn{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){#setup .su-step.on{animation:none}}
-#setup .su-ico{width:48px;height:48px;color:#a9b1f3;margin:6px 0 18px}
-#setup h2{font-size:34px;line-height:1.18;font-weight:400;margin:0 0 16px;color:#f0f0f6;letter-spacing:-.2px}
-#setup p{font-size:16px;line-height:1.5;margin:0 0 18px;color:#c9c9d3}
-#setup .su-art{margin:10px 0 18px;background:#000;border-radius:26px;display:flex;align-items:center;justify-content:center;min-height:210px;overflow:hidden}
-#setup .su-art svg{max-width:100%}
-#setup .su-row{display:flex;align-items:center;gap:16px;padding:14px 0;font-size:20px;color:#f0f0f6}
-#setup .su-row select{flex:1;background:#2a2a33;color:#f0f0f6;border:none;border-radius:12px;padding:10px 12px;font-size:16px;font-family:inherit;outline:none}
-#setup .su-row svg{width:26px;height:26px;color:#a9b1f3;flex:none}
-#setup input{width:100%;box-sizing:border-box;background:#2a2a33;border:2px solid transparent;border-radius:14px;padding:15px 16px;font-size:18px;color:#f0f0f6;font-family:inherit;outline:none;margin-bottom:12px}
-#setup input:focus{border-color:#a9b1f3}
-#setup .su-lbl{font-size:13px;letter-spacing:.4px;color:#a9b1f3;margin:2px 0 6px;display:block}
-#setup .su-err{min-height:20px;font-size:14px;color:#ff8a80;margin:0 0 4px}
-#setup .su-hint{font-size:13px;color:#9a9aa8;margin:-4px 0 10px}
-#setup .su-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 22px max(22px,env(safe-area-inset-bottom));border-top:1px solid rgba(255,255,255,.07);background:#1f1f25}
-#setup .su-link,#setup .su-next{font:600 15px/1 inherit;font-family:inherit;border:none;cursor:pointer;border-radius:999px}
-#setup .su-link{background:none;color:#a9b1f3;padding:12px 8px}
-#setup .su-link:hover{background:rgba(169,177,243,.12)}
-#setup .su-next{background:#a9b1f3;color:#14142b;padding:13px 26px}
-#setup .su-next:hover{filter:brightness(1.08)}
-#setup .su-dots{position:absolute;top:14px;left:0;right:0;display:flex;gap:5px;justify-content:center;pointer-events:none}
-#setup .su-dots i{width:18px;height:3px;border-radius:2px;background:rgba(255,255,255,.14)}
-#setup .su-dots i.on{background:#a9b1f3}
-#lbar{z-index:2100;background:#0e0e10;opacity:0;pointer-events:none;transition:opacity .25s ease}
-#lbar.on{display:flex;opacity:1;pointer-events:auto}
-#lbar.out{opacity:0;pointer-events:none}
-#lbar .lb-card{width:min(360px,86vw);text-align:center}
-#lbar .lb-logo{width:64px;height:64px;border-radius:50%;background:#a9b1f3;color:#14142b;font-weight:800;font-size:22px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
-#lbar h2{font-size:22px;font-weight:500;margin:0 0 6px;color:#f0f0f6}
-#lbar .lb-sub{font-size:14px;color:#a0a0b0;min-height:20px;margin-bottom:18px}
-#lbar .lb-track{height:10px;border-radius:999px;background:#2a2a33;overflow:hidden}
-#lbar .lb-fill{height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,#7e88f0,#a9b1f3);transition:width .18s linear}
-#lbar .lb-pct{font-size:30px;font-weight:600;margin-top:14px;color:#f0f0f6;font-variant-numeric:tabular-nums}
-</style>
-<div id="setup" role="dialog" aria-modal="true" aria-label="Setup"></div>
-<div id="lbar" role="status" aria-live="polite"><div class="lb-card"><div class="lb-logo">LP</div><h2>Los Purebreds Chat</h2><div class="lb-sub" id="lb-sub">Connecting…</div><div class="lb-track"><div class="lb-fill" id="lb-fill"></div></div><div class="lb-pct" id="lb-pct">0%</div></div></div>
-<script id="setup-js">
-(function(){
-  var $=function(id){return document.getElementById(id);}, L=localStorage;
-  function ls(k){try{return L.getItem(k)||"";}catch(e){return "";}}
-  function lsSet(k,v){try{L.setItem(k,v);}catch(e){}}
-
-  /* ---------- version 2.0: loading bar with a percent, shown while joining ---------- */
-  var ld=$("lbar"), p=0, timer=0, active=false, finishing=false;
-  function paint(){
-    var n=Math.round(p); $("lb-fill").style.width=p+"%"; $("lb-pct").textContent=n+"%";
-    $("lb-sub").textContent=n>=100?"All done!":n<30?"Connecting to the room…":n<70?"Checking your name & password…":"Loading chat…";
-  }
-  function hideLoad(){ clearInterval(timer); timer=0; active=false; finishing=false; ld.classList.remove("on","out"); }
-  function tick(){
-    if(finishing) return;
-    if(!window.__entering){ hideLoad(); return; }            // couldn't join (wrong code / password / connection): back to the join screen
-    p+=(92-p)*0.045+0.12; if(p>93) p=93; paint();
-  }
-  function showLoad(){ if(active) return; active=true; finishing=false; p=0; paint(); ld.classList.remove("out"); ld.classList.add("on"); timer=setInterval(tick,100); }
-  function finishLoad(){
-    if(!active) return; finishing=true; clearInterval(timer); p=100; paint();
-    setTimeout(function(){ ld.classList.add("out"); setTimeout(hideLoad,160); },90);
-  }
-  $("g-go").addEventListener("click",function(){ if(window.__entering) showLoad(); });
-  var _rv=window.revealChat;
-  window.revealChat=function(){ var was=window.__entering, r=_rv.apply(this,arguments); if(was) finishLoad(); return r; };
-
-  /* ---------- version 2.0: first-time setup (shown only on a device with no account yet) ---------- */
-  var first=!ls("pb_setup2") && (ls("chat_usr")||"User")==="User" && !ls("pb_pwh");
-  if(/[?&]setup\b/.test(location.search)) first=true;
-  if(!first) return;
-
-  var ICON={
-    wave:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></svg>',
-    user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>',
-    key:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3M14 9l2 2"/></svg>',
-    lock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>',
-    check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/></svg>',
-    gear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>'
-  };
-  function wavy(){                                   // the wobbly circle from the welcome screen
-    var pts=[], n=120, i, a, r;
-    for(i=0;i<=n;i++){ a=i/n*Math.PI*2; r=92+7*Math.sin(a*9); pts.push((110+r*Math.cos(a)).toFixed(1)+","+(110+r*Math.sin(a)).toFixed(1)); }
-    return '<svg viewBox="0 0 220 220" width="220" height="220"><polygon points="'+pts.join(" ")+'" fill="none" stroke="#a9b1f3" stroke-width="2.5" stroke-linejoin="round"/><text x="110" y="124" text-anchor="middle" font-size="44" font-weight="800" fill="#a9b1f3" font-family="system-ui,sans-serif">LP</text></svg>';
-  }
-  var chat='<svg viewBox="0 0 220 180" width="220" height="180"><rect x="30" y="24" width="120" height="48" rx="22" fill="#3b82f6"/><rect x="70" y="86" width="120" height="48" rx="22" fill="#2a2a33"/><circle cx="52" cy="48" r="5" fill="#fff"/><circle cx="72" cy="48" r="5" fill="#fff"/><circle cx="92" cy="48" r="5" fill="#fff"/><circle cx="96" cy="110" r="5" fill="#a9b1f3"/><circle cx="116" cy="110" r="5" fill="#a9b1f3"/><circle cx="136" cy="110" r="5" fill="#a9b1f3"/></svg>';
-
-  var data={name:"",pw:""}, step=0;
-  var root=$("setup");
-  root.innerHTML='<div class="su-phone"><div class="su-dots" id="su-dots"></div><div class="su-body" id="su-body"></div><div class="su-bar"><button type="button" class="su-link" id="su-left"></button><button type="button" class="su-next" id="su-next"></button></div></div>';
-
-  var themeOpts=($("g-theme")?$("g-theme").innerHTML:"");
-  var S=[
-    {h:"Welcome to Los Purebreds Chat Root!",icon:"gear",art:wavy(),
-     html:'<div class="su-row">'+ICON.gear+'<select id="su-theme" aria-label="Theme">'+themeOpts+'</select></div><p style="font-size:14px;color:#9a9aa8;margin:0">Settings — pick a theme now, change it any time.</p>',
-     next:"Get started",left:"I already have an account"},
-    {h:"Get the best chatting experience by making an account.",icon:"wave",art:chat,next:"Continue",left:"Back"},
-    {h:"Choose a username",icon:"user",
-     html:'<label class="su-lbl" for="su-name">Username</label><input id="su-name" maxlength="12" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Pick a name (up to 12 characters)"><div class="su-err" id="su-err"></div>',
-     next:"Continue",left:"Back",check:function(){ var v=$("su-name").value.trim(); if(!v) return "Type a username to continue."; data.name=v; return ""; }},
-    {h:"Alright, time to set up a password.",icon:"key",p:"Your password keeps other people from using your name.",next:"Continue",left:"Back"},
-    {h:"Choose a password",icon:"lock",
-     html:'<label class="su-lbl" for="su-pw">Password</label><input id="su-pw" type="password" autocomplete="new-password" placeholder="At least 4 characters"><label class="su-lbl" for="su-pw2">Confirm password</label><input id="su-pw2" type="password" autocomplete="new-password" placeholder="Type it again"><div class="su-err" id="su-err"></div>',
-     next:"Continue",left:"Back",check:function(){ var a=$("su-pw").value,b=$("su-pw2").value; if(a.length<4) return "Your password needs at least 4 characters."; if(a!==b) return "The passwords don't match."; data.pw=a; return ""; }},
-    {h:"Alright, you're set up. Welcome to Los Purebreds Chat!",icon:"check",p:"On the next screen your username and password are already filled in. Enter the room code, then tap Continue.",next:"Continue",left:"Back"}
-  ];
-
-  function render(){
-    var st=S[step];
-    $("su-body").innerHTML='<div class="su-step on"><div class="su-ico">'+ICON[st.icon]+'</div><h2>'+st.h+'</h2>'+(st.p?'<p>'+st.p+'</p>':'')+(st.art?'<div class="su-art">'+st.art+'</div>':'')+(st.html||'')+'</div>';
-    $("su-next").textContent=st.next; $("su-left").textContent=st.left;
-    $("su-dots").innerHTML=S.map(function(_,i){return '<i'+(i<=step?' class="on"':'')+'></i>';}).join("");
-    var t=$("su-theme"); if(t){ t.value=$("g-theme").value; t.onchange=function(){ $("g-theme").value=t.value; try{ setTheme(t.value); }catch(e){} }; }
-    if($("su-name")) $("su-name").value=data.name;
-    var f=$("su-name")||$("su-pw"); if(f) setTimeout(function(){ f.focus(); },60);
-    var go=function(e){ if(e.key==="Enter"){ e.preventDefault(); next(); } };
-    ["su-name","su-pw","su-pw2"].forEach(function(id){ if($(id)) $(id).addEventListener("keydown",go); });
-  }
-  function close(){ lsSet("pb_setup2","1"); root.classList.remove("on"); }
-  function next(){
-    var st=S[step];
-    if(st.check){ var e=st.check(); if(e){ $("su-err").textContent=e; return; } }
-    if(step<S.length-1){ step++; render(); return; }
-    // finished: put the new account on the join screen, ready to press Continue
-    $("g-name").value=data.name; $("g-pw").value=data.pw;
-    ["input","change"].forEach(function(t){ $("g-name").dispatchEvent(new Event(t,{bubbles:true})); $("g-pw").dispatchEvent(new Event(t,{bubbles:true})); });
-    close();
-    setTimeout(function(){ ($("g-code").value?$("g-go"):$("g-code")).focus(); },80);
-  }
-  $("su-next").onclick=next;
-  $("su-left").onclick=function(){ if(step===0){ close(); $("g-name").focus(); } else { step--; render(); } };
-  root.classList.add("on"); render();
-})();
-</script>
 <style id="pv-css">
 #pvm{display:none;position:fixed;inset:0;z-index:2147483100;background:rgba(0,0,0,.65);align-items:center;justify-content:center;padding:16px}
 #pvm.open{display:flex;animation:fadeIn .2s ease-out}
@@ -10606,15 +10323,7 @@ body[data-theme="simple"] #dmbar #callbtn{background:var(--accent) !important;co
 }
 </style>
 <!-- =====================  SETTINGS: General / Experimental tabs  ===================== -->
-<style id="stg-tabs-css">
-.stg-tabs{display:flex;gap:6px;padding:0 20px 10px;overflow-x:auto;scrollbar-width:none}
-.stg-tabs::-webkit-scrollbar{display:none}
-.stg-tabs button{flex:1 0 auto;white-space:nowrap;border:none;background:var(--row);color:var(--text);padding:8px 10px;border-radius:999px;font-weight:600;font-size:13px;cursor:pointer}
-.stg-tabs button.on{background:var(--accent);color:var(--on-accent,#fff)}
-#stg.tab-exp #stg-exp,#stg.tab-anim #stg-anim{display:flex}
-#stg-exp{display:none}
-#stg.tab-exp .stg-scroll > :not(#stg-exp){display:none !important}
-#stg.tab-anim .stg-scroll > :not(#stg-anim){display:none !important}
+<style id="stg-exp-css">
 #stg-exp .xnote{font-size:12px;color:var(--muted);line-height:1.4}
 </style>
 <script id="stg-exp-js">
@@ -10626,10 +10335,6 @@ body[data-theme="simple"] #dmbar #callbtn{background:var(--accent) !important;co
   function get(){ try{ return localStorage.getItem(LS) === "1"; }catch(e){ return false; } }
   function put(on){ try{ if(on) localStorage.setItem(LS, "1"); else localStorage.removeItem(LS); }catch(e){} }
 
-  var bar = document.createElement("div"); bar.className = "stg-tabs"; bar.id = "stg-tabs";
-  bar.innerHTML = '<button type="button" data-t="gen" class="on">General</button><button type="button" data-t="exp">\uD83E\uDDEA Experimental</button><button type="button" data-t="anim">\uD83C\uDF9E\uFE0F Animation Lab</button>';
-  scroll.parentNode.insertBefore(bar, scroll);
-
   var card = document.createElement("div"); card.className = "stg-card"; card.id = "stg-exp";
   card.innerHTML = '<h3>\uD83E\uDDEA Experimental</h3>' +
     '<div class="xnote">Features that are still being tested. They can change or break.</div>' +
@@ -10637,19 +10342,11 @@ body[data-theme="simple"] #dmbar #callbtn{background:var(--accent) !important;co
     '<div class="xnote">Skips the join screen when you open the page. It needs your name and password saved on this device, so join once normally first. Press Save changes to apply.</div>';
   scroll.appendChild(card);
 
-  function tab(t){
-    stg.classList.toggle("tab-exp", t === "exp");
-    stg.classList.toggle("tab-anim", t === "anim");
-    Array.prototype.forEach.call(bar.children, function(b){ b.classList.toggle("on", b.dataset.t === t); });
-    scroll.scrollTop = 0;
-  }
-  bar.onclick = function(e){ var b = e.target.closest("button[data-t]"); if(b) tab(b.dataset.t); };
-
-  /* each time Settings opens: back to General, and show the saved value */
+  /* each time Settings opens, show the saved value */
   var wasOpen = false;
   new MutationObserver(function(){
     var open = stg.classList.contains("open");
-    if(open && !wasOpen){ tab("gen"); $("x-auto").checked = get(); }
+    if(open && !wasOpen){ $("x-auto").checked = get(); }
     wasOpen = open;
   }).observe(stg, {attributes:true, attributeFilter:["class"]});
 
@@ -10677,7 +10374,6 @@ html body #stg.sx{background:var(--sx-bg);color:var(--sx-text);padding:env(safe-
 #stg.sx [hidden]{display:none !important}
 #stg.sx .sx-off{display:none !important}
 #stg.sx .stg-ctl{display:none}
-#stg.sx #pvdock,#stg.sx #pvhide,#stg.sx #pvhandle,#stg.sx #pvshow{display:none !important}
 
 /* ---- grid: phone first (list page, then a pushed detail page) ---- */
 #stg.sx .stg-wrap{display:grid !important;height:100%;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto auto;grid-template-areas:"side" "err" "foot";background:none}
@@ -10812,8 +10508,6 @@ html body #stg.sx{background:var(--sx-bg);color:var(--sx-text);padding:env(safe-
     var err = $("stgerr"), foot = ctl && ctl.querySelector(".stg-foot"), prev = wrap && wrap.querySelector(".stg-prev");
     if(!(stg && wrap && ctl && top && scroll && err && foot && prev)) return;
     try{
-      var oldBar = $("stg-tabs"); if(oldBar) oldBar.remove();                      // the old General / Experimental / Animation tab strip
-      wrap.classList.remove("dock-left","dock-right","dock-top","dock-bottom","hide-prev");
 
       var PAGES = [
         {id:"profile",    t:"Profile",           ic:"\uD83D\uDC64",         bg:"#8e8e93", prev:true},
@@ -11069,7 +10763,6 @@ html body #stg.sx{background:var(--sx-bg);color:var(--sx-text);padding:env(safe-
 
 <!-- =====================  ANIMATION LAB (Settings tab)  ===================== -->
 <style id="alab-css">
-#stg-anim{display:none}
 #stg-anim .xnote{font-size:12px;color:var(--muted);line-height:1.4}
 #stg-anim .al-row{display:flex;flex-direction:column;gap:3px}
 #stg-anim .al-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13px;font-weight:600}
@@ -11307,7 +11000,7 @@ body[data-theme="glass"] .row-ch{margin:2px 8px;border-radius:16px;border-left-w
 body[data-theme="glass"] .row-ch:hover{background:rgba(255,255,255,.14)}
 body[data-theme="glass"] .row-ch.active{background:var(--g-fill);box-shadow:inset 0 1px 0 var(--g-hi),0 4px 14px var(--g-shadow);border:1px solid var(--g-edge)}
 body[data-theme="glass"] .stg-btn{color:var(--text)}
-body[data-theme="glass"] .stg-box{background:rgba(255,255,255,.14);border:1px solid var(--g-edge);border-radius:14px}
+
 
 /* ---- header: tabs become a glass switch ---- */
 body[data-theme="glass"] #hdr,body[data-theme="glass"] #status{color:var(--text)}
@@ -11436,31 +11129,180 @@ body[data-theme="winxp"] ::-webkit-scrollbar{width:17px;height:17px}
 body[data-theme="winxp"] ::-webkit-scrollbar-track{background:#f3f1ec}
 body[data-theme="winxp"] ::-webkit-scrollbar-thumb{background:linear-gradient(90deg,#c8d7fb,#a8bdf5);border:1px solid #6b86d6;border-radius:3px}
 </style>
-<style id="m3x-css">
-/* ===== Material 3 Expressive: bolder shapes, bigger type, springy motion (builds on the Material look above) ===== */
-body[data-theme="material"]{--m-spring:cubic-bezier(.34,1.56,.64,1);--r:32px;--r-sm:20px}
-body[data-theme="material"] .hdr-sb{font-size:26px;font-weight:700;letter-spacing:-.4px;padding:22px 20px 12px}
-body[data-theme="material"] #hdr{min-height:64px;background:var(--m-s2)}
-body[data-theme="material"] #chname{font-weight:700;font-size:19px;letter-spacing:-.2px}
-body[data-theme="material"] .row-ch{border-radius:32px;transition:background .25s var(--m-ease),border-radius .35s var(--m-spring),transform .25s var(--m-spring)}
-body[data-theme="material"] .row-ch:active{transform:scale(.97)}
-body[data-theme="material"] .row-ch.active{border-radius:20px;font-weight:700}
-body[data-theme="material"] .av-sb{transition:border-radius .4s var(--m-spring)}
-body[data-theme="material"] .row-ch.active .av-sb{border-radius:14px}
-body[data-theme="material"] .bubble{border-radius:28px;padding:10px 18px;font-size:16px;line-height:1.38;letter-spacing:0}
-body[data-theme="material"] .me .bubble{border-radius:28px 28px 8px 28px}
-body[data-theme="material"] .peer .bubble{border-radius:28px 28px 28px 8px;background:var(--m-sec-c);color:var(--m-on-sec-c)}
-body[data-theme="material"] .msg.first .bubble{animation:m3pop .45s var(--m-spring) both}
-@keyframes m3pop{from{transform:scale(.85);opacity:0}to{transform:none;opacity:1}}
-body[data-theme="material"] .pill{border-radius:32px;min-height:52px;background:var(--m-s4)}
-body[data-theme="material"] #sendbtn{background:var(--m-pri);color:var(--m-on-pri);border:none;border-radius:20px;width:48px;height:48px;transition:border-radius .35s var(--m-spring),transform .25s var(--m-spring)}
+<style id="m3e-css">
+/* =====================================================================
+   Android 17 · Material 3 Expressive
+   vivid tonal colour (dynamic colour follows the colour picked in Settings), squircle + pill shapes that
+   morph on press, springy motion, translucent blurred bars, chunky type (Google Sans Flex), connected button groups.
+   Light / dark follows the phone's setting.
+   ===================================================================== */
+body[data-theme="material"]{
+  color-scheme:dark;
+  --m-pri:#B6C4FF; --m-on-pri:#0E2A82; --m-pri-c:#2F4BB5; --m-on-pri-c:#E1E6FF;
+  --m-sec-c:#3C4776; --m-on-sec-c:#DCE1FF; --m-ter-c:#6F3A62; --m-on-ter-c:#FFD7F0;
+  --m-surf:#121318; --m-s1:#1A1B21; --m-s2:#1F2026; --m-s3:#292A31; --m-s4:#34353C;
+  --m-on-surf:#E3E1E9; --m-on-var:#C6C5D0; --m-outline:#45464F;
+  --bg:var(--m-surf); --side:var(--m-s2); --row:var(--m-s3); --input:var(--m-s4); --line:var(--m-outline);
+  --text:var(--m-on-surf); --muted:var(--m-on-var); --accent:var(--m-pri); --me:var(--m-pri); --peer:var(--m-s4);
+  --m-on-me:var(--m-on-pri);
+  /* shape scale */
+  --m-xs:8px; --m-sm:12px; --m-md:16px; --m-lg:20px; --m-xl:28px; --m-xxl:40px;
+  --r:var(--m-xl); --r-sm:var(--m-md);
+  /* motion: standard easing for colour / opacity, springy overshoot for shape + size */
+  --m-ease:cubic-bezier(.2,0,0,1); --m-spring:cubic-bezier(.34,1.56,.64,1);
+  --m-shadow:0 1px 3px rgba(0,0,0,.3),0 4px 10px 3px rgba(0,0,0,.18);
+  --m-blur:blur(26px) saturate(1.6);
+  font-family:"Google Sans Flex","Google Sans","Google Sans Text","Product Sans","Roboto Flex",Roboto,"Segoe UI",system-ui,sans-serif,"Noto Color Emoji","Apple Color Emoji";
+}
+@media (prefers-color-scheme:light){
+  body[data-theme="material"]{
+    color-scheme:light;
+    --m-pri:#3A56BD; --m-on-pri:#FFFFFF; --m-pri-c:#DDE1FF; --m-on-pri-c:#001454;
+    --m-sec-c:#DAE0F9; --m-on-sec-c:#141B33; --m-ter-c:#FFD7F0; --m-on-ter-c:#3A0B30;
+    --m-surf:#FAF8FF; --m-s1:#F4F3FA; --m-s2:#EEEDF4; --m-s3:#E8E7EE; --m-s4:#E2E2E9;
+    --m-on-surf:#1A1B21; --m-on-var:#45464F; --m-outline:#C6C6D0;
+    --m-shadow:0 1px 3px rgba(0,0,0,.18),0 4px 10px 3px rgba(0,0,0,.08);
+  }
+}
+
+/* ---------- dynamic colour: the colour picked in Settings becomes the seed of the whole palette ---------- */
+body[data-theme="material"][style*="--accent"]{
+  --m-pri:var(--accent); --m-on-pri:var(--on-accent,#fff);
+  --m-pri-c:color-mix(in srgb,var(--accent) 38%,#101010);
+  --m-on-pri-c:color-mix(in srgb,var(--accent) 16%,#fff);
+  --m-sec-c:color-mix(in srgb,var(--accent) 24%,#1c1c1c);
+  --m-on-sec-c:color-mix(in srgb,var(--accent) 14%,#fff);
+  --m-ter-c:color-mix(in srgb,var(--accent) 30%,#1c1c1c);
+  --m-on-ter-c:color-mix(in srgb,var(--accent) 14%,#fff);
+  --m-surf:color-mix(in srgb,var(--accent) 6%,#111);
+  --m-s1:color-mix(in srgb,var(--accent) 8%,#151515);
+  --m-s2:color-mix(in srgb,var(--accent) 10%,#181818);
+  --m-s3:color-mix(in srgb,var(--accent) 14%,#1f1f1f);
+  --m-s4:color-mix(in srgb,var(--accent) 18%,#262626);
+  --m-on-surf:color-mix(in srgb,var(--accent) 8%,#ececec);
+  --m-on-var:color-mix(in srgb,var(--accent) 16%,#cdcdcd);
+  --m-outline:color-mix(in srgb,var(--accent) 26%,#4a4a4a);
+}
+@media (prefers-color-scheme:light){
+  body[data-theme="material"][style*="--accent"]{
+    --m-pri-c:color-mix(in srgb,var(--accent) 26%,#fff);
+    --m-on-pri-c:color-mix(in srgb,var(--accent) 35%,#000);
+    --m-sec-c:color-mix(in srgb,var(--accent) 18%,#fff);
+    --m-on-sec-c:color-mix(in srgb,var(--accent) 30%,#000);
+    --m-ter-c:color-mix(in srgb,var(--accent) 22%,#fff);
+    --m-on-ter-c:color-mix(in srgb,var(--accent) 30%,#000);
+    --m-surf:color-mix(in srgb,var(--accent) 5%,#fff);
+    --m-s1:color-mix(in srgb,var(--accent) 7%,#fff);
+    --m-s2:color-mix(in srgb,var(--accent) 9%,#fff);
+    --m-s3:color-mix(in srgb,var(--accent) 12%,#fff);
+    --m-s4:color-mix(in srgb,var(--accent) 16%,#fff);
+    --m-on-surf:color-mix(in srgb,var(--accent) 12%,#111);
+    --m-on-var:color-mix(in srgb,var(--accent) 18%,#444);
+    --m-outline:color-mix(in srgb,var(--accent) 22%,#bbb);
+  }
+}
+body[data-theme="material"] a{color:var(--m-pri)}
+body[data-theme="material"] :focus-visible{outline:3px solid var(--m-pri);outline-offset:2px}
+
+/* ---------- navigation drawer: translucent + blurred, big squircle avatars that morph when selected ---------- */
+body[data-theme="material"] #sb{border-right:none;border-radius:0 var(--m-xxl) var(--m-xxl) 0;padding-top:6px;background:color-mix(in srgb,var(--side) 88%,transparent);-webkit-backdrop-filter:var(--m-blur);backdrop-filter:var(--m-blur)}
+body[data-theme="material"] .hdr-sb{font-size:28px;font-weight:700;letter-spacing:-.5px;border-bottom:none;padding:24px 22px 12px}
+body[data-theme="material"] .row-ch{margin:3px 12px;padding:9px 14px;gap:12px;border-radius:var(--m-xl);border-left:none !important;position:relative;transition:background .25s var(--m-ease),border-radius .4s var(--m-spring),transform .3s var(--m-spring)}
+body[data-theme="material"] .row-ch b{font-size:15px !important}
+body[data-theme="material"] .row-ch .csub{font-size:12px;line-height:1.25}
+body[data-theme="material"] .row-ch:hover{background:color-mix(in srgb,var(--text) 8%,transparent)}
+body[data-theme="material"] .row-ch:active{transform:scale(.96);border-radius:var(--m-lg)}
+body[data-theme="material"] .row-ch.active{background:var(--m-sec-c);color:var(--m-on-sec-c);border-radius:var(--m-lg);font-weight:700}
+body[data-theme="material"] .row-ch.active .csub{color:inherit;opacity:.75}
+body[data-theme="material"] .av-sb,body[data-theme="material"] .av-sb.lp{border-radius:38%;transition:border-radius .45s var(--m-spring)}
+body[data-theme="material"] .av-sb:not(.lp){background:var(--m-pri-c);color:var(--m-on-pri-c)}
+body[data-theme="material"] .row-ch:hover .av-sb,body[data-theme="material"] .row-ch.active .av-sb{border-radius:50%}
+body[data-theme="material"] .stg-sb{border-top:none;padding:10px 20px 16px}
+body[data-theme="material"] .stg-btn{font-weight:600;color:var(--bar-text,var(--m-pri))}
+body[data-theme="material"] .goback{border-radius:999px;background:var(--m-sec-c);color:var(--m-on-sec-c)}
+body[data-theme="material"] :is(#sbdm,#sbroster) .prow{border-radius:var(--m-lg)}
+body[data-theme="material"] :is(#sbdm,#sbroster) .prow:hover{background:color-mix(in srgb,var(--text) 8%,transparent)}
+body[data-theme="material"] #sbdm .sbh button{background:var(--m-sec-c);color:var(--m-on-sec-c);border-radius:999px}
+
+/* ---------- top app bar + connected button group ---------- */
+body[data-theme="material"] #hdr{min-height:68px;border-bottom:none;background:color-mix(in srgb,var(--bar,var(--m-s1)) 90%,transparent);-webkit-backdrop-filter:var(--m-blur);backdrop-filter:var(--m-blur)}
+body[data-theme="material"] #hdr #chname{font-weight:700;font-size:20px;letter-spacing:-.2px}
+body[data-theme="material"] #chtabs{background:var(--m-s3);padding:4px;gap:3px;border-radius:999px}
+body[data-theme="material"] #chtabs button{padding:8px 18px;font-weight:600;font-size:13px;letter-spacing:.1px;border-radius:var(--m-sm);background:transparent;transition:background .25s var(--m-ease),color .25s var(--m-ease),border-radius .4s var(--m-spring),transform .3s var(--m-spring)}
+body[data-theme="material"] #chtabs button:hover{background:color-mix(in srgb,var(--text) 10%,transparent)}
+body[data-theme="material"] #chtabs button:active{transform:scale(.94)}
+body[data-theme="material"] #chtabs button.on{background:var(--m-pri);color:var(--m-on-pri);border-radius:999px}
+body[data-theme="material"] #onpop{background:var(--m-s3);border-radius:var(--m-xl);box-shadow:var(--m-shadow)}
+
+/* ---------- messages: big soft bubbles, tight inner corners when grouped, springy pop-in ---------- */
+body[data-theme="material"] #box{gap:3px;padding:14px 16px 8px}
+body[data-theme="material"] .msg{max-width:78%;gap:8px}
+body[data-theme="material"] .msg.first{margin-top:12px}
+body[data-theme="material"] .tsep{display:block;align-self:center;margin:18px 0 8px;padding:5px 14px;border-radius:999px;background:color-mix(in srgb,var(--m-s4) 75%,transparent);font-size:12px;font-weight:600}
+body[data-theme="material"] .lbl{font-size:12px;font-weight:600;margin:0 8px 3px;letter-spacing:.1px}
+body[data-theme="material"] .me .lbl,body[data-theme="material"] .msg:not(.first) .lbl{display:none}
+body[data-theme="material"] .peer .av{display:flex;width:34px;height:34px;font-size:13px;align-self:flex-end;visibility:hidden;border-radius:38%}
+body[data-theme="material"] .peer.last .av{visibility:visible}
+body[data-theme="material"] .bubble{border-radius:var(--m-xl);padding:10px 18px;font-size:16px;line-height:1.38;letter-spacing:0}
+body[data-theme="material"] .me .bubble{background:var(--me);color:var(--on-accent,var(--m-on-me))}
+body[data-theme="material"] .peer .bubble{background:var(--peer);color:var(--text)}
+body[data-theme="material"] .peer:not(.first) .bubble{border-top-left-radius:var(--m-xs)}
+body[data-theme="material"] .peer:not(.last) .bubble{border-bottom-left-radius:var(--m-xs)}
+body[data-theme="material"] .me:not(.first) .bubble{border-top-right-radius:var(--m-xs)}
+body[data-theme="material"] .me:not(.last) .bubble{border-bottom-right-radius:var(--m-xs)}
+body[data-theme="material"] .peer.last .bubble{border-bottom-left-radius:var(--m-xs)}
+body[data-theme="material"] .me.last .bubble{border-bottom-right-radius:var(--m-xs)}
+body[data-theme="material"] .msg.first .bubble{animation:m3ePop .5s var(--m-spring) both}
+body[data-theme="material"] .me.first .bubble{transform-origin:100% 100%}
+body[data-theme="material"] .peer.first .bubble{transform-origin:0 100%}
+@keyframes m3ePop{from{transform:scale(.82);opacity:0}to{transform:none;opacity:1}}
+body[data-theme="material"] .img{border-radius:var(--m-xl)}
+body[data-theme="material"] .quote{border-radius:var(--m-md);background:color-mix(in srgb,var(--text) 9%,transparent)}
+body[data-theme="material"] .rx .chip{border-radius:var(--m-sm);background:var(--m-s3);border-color:var(--m-outline);transition:transform .3s var(--m-spring),background .2s var(--m-ease)}
+body[data-theme="material"] .rx .chip:active{transform:scale(.9)}
+body[data-theme="material"] .rx .chip.mine{background:var(--m-sec-c);border-color:transparent;color:var(--m-on-sec-c)}
+body[data-theme="material"] .act{background:var(--m-s4);border:none;border-radius:999px;box-shadow:var(--m-shadow)}
+body[data-theme="material"] .me.lastmine .col::after{color:var(--m-on-var)}
+
+/* ---------- message bar: tonal pill, squircle + button and send button that morph into circles ---------- */
+body[data-theme="material"] #tray{padding:8px 14px 14px;gap:8px;align-items:center;border-top:none;background:color-mix(in srgb,var(--bar,var(--bg)) 88%,transparent);-webkit-backdrop-filter:var(--m-blur);backdrop-filter:var(--m-blur)}
+body[data-theme="material"] .pill{min-width:0;min-height:52px;padding:4px 8px 4px 20px;border:none;border-radius:999px;background:var(--m-s4);transition:box-shadow .25s var(--m-ease),background .25s var(--m-ease)}
+body[data-theme="material"] .pill:focus-within{background:var(--m-s3);box-shadow:inset 0 0 0 2px var(--m-pri)}
+body[data-theme="material"] #inp{width:100%;font-size:16px}
+body[data-theme="material"] .plus{width:46px;height:46px;border-radius:var(--m-md);background:var(--m-sec-c);color:var(--m-on-sec-c);transition:border-radius .4s var(--m-spring),transform .3s var(--m-spring)}
+body[data-theme="material"] .plus:hover{border-radius:50%}
+body[data-theme="material"] .plus:active{transform:scale(.9)}
+body[data-theme="material"] :is(#emo-btn,#vbtn){width:42px;height:42px}
+body[data-theme="material"] #sendbtn{width:50px;height:50px;margin-left:6px;border:none;border-radius:var(--m-lg);background:var(--m-pri);color:var(--m-on-pri);transition:border-radius .4s var(--m-spring),transform .3s var(--m-spring)}
 body[data-theme="material"] #sendbtn:hover{border-radius:50%}
 body[data-theme="material"] #sendbtn:active{transform:scale(.88);border-radius:50%}
-body[data-theme="material"] #sendbtn svg{stroke:var(--m-on-pri)}
-body[data-theme="material"] #chtabs{background:var(--m-s4);border-radius:999px;padding:4px}
-body[data-theme="material"] #chtabs button{border-radius:999px;font-weight:600}
-body[data-theme="material"] #chtabs button.on{background:var(--m-pri);color:var(--m-on-pri)}
-body[data-theme="material"] .img{border-radius:24px}
+body[data-theme="material"] #sendbtn svg{width:20px;height:20px;stroke:var(--m-on-pri)}
+body[data-theme="material"] #replybar{border-top:none;background:var(--m-s3);margin:0 14px;border-radius:var(--m-lg) var(--m-lg) 0 0}
+body[data-theme="material"] #typing:not(:empty){background:var(--bar,var(--bg))}
+body[data-theme="material"] #emo-panel{border-radius:var(--m-xl);box-shadow:var(--m-shadow)}
+
+/* ---------- dialogs, sign-in, DM bar ---------- */
+body[data-theme="material"] #dmbar button{background:var(--m-sec-c);color:var(--m-on-sec-c);border:none;border-radius:999px}
+body[data-theme="material"] #dmbar #callbtn{background:var(--m-pri) !important;color:var(--m-on-pri) !important}
+body[data-theme="material"] :is(.stg-card,#gate .card,#gmod .gcard,#amod .acard){background:var(--m-s2);border:none}
+body[data-theme="material"] :is(#gate .card,#gmod .gcard,#amod .acard){border-radius:var(--m-xxl)}
+body[data-theme="material"] #gate{background:var(--m-surf)}
+body[data-theme="material"] :is(#stg .btn,.seg button){border-radius:999px;color:var(--on-accent,var(--m-on-pri))}
+
+/* ---------- phones ---------- */
+@media (max-width:640px){
+  body[data-theme="material"] .msg{max-width:86%}
+  body[data-theme="material"] #chtabs{max-width:100%;overflow-x:auto;scrollbar-width:none}
+  body[data-theme="material"] #chtabs::-webkit-scrollbar{display:none}
+  body[data-theme="material"] #chtabs button{padding:8px 13px}
+  body[data-theme="material"] #tray{gap:4px;padding:8px 10px 12px}
+  body[data-theme="material"] :is(.plus,#emo-btn,#vbtn){width:40px;height:40px}
+  body[data-theme="material"] #sendbtn{width:46px;height:46px}
+  body[data-theme="material"] .pill{padding:3px 6px 3px 16px}
+}
+@media (prefers-reduced-motion:reduce){
+  body[data-theme="material"] *,body[data-theme="material"] *::before,body[data-theme="material"] *::after{animation:none !important;transition:none !important}
+}
 </style>
 <style id="kitkat-css">
 /* ===== Android 4.4 KitKat (Holo dark + Hangouts) ===== */
@@ -11713,10 +11555,121 @@ body[data-theme="winxp"] #stg .btn{border-radius:3px;background:linear-gradient(
 body[data-theme="winxp"] #stg #save{background:linear-gradient(#8ed07c,#3b9b2a);color:#fff;font-weight:700}
 body[data-theme="winxp"] .stg-foot{background:#ece9d8;border-top:1px solid #aca899}
 </style>
+<style id="kde-css">
+/* ===== KDE Plasma (Breeze): flat panels, 4px corners, Plasma blue accent, Dolphin-style sidebar; follows the phone's light / dark setting ===== */
+body[data-theme="kde"]{
+  color-scheme:dark; --r:6px; --r-sm:4px;
+  --bg:#232629; --side:#31363b; --row:#3b4045; --input:#1b1e20; --line:#4d5258;
+  --text:#eff0f1; --muted:#a3aab1; --accent:#3daee9; --on-accent:#11181c; --me:var(--accent); --peer:#3b4045;
+  --k-hover:color-mix(in srgb,var(--accent) 18%,transparent); --k-title:#2a2e32;
+  --k-shadow:0 2px 8px rgba(0,0,0,.45),0 0 0 1px rgba(0,0,0,.25);
+  font-family:"Noto Sans","Oxygen","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif,"Noto Color Emoji","Apple Color Emoji";
+  font-size:14px;
+}
+@media (prefers-color-scheme:light){
+  body[data-theme="kde"]{
+    color-scheme:light;
+    --bg:#fcfcfc; --side:#eff0f1; --row:#e3e5e7; --input:#ffffff; --line:#bcc2c7;
+    --text:#31363b; --muted:#6c7378; --peer:#e3e5e7; --k-title:#dfe2e5;
+    --k-shadow:0 2px 8px rgba(0,0,0,.2),0 0 0 1px rgba(0,0,0,.12);
+  }
+}
+body[data-theme="kde"] ::selection{background:var(--accent);color:var(--on-accent)}
+body[data-theme="kde"] :focus-visible{outline:1px solid var(--accent);outline-offset:1px}
+body[data-theme="kde"] :is(input[type=checkbox],input[type=radio],input[type=range]){accent-color:var(--accent)}
+
+/* title bar + tabs (Breeze tab bar: flat, accent line under the current tab) */
+body[data-theme="kde"] #hdr{min-height:44px;background:var(--k-title);border-bottom:1px solid var(--line);color:var(--text);box-shadow:none}
+body[data-theme="kde"] #hdr #chname{font-size:14px;font-weight:600}
+body[data-theme="kde"] #chtabs{background:transparent;padding:0;gap:2px;border-radius:0}
+body[data-theme="kde"] #chtabs button{border-radius:4px 4px 0 0;padding:10px 14px;font-size:13px;font-weight:400;color:var(--muted);background:transparent;border-bottom:2px solid transparent;transition:background .12s,color .12s}
+body[data-theme="kde"] #chtabs button:hover{background:var(--k-hover);color:var(--text)}
+body[data-theme="kde"] #chtabs button.on{color:var(--text);background:color-mix(in srgb,var(--accent) 14%,transparent);border-bottom-color:var(--accent);font-weight:600}
+body[data-theme="kde"] #onpop{background:var(--side);border:1px solid var(--line);border-radius:4px;box-shadow:var(--k-shadow)}
+
+/* sidebar: like Dolphin's Places panel */
+body[data-theme="kde"] #sb{background:var(--side);border-right:1px solid var(--line)}
+body[data-theme="kde"] .hdr-sb{font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);padding:14px 14px 6px;border-bottom:none}
+body[data-theme="kde"] .row-ch{margin:1px 6px;padding:6px 10px;gap:10px;border-radius:4px;border-left:none !important;transition:background .1s}
+body[data-theme="kde"] .row-ch b{font-size:14px !important;font-weight:400}
+body[data-theme="kde"] .row-ch .csub{font-size:12px;color:var(--muted)}
+body[data-theme="kde"] .row-ch:hover{background:var(--k-hover)}
+body[data-theme="kde"] .row-ch.active{background:var(--accent);color:var(--on-accent)}
+body[data-theme="kde"] .row-ch.active b,body[data-theme="kde"] .row-ch.active .csub{color:var(--on-accent)}
+body[data-theme="kde"] .av-sb,body[data-theme="kde"] .av-sb.lp{border-radius:4px}
+body[data-theme="kde"] .av-sb:not(.lp){background:color-mix(in srgb,var(--accent) 25%,var(--row));color:var(--text)}
+body[data-theme="kde"] .row-ch.active .av-sb:not(.lp){background:rgba(255,255,255,.28);color:inherit}
+body[data-theme="kde"] .stg-sb{border-top:1px solid var(--line)}
+body[data-theme="kde"] .stg-btn{color:var(--accent)}
+body[data-theme="kde"] .goback{border-radius:4px;background:var(--row);color:var(--text);border:1px solid var(--line)}
+
+/* messages */
+body[data-theme="kde"] #box{background:var(--bg);gap:4px;padding:12px 14px}
+body[data-theme="kde"] .msg{max-width:76%}
+body[data-theme="kde"] .msg.first{margin-top:8px}
+body[data-theme="kde"] .bubble{border-radius:6px;padding:7px 12px;font-size:14px;line-height:1.4;background:var(--peer);color:var(--text);box-shadow:none}
+body[data-theme="kde"] .me .bubble{background:var(--me);color:var(--on-accent)}
+body[data-theme="kde"] .peer:not(.first) .bubble{border-top-left-radius:2px}
+body[data-theme="kde"] .peer:not(.last) .bubble{border-bottom-left-radius:2px}
+body[data-theme="kde"] .me:not(.first) .bubble{border-top-right-radius:2px}
+body[data-theme="kde"] .me:not(.last) .bubble{border-bottom-right-radius:2px}
+body[data-theme="kde"] .lbl{font-size:12px;font-weight:600;margin:0 4px 2px}
+body[data-theme="kde"] .av{border-radius:4px}
+body[data-theme="kde"] .img,body[data-theme="kde"] .quote{border-radius:4px}
+body[data-theme="kde"] .quote{background:color-mix(in srgb,var(--text) 10%,transparent)}
+body[data-theme="kde"] .tsep{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:10px;margin:10px 0 4px}
+body[data-theme="kde"] .tsep::before,body[data-theme="kde"] .tsep::after{content:"";flex:1;height:1px;background:var(--line)}
+body[data-theme="kde"] .rx .chip{border-radius:4px;background:var(--row);border:1px solid var(--line)}
+body[data-theme="kde"] .rx .chip.mine{background:color-mix(in srgb,var(--accent) 25%,var(--row));border-color:var(--accent)}
+body[data-theme="kde"] .act{background:var(--side);border:1px solid var(--line);border-radius:4px;box-shadow:var(--k-shadow)}
+
+/* message bar: a Breeze text field + push buttons */
+body[data-theme="kde"] :is(#tray,#replybar){background:var(--side);border-top:1px solid var(--line)}
+body[data-theme="kde"] .pill{background:var(--input);border:1px solid var(--line);border-radius:4px;min-height:36px;padding:2px 8px 2px 10px;transition:border-color .12s,box-shadow .12s}
+body[data-theme="kde"] .pill:focus-within{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+body[data-theme="kde"] #inp{color:var(--text);font-size:14px}
+body[data-theme="kde"] :is(.plus,#emo-btn,#vbtn){color:var(--text);border-radius:4px}
+body[data-theme="kde"] .plus{background:linear-gradient(var(--row),color-mix(in srgb,var(--row) 82%,#000));border:1px solid var(--line);width:34px;height:34px;box-shadow:none}
+body[data-theme="kde"] .plus:hover,body[data-theme="kde"] #sendbtn:hover{border-color:var(--accent);filter:none}
+body[data-theme="kde"] #sendbtn{background:var(--accent);color:var(--on-accent);border:1px solid color-mix(in srgb,var(--accent) 70%,#000);border-radius:4px;width:34px;height:34px;box-shadow:none}
+body[data-theme="kde"] #sendbtn svg{stroke:var(--on-accent)}
+body[data-theme="kde"] :is(#dmbar button,#sbdm .sbh button){background:var(--row);color:var(--text);border:1px solid var(--line);border-radius:4px}
+body[data-theme="kde"] #dmbar #callbtn{background:var(--accent) !important;color:var(--on-accent) !important}
+body[data-theme="kde"] :is(.stg-card,#gate .card,#gmod .gcard,#amod .acard){border-radius:6px;border:1px solid var(--line)}
+body[data-theme="kde"] #emo-panel{border-radius:6px;box-shadow:var(--k-shadow)}
+
+/* thin Breeze scrollbars */
+body[data-theme="kde"] ::-webkit-scrollbar{width:10px;height:10px}
+body[data-theme="kde"] ::-webkit-scrollbar-track{background:transparent}
+body[data-theme="kde"] ::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--text) 30%,transparent);border-radius:5px;border:2px solid transparent;background-clip:padding-box}
+body[data-theme="kde"] ::-webkit-scrollbar-thumb:hover{background:var(--accent);background-clip:padding-box}
+</style>
+<style id="cam-css">
+#cam-ov{position:fixed;inset:0;z-index:2147483200;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font:14px system-ui,sans-serif}
+#cam-ov video{flex:1;min-height:0;width:100%;object-fit:contain;background:#000}
+#cam-ov video.mir{transform:scaleX(-1)}
+#cam-ov .cm-msg{position:absolute;top:14px;left:14px;right:14px;text-align:center}
+#cam-ov .cm-bar{display:flex;align-items:center;justify-content:center;gap:28px;padding:16px 16px calc(18px + env(safe-area-inset-bottom,0px));width:100%;background:rgba(0,0,0,.55)}
+#cam-ov .cm-bar button{border:none;color:#fff;cursor:pointer;font:600 15px system-ui,sans-serif}
+#cam-ov .cm-x,#cam-ov .cm-flip{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.2);font-size:18px}
+#cam-ov .cm-snap{width:72px;height:72px;border-radius:50%;background:#fff;border:5px solid rgba(255,255,255,.45);background-clip:padding-box;transition:transform .15s}
+#cam-ov .cm-snap:active{transform:scale(.9)}
+#cam-ov .cm-retake,#cam-ov .cm-use{padding:12px 22px;border-radius:999px;background:rgba(255,255,255,.2)}
+#cam-ov .cm-use{background:#0a84ff}
+#cam-ov [hidden]{display:none !important}
+</style>
+<style id="subtab-css">
+#dsubs{display:flex;gap:6px;align-items:center;overflow-x:auto;scrollbar-width:none;padding:6px 14px;background:var(--bar,var(--side));border-bottom:1px solid var(--line)}
+#dsubs::-webkit-scrollbar{display:none}
+#dsubs .dchip{flex:none;border:none;border-radius:999px;padding:6px 14px;font-weight:600;font-size:13px;line-height:1.2;font-family:inherit;cursor:pointer;background:var(--row);color:var(--text);white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+#dsubs .dchip:hover{filter:brightness(1.15)}
+#dsubs .dchip.on{background:var(--accent);color:var(--on-accent,#fff)}
+#dsubs .dchip.add{background:transparent;border:1.5px dashed var(--line);color:var(--muted)}
+</style>
 <style id="a11y-css">
 /* ===== Minecraft font ===== */
-@font-face{font-family:"MC Local";src:local("Minecraft"),local("Minecraft Regular"),local("Minecraftia"),url("fonts/Minecraft.woff2") format("woff2"),url("fonts/Minecraft.ttf") format("truetype"),url("fonts/Minecraft.otf") format("opentype");font-display:swap}
-body[data-theme="minecraft"]{font-family:"Minecraft","MC Local","Press Start 2P","Roboto Mono",ui-monospace,Menlo,Consolas,monospace,"Noto Color Emoji","Apple Color Emoji"}
+@font-face{font-family:"Minecraft";src:local("Minecraft"),local("Minecraft Regular"),url("https://cdn.jsdelivr.net/npm/skinview3d@3.4.2/assets/minecraft.woff2") format("woff2"),url("fonts/Minecraft.woff2") format("woff2"),url("fonts/Minecraft.ttf") format("truetype");font-display:swap}
+body[data-theme="minecraft"]{font-family:"Minecraft","Press Start 2P","Roboto Mono",ui-monospace,Menlo,Consolas,monospace,"Noto Color Emoji","Apple Color Emoji"}
 body[data-theme="minecraft"] :is(#inp,button,select,input,textarea){font-family:inherit}
 /* the Minecraft font is smaller on the line than Press Start 2P, so everything is a bit bigger */
 body[data-theme="minecraft"] .bubble{font-size:16px;line-height:1.35}
