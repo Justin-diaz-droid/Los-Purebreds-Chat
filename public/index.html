@@ -12634,12 +12634,13 @@ body.in-ctab #box,body.in-ctab #typing,body.in-ctab #replybar,body.in-ctab #tray
 .ct-subs button{border:1px solid var(--line);background:var(--row);color:var(--text);border-radius:999px;padding:6px 13px;font-size:13px;font-weight:650;cursor:pointer}
 .ct-subs button:hover{filter:brightness(1.15)}
 .ct-subs button.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent,#fff)}
-.ct-subs button.sub-add{display:none;opacity:.85;border-style:dashed}
-#ctview.is-mod .ct-subs button.sub-add{display:inline-block}
+.ct-subs button.sub-add{opacity:.85;border-style:dashed}
+.ct-subs button[hidden],.ct-mod button[hidden]{display:none}
+.ct-who{font-size:12px;color:var(--muted);align-self:center}
+#ct-modal select{padding:11px 13px;border-radius:11px;border:1px solid var(--line);background:var(--input,var(--row));color:var(--text);font-size:15px;font-weight:400;outline:none}
 .ctm-note{font-size:12px;color:var(--muted);min-height:0}
 .ctm-note:empty{display:none}
-.ct-mod{display:none;gap:6px;flex-wrap:wrap}
-#ctview.is-mod .ct-mod{display:flex}
+.ct-mod{display:flex;gap:6px;flex-wrap:wrap}
 .ct-scroll{flex:1;min-height:0;overflow-y:auto;padding:8px 18px 40px}
 .ct-doc,.ct-ed{max-width:820px;margin:0 auto;font-size:16px;line-height:1.6;word-wrap:break-word;overflow-wrap:anywhere}
 .ct-doc{padding:14px 4px 30px}
@@ -12689,6 +12690,8 @@ body.in-ctab #box,body.in-ctab #typing,body.in-ctab #replybar,body.in-ctab #tray
   const okId = s => typeof s === "string" && /^[A-Za-z0-9_-]{1,40}$/.test(s) && !BUILTIN.includes(s);
   const cleanName = s => String(s || "").replace(/[\u0000-\u001f\u007f<>]/g, "").replace(/\s+/g, " ").trim().slice(0, 24);
   const cleanIc = s => { s = String(s || "").replace(/[\u0000-\u001f\u007f<>]/g, "").trim(); return (Array.from(s).slice(0, 3).join("")) || "📄"; };
+  const ACLM = ["mods", "me", "list", "all"];
+  const cleanAcl = a => { const m = a && ACLM.includes(a.m) ? a.m : "mods"; const l = (a && Array.isArray(a.l) ? a.l : []).map(x => cleanName(x).slice(0, 12)).filter(Boolean).filter((x, i, arr) => arr.findIndex(y => y.toLowerCase() === x.toLowerCase()) === i).slice(0, 20); return { m, l: m === "list" ? l : [] }; };
   const newId = () => "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const bump = t => { t.v = Math.max(Date.now(), (t.v || 0) + 1); };
 
@@ -12762,7 +12765,16 @@ body.in-ctab #box,body.in-ctab #typing,body.in-ctab #replybar,body.in-ctab #tray
   const isOwner = () => { try{ return !!(window.__pbAdm && window.__pbAdm()); }catch(e){ return false; } };
   const meName = () => String(typeof usr === "string" ? usr : "").trim().toLowerCase();
   const madeByMe = t => !!t && !!t.by && String(t.by).trim().toLowerCase() === meName();
-  const canDel = t => !!t && isMod() && (isOwner() || madeByMe(t) || (!!t.p && madeByMe(byId(t.p))));
+  /* manage (rename / reorder / delete / choose editors) = whoever made it, or an owner. Edit pages + add subtabs = what the creator chose. */
+  const canManage = t => !!t && (isOwner() || madeByMe(t) || (!!t.p && madeByMe(byId(t.p))));
+  const canDel = canManage;
+  const aclOf = t => cleanAcl(t && t.acl);
+  const canEdit = t => {
+    if(!t) return false; const top = t.p ? byId(t.p) : t; if(!top) return false;
+    if(canManage(top)) return true;
+    const a = aclOf(top);
+    return a.m === "all" ? true : a.m === "mods" ? isMod() : a.m === "list" ? a.l.some(n => n.toLowerCase() === meName()) : false;
+  };
 
   /* ---------- the tab bar, sidebar rows and the + button ---------- */
   const strip = $$("chtabs");
@@ -12804,14 +12816,21 @@ body.in-ctab #box,body.in-ctab #typing,body.in-ctab #replybar,body.in-ctab #tray
   function refreshMod(){
     const m = isMod();
     plus.classList.toggle("on-mod", m && inRoom());
-    $$("ctview").classList.toggle("is-mod", m);
-    if(!m && editing) stopEdit();
+    if(editing && !canEdit(cur())) stopEdit();
+    updateBar();
+  }
+  function updateBar(){
+    const it = cur(), top = byId(curId);
+    $$("ct-edit").hidden = !(it && canEdit(it));
+    const mg = !!it && canManage(it);
+    ["ct-set", "ct-left", "ct-right"].forEach(id => { $$(id).hidden = !mg; });
+    const add = $$("ct-subs").querySelector(".sub-add"); if(add) add.hidden = !(top && canEdit(top));
   }
 
   /* ---------- the page view ---------- */
   const view = document.createElement("div"); view.id = "ctview";
   view.innerHTML =
-    '<div class="ct-bar"><div class="ct-title"><b id="ct-ic"></b><span id="ct-nm"></span></div><span class="gm-spacer"></span>' +
+    '<div class="ct-bar"><div class="ct-title"><b id="ct-ic"></b><span id="ct-nm"></span></div><span class="ct-who" id="ct-who"></span><span class="gm-spacer"></span>' +
       '<div class="ct-mod" id="ct-modbar">' +
         '<button type="button" class="gm-b alt" id="ct-left" title="Move this tab left">◀</button>' +
         '<button type="button" class="gm-b alt" id="ct-right" title="Move this tab right">▶</button>' +
@@ -12842,25 +12861,27 @@ body.in-ctab #box,body.in-ctab #typing,body.in-ctab #replybar,body.in-ctab #tray
     if(subs.length){ kids.push(chip("📄 Main page", "")); subs.forEach(x => kids.push(chip(x.ic + " " + x.name, x.id))); }
     const add = document.createElement("button"); add.type = "button"; add.className = "sub-add"; add.textContent = "＋ Subtab"; add.title = "Add a subtab inside this tab";
     add.onclick = () => openModal(null, curId); kids.push(add);
-    box.replaceChildren.apply(box, kids);
+    box.replaceChildren.apply(box, kids); updateBar();
   }
   function renderPage(){
     const top = byId(curId), t = cur(); if(!top || !t) return;
     $$("ct-ic").textContent = top.ic; $$("ct-nm").textContent = top.name;
+    const a = aclOf(top);
+    $$("ct-who").textContent = a.m === "all" ? "Anyone can edit" : a.m === "mods" ? "Mods can edit" : a.m === "me" ? "Only " + (top.by || "owners") + " can edit" : "Editors: " + [top.by].concat(a.l).filter(Boolean).join(", ");
     const h = clean(t.html);
     if(h.replace(/<[^>]*>/g, "").trim() || /<img|<hr|<table/i.test(h)) doc.innerHTML = h;
-    else doc.innerHTML = '<div class="ct-empty">This page is empty.' + (isMod() ? "<br>Tap “✎ Edit page” to add something." : "") + "</div>";
+    else doc.innerHTML = '<div class="ct-empty">This page is empty.' + (canEdit(t) ? "<br>Tap “✎ Edit page” to add something." : "") + "</div>";
   }
   function stopEdit(){ editing = false; $$("ct-editwrap").classList.remove("on"); doc.style.display = ""; $$("ct-edit").style.display = ""; errEl.textContent = ""; }
   function startEdit(){
-    const t = cur(); if(!t || !isMod()) return;
+    const t = cur(); if(!t || !canEdit(t)) return;
     editing = true; baseV = t.v || 0; warned = false; ed.innerHTML = clean(t.html); errEl.textContent = "";
     doc.style.display = "none"; $$("ct-edit").style.display = "none"; $$("ct-editwrap").classList.add("on");
     setTimeout(() => ed.focus(), 30);
   }
   function saveEdit(){
     const t = cur(); if(!t) return;
-    if(!isMod()){ errEl.textContent = "Only mods and owners can edit tabs."; return; }
+    if(!canEdit(t)){ errEl.textContent = "You don’t have permission to edit this tab."; return; }
     const html = clean(ed.innerHTML);
     if(html.length > MAXHTML){ errEl.textContent = "This page is too big (" + Math.round(html.length / 1000) + " KB, max " + Math.round(MAXHTML / 1000) + " KB). Remove or shrink some pictures."; return; }
     if((t.v || 0) !== baseV && !warned){ warned = true; errEl.textContent = "Another mod changed this page while you were editing. Press Save again to replace their version."; return; }
@@ -12870,7 +12891,7 @@ body.in-ctab #box,body.in-ctab #typing,body.in-ctab #replybar,body.in-ctab #tray
   }
   $$("ct-edit").onclick = startEdit; $$("ct-save").onclick = saveEdit; $$("ct-cancel").onclick = () => { stopEdit(); renderPage(); };
   function move(dir){
-    const it = cur(); if(!it) return;
+    const it = cur(); if(!it || !canManage(it)) return;
     const l = it.p ? subsOf(it.p) : tops(), i = l.findIndex(t => t.id === it.id), j = i + dir;
     if(i < 0 || j < 0 || j >= l.length) return;
     l.forEach((t, k) => { if((t.o || 0) !== k){ t.o = k; bump(t); } });   // make the order explicit first
@@ -12953,6 +12974,16 @@ body.in-ctab #box,body.in-ctab #typing,body.in-ctab #replybar,body.in-ctab #tray
       '<label>Tab name<input id="ctm-name" type="text" maxlength="24" autocomplete="off" placeholder="e.g. Rules"></label>' +
       '<label>Icon<input id="ctm-ic" type="text" maxlength="6" autocomplete="off" placeholder="📄"></label>' +
       '<div class="ctm-emo" id="ctm-emo"></div>' +
+      '<div id="ctm-aclbox" style="display:flex;flex-direction:column;gap:12px">' +
+        '<label>Who can add &amp; edit pages in this tab<select id="ctm-acl"><option value="mods">All mods &amp; owners</option><option value="me">Only me (and owners)</option><option value="list">Only the people I name</option><option value="all">Everyone in the room</option></select></label>' +
+        '<label id="ctm-names-l">Names, separated by commas<input id="ctm-names" type="text" maxlength="300" autocomplete="off" placeholder="e.g. Sam, Jo"></label>' +
+      '</div>' +
+      '<div id="ctm-xfer" style="display:none;flex-direction:column;gap:8px;padding-top:4px;border-top:1px solid var(--line)">' +
+        '<div class="ctm-note" id="ctm-owner" style="display:block"></div>' +
+        '<label>Give this tab to someone else<input id="ctm-to" type="text" maxlength="12" autocomplete="off" placeholder="Their exact name"></label>' +
+        '<button type="button" id="ctm-xbtn" class="gm-b alt">Transfer ownership</button>' +
+        '<div class="ctm-note" style="display:block">They become its owner (rename, reorder, delete, choose who edits). Unless you’re an owner/admin, you lose those powers.</div>' +
+      '</div>' +
       '<div class="ctm-note" id="ctm-note"></div>' +
       '<div class="gm-foot"><div id="ctm-err" role="alert"></div></div>' +
       '<div class="gm-foot"><button type="button" id="ctm-del" class="gm-b red">Delete tab</button><span class="gm-spacer"></span><button type="button" id="ctm-cancel" class="gm-b alt">Cancel</button><button type="button" id="ctm-save" class="gm-b pri">Save</button></div>' +
@@ -12964,30 +12995,51 @@ body.in-ctab #box,body.in-ctab #typing,body.in-ctab #replybar,body.in-ctab #tray
   });
   let editId = null, delArmed = 0, newParent = "";
   function openModal(t, parent){
-    if(!isMod()) return;
+    if(t ? !canManage(t) : (parent ? !canEdit(byId(parent)) : !isMod())) return;
     editId = t ? t.id : null; newParent = t ? (t.p || "") : (parent || ""); delArmed = 0;
     $$("ctm-t").textContent = t ? (t.p ? "Rename subtab" : "Rename tab") : (newParent ? "New subtab" : "New tab");
     $$("ctm-name").value = t ? t.name : ""; $$("ctm-ic").value = t ? t.ic : "";
     $$("ctm-del").style.display = (t && canDel(t)) ? "" : "none"; $$("ctm-del").textContent = t && t.p ? "Delete subtab" : "Delete tab"; $$("ctm-err").textContent = "";
     $$("ctm-note").textContent = (t && !canDel(t)) ? "Only " + (t.by || "an owner") + " (who made this" + (t.p ? " subtab’s tab" : " tab") + ") or an owner can delete it. You can still rename and edit it." : "";
+    const isTopLevel = t ? !t.p : !parent, ac = aclOf(t);
+    $$("ctm-aclbox").style.display = isTopLevel ? "flex" : "none";
+    $$("ctm-acl").value = ac.m; $$("ctm-names").value = ac.l.join(", "); $$("ctm-names-l").style.display = ac.m === "list" ? "" : "none";
+    const showX = !!t && !t.p;
+    $$("ctm-xfer").style.display = showX ? "flex" : "none";
+    if(showX){ $$("ctm-owner").textContent = "Current owner: " + (t.by || "nobody (only owners/admins manage it)"); $$("ctm-to").value = ""; xArmed = 0; $$("ctm-xbtn").textContent = "Transfer ownership"; }
     modal.classList.add("on"); setTimeout(() => $$("ctm-name").focus(), 30);
   }
   const closeModal = () => modal.classList.remove("on");
+  let xArmed = 0, lastLocalEdit = 0;
+  $$("ctm-to").addEventListener("input", () => { xArmed = 0; $$("ctm-xbtn").textContent = "Transfer ownership"; });
+  $$("ctm-xbtn").onclick = () => {
+    const it = editId && byId(editId); if(!it || it.p || !canManage(it)) return;
+    const to = cleanName($$("ctm-to").value).slice(0, 12);
+    if(!to){ $$("ctm-err").textContent = "Type the name of the person to give it to."; return; }
+    if(to.toLowerCase() === String(it.by || "").trim().toLowerCase()){ $$("ctm-err").textContent = "They already own this tab."; return; }
+    if(!xArmed){ xArmed = 1; $$("ctm-err").textContent = ""; $$("ctm-xbtn").textContent = "Really give it to " + to + "?"; return; }
+    it.by = to; bump(it); lastLocalEdit = Date.now(); persist(); xArmed = 0; closeModal();
+    buildTabs(); renderSubs(true); renderPage(); updateBar();
+  };
   $$("ctm-cancel").onclick = closeModal;
+  $$("ctm-acl").onchange = () => { $$("ctm-names-l").style.display = $$("ctm-acl").value === "list" ? "" : "none"; };
   modal.addEventListener("mousedown", e => { if(e.target === modal) closeModal(); });
   $$("ct-set").onclick = () => { const t = cur(); if(t) openModal(t, ""); };
   $$("ctm-save").onclick = () => {
-    if(!isMod()) return;
+    const _it = editId && byId(editId);
+    if(_it ? !canManage(_it) : (newParent ? !canEdit(byId(newParent)) : !isMod())){ $$("ctm-err").textContent = "You don’t have permission to do that."; return; }
     const name = cleanName($$("ctm-name").value), ic = cleanIc($$("ctm-ic").value);
+    const isTopLevel = _it ? !_it.p : !newParent;
+    const acl = cleanAcl({ m: $$("ctm-acl").value, l: $$("ctm-names").value.split(/[,\n]/) });
     if(!name){ $$("ctm-err").textContent = "Give the tab a name."; return; }
     let t = editId && byId(editId);
-    if(t){ t.name = name; t.ic = ic; bump(t); delete tombs[t.id]; }
+    if(t){ t.name = name; t.ic = ic; if(isTopLevel) t.acl = acl; bump(t); delete tombs[t.id]; }
     else {
       if(tabs.length >= MAXALL){ $$("ctm-err").textContent = "Too many tabs already."; return; }
       if(!newParent && tops().length >= MAX){ $$("ctm-err").textContent = "You can have up to " + MAX + " custom tabs."; return; }
       if(newParent && subsOf(newParent).length >= MAXSUB){ $$("ctm-err").textContent = "A tab can have up to " + MAXSUB + " subtabs."; return; }
       const sibs = newParent ? subsOf(newParent) : tops();
-      t = { id: newId(), name, ic, html: "", p: newParent, o: sibs.reduce((m, x) => Math.max(m, (x.o || 0) + 1), 0), v: Date.now(), by: (typeof usr === "string" ? usr : "").slice(0, 12) };
+      t = { id: newId(), name, ic, html: "", p: newParent, acl: isTopLevel ? acl : { m: "mods", l: [] }, o: sibs.reduce((m, x) => Math.max(m, (x.o || 0) + 1), 0), v: Date.now(), by: (typeof usr === "string" ? usr : "").slice(0, 12) };
       tabs.push(t);
     }
     if(!persist()){ $$("ctm-err").textContent = "This device is out of storage space."; return; }
@@ -13026,10 +13078,10 @@ body.in-ctab #box,body.in-ctab #typing,body.in-ctab #replybar,body.in-ctab #tray
 
   /* ---------- cloud sync hooks (used by the mailbox script below) ---------- */
   window.__tb = {
-    canPush: () => isMod(),
+    canPush: () => isMod() || Date.now() - lastLocalEdit < 120000 || tabs.some(t => canEdit(t) || canManage(t)),
     out(){
       const o = [], have = new Set();
-      tabs.forEach(t => { have.add(t.id); o.push({ id: t.id, name: t.name, ic: t.ic, html: t.html || "", p: t.p || "", o: t.o || 0, by: t.by || "", v: t.v || 1 }); });
+      tabs.forEach(t => { have.add(t.id); o.push({ id: t.id, name: t.name, ic: t.ic, html: t.html || "", p: t.p || "", acl: aclOf(t), o: t.o || 0, by: t.by || "", v: t.v || 1 }); });
       Object.keys(tombs).forEach(id => { if(!have.has(id)) o.push({ id, del: 1, v: tombs[id] }); });
       return o;
     },
@@ -13051,7 +13103,7 @@ body.in-ctab #box,body.in-ctab #typing,body.in-ctab #replybar,body.in-ctab #tray
         const p = (r.p === "" || r.p == null) ? "" : (okId(r.p) && r.p !== r.id ? r.p : null); if(p === null) return;
         const name = cleanName(r.name); if(!name) return;
         const html = clean(r.html); if(html.length > MAXHTML + 20000) return;
-        const nt = { id: r.id, name, ic: cleanIc(r.ic), html, p, o: isFinite(+r.o) ? +r.o : 0, by: String(r.by || "").slice(0, 12), v };
+        const nt = { id: r.id, name, ic: cleanIc(r.ic), html, p, acl: cleanAcl(r.acl), o: isFinite(+r.o) ? +r.o : 0, by: String(r.by || "").slice(0, 12), v };
         if(loc) tabs[i] = nt; else { if(tabs.length >= MAXALL) return; tabs.push(nt); }
         delete tombs[r.id]; ch = true;
       });
