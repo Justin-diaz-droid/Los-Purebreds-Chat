@@ -12538,6 +12538,37 @@ body.in-home #home{display:flex}
   const K_SENT = "pb_mb_sent", K_SINCE = "pb_mb_since";
   const jget = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch(e){ return d; } };
   const jset = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} };
+  /* ---- "Syncing to cloud" indicator in the top bar (can be hidden in Settings; sync itself keeps running) ---- */
+  const K_IND = "pb_cloud_ind";
+  let indOn = true; try { indOn = localStorage.getItem(K_IND) !== "0"; } catch(e){}
+  let busyN = 0, showUntil = 0, indT = 0;
+  const ind = document.createElement("span");
+  ind.id = "cloudsync"; ind.setAttribute("role", "status"); ind.setAttribute("aria-live", "polite"); ind.textContent = "\u2601\ufe0f Syncing to cloud\u2026";
+  const indCss = document.createElement("style");
+  indCss.textContent = "#cloudsync{display:none;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;color:var(--bar-text,var(--muted));background:color-mix(in srgb,currentColor 12%,transparent);animation:cloudpulse 1.2s ease-in-out infinite}#cloudsync.on{display:inline-flex}@keyframes cloudpulse{50%{opacity:.55}}@media (prefers-reduced-motion:reduce){#cloudsync{animation:none}}";
+  document.head.appendChild(indCss);
+  const stEl = document.getElementById("status"); if(stEl && stEl.parentNode) stEl.after(ind);
+  function paintInd(){
+    clearTimeout(indT);
+    const left = showUntil - Date.now();
+    ind.classList.toggle("on", indOn && (busyN > 0 || left > 0));
+    if(indOn && busyN === 0 && left > 0) indT = setTimeout(paintInd, left + 20);
+  }
+  function beginSync(){                           // returns a function to call when that piece of syncing is done
+    busyN++; showUntil = Math.max(showUntil, Date.now() + 1500); paintInd(); let done = false;
+    return () => { if(done) return; done = true; busyN = Math.max(0, busyN - 1); showUntil = Math.max(showUntil, Date.now() + 1200); paintInd(); };
+  }
+  const flashSync = () => beginSync()();
+  (function addSetting(){
+    const hh = document.getElementById("hh"), card = hh && hh.closest(".stg-card");
+    if(!card || document.getElementById("cloudind")) return;
+    const lab = document.createElement("label"); lab.className = "chk";
+    lab.innerHTML = '<input type="checkbox" id="cloudind">Show \u201cSyncing to cloud\u201d in the top bar';
+    card.insertBefore(lab, card.querySelector(".stg-note"));
+    const cb = lab.querySelector("input"); cb.checked = indOn;
+    cb.addEventListener("change", () => { indOn = cb.checked; try { localStorage.setItem(K_IND, indOn ? "1" : "0"); } catch(e){} paintInd(); });
+  })();
+
   let announced = false, warned = false, caught = 0;
   const note = t => { try { if(typeof sys === "function" && inRoom()) sys(t); } catch(e){} };
   const announce = () => { if(announced || !inRoom()) return; announced = true; note("\u2601\ufe0f Cloud sync is on" + (caught ? " \u2014 caught up on " + caught + " message" + (caught === 1 ? "" : "s") + "." : ".")); };
@@ -12569,8 +12600,9 @@ body.in-home #home{display:flex}
 
   /* --- download what I missed --- */
   async function pull(){
-    if(busy) return; busy = true;
+    if(busy) return; busy = true; let end = null;
     try {
+      if(!since) end = beginSync();                // first download of the whole history
       const r = await fetch(base + "/m.json?orderBy=%22up%22&startAt=" + Math.max(0, since - 5000), { cache: "no-store" });
       if(!r.ok){ console.warn("Mailbox read failed:", r.status); fail("read error " + r.status); return; }
       const obj = (await r.json()) || {}, items = []; let maxUp = since;
@@ -12586,6 +12618,7 @@ body.in-home #home{display:flex}
         if(cur && sigOf(cur) === sigOf(o)) sent[o.i] = sigOf(cur);       // the mailbox already has this exact version
       });
       since = maxUp; jset(K_SINCE, since); jset(K_SENT, sent); ready = true; caught += changed.length;
+      if(changed.length) flashSync();
       if(changed.length){
         logs.sort((a, b) => (a.ts || 0) - (b.ts || 0)); persist();
         if(changed.length > 4 && typeof rerender === "function") rerender(); else changed.forEach(applyToDom);
@@ -12593,12 +12626,12 @@ body.in-home #home{display:flex}
       }
       announce(); schedulePush();
     } catch(e){ console.warn("Mailbox read error", e); fail("network"); }
-    finally { busy = false; }
+    finally { busy = false; if(end) end(); }
   }
 
   /* --- upload what's new or changed on my side --- */
   async function push(){
-    if(pushing || !ready || (typeof isHost !== "undefined" && !isHost)) return; pushing = true;
+    if(pushing || !ready || (typeof isHost !== "undefined" && !isHost)) return; pushing = true; let end = null;
     try {
       const batch = {}, pend = {}; let n = 0, more = false;
       for(const l of logs){
@@ -12609,11 +12642,12 @@ body.in-home #home{display:flex}
         batch[keyOf(l.i)] = { up: { ".sv": "timestamp" }, d: await enc(l) }; pend[l.i] = s; n++;
       }
       if(!n){ jset(K_SENT, sent); return; }
+      end = beginSync();
       const r = await fetch(base + "/m.json", { method: "PATCH", body: JSON.stringify(batch) });
       if(r.ok){ Object.assign(sent, pend); jset(K_SENT, sent); if(more) schedulePush(); }
       else { console.warn("Mailbox write failed:", r.status); fail("write error " + r.status); }
     } catch(e){ console.warn("Mailbox write error", e); }
-    finally { pushing = false; }
+    finally { pushing = false; if(end) end(); }
   }
   function schedulePush(){ clearTimeout(pushT); pushT = setTimeout(push, 1200); }
 
@@ -12642,7 +12676,7 @@ body.in-home #home{display:flex}
         if(+w.up > maxUp) maxUp = +w.up;
         try { const o = await dec(w.d); if(o && typeof o.id === "string") items.push(o); } catch(e){}
       }
-      window.__gm.apply(items);
+      if(window.__gm.apply(items)) flashSync();
       items.forEach(o => { gsent[o.id] = gsig(o); });
       gsince = maxUp; jset(K_GSINCE, gsince); jset(K_GS, gsent); gready = true;
       gSchedule();
@@ -12650,7 +12684,7 @@ body.in-home #home{display:flex}
     finally { gbusy = false; }
   }
   async function gpush(){
-    if(gpushing || !gready || !window.__gm) return; gpushing = true;
+    if(gpushing || !gready || !window.__gm) return; gpushing = true; let end = null;
     try {
       const batch = {}, pend = {}; let n = 0;
       for(const o of window.__gm.out()){
@@ -12659,11 +12693,12 @@ body.in-home #home{display:flex}
         batch[keyOf(o.id)] = { up: { ".sv": "timestamp" }, d: await enc(o) }; pend[o.id] = gsig(o); n++;
       }
       if(!n) return;
+      end = beginSync();
       const r = await fetch(base + "/g.json", { method: "PATCH", body: JSON.stringify(batch) });
       if(r.ok){ Object.assign(gsent, pend); jset(K_GS, gsent); gSchedule(); }
       else console.warn("Mailbox games write failed:", r.status);
     } catch(e){ console.warn("Mailbox games write error", e); }
-    finally { gpushing = false; }
+    finally { gpushing = false; if(end) end(); }
   }
   function gSchedule(){ clearTimeout(gT); gT = setTimeout(gpush, 800); }
   window.__gmChanged = gSchedule;
