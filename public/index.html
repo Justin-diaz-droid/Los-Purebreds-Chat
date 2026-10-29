@@ -39,7 +39,8 @@ if(L.getItem("pb_autologin")==="1"&&L.getItem("pb_code")==="lospurebrochat"&&L.g
     "https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue&family=Dancing+Script&family=Lobster&family=Orbitron&family=Pacifico&family=Press+Start+2P&family=Roboto+Mono&display=swap",
     "https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;600;700&display=swap",
         "https://fonts.googleapis.com/css2?family=Roboto+Flex&display=swap",
-    "https://fonts.googleapis.com/css2?family=Google+Sans+Flex&display=swap"
+    "https://fonts.googleapis.com/css2?family=Google+Sans+Flex&display=swap",
+    "https://fonts.googleapis.com/css2?family=Itim&display=swap"
   ];
   function go(){
     var sc = document.createElement("script"); sc.async = true; sc.src = "https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"; document.head.appendChild(sc);
@@ -11268,6 +11269,7 @@ body[data-theme="material"]{
   }
 }
 
+@supports (color:color-mix(in srgb,red,blue)){
 /* ---------- dynamic colour: the colour picked in Settings becomes the seed of the whole palette ---------- */
 body[data-theme="material"][style*="--accent"]{
   --m-pri:var(--accent); --m-on-pri:var(--on-accent,#fff);
@@ -11303,6 +11305,7 @@ body[data-theme="material"][style*="--accent"]{
     --m-on-var:color-mix(in srgb,var(--accent) 18%,#444);
     --m-outline:color-mix(in srgb,var(--accent) 22%,#bbb);
   }
+}
 }
 body[data-theme="material"] a{color:var(--m-pri)}
 body[data-theme="material"] :focus-visible{outline:3px solid var(--m-pri);outline-offset:2px}
@@ -12525,6 +12528,547 @@ body.in-home #home{display:flex}
 #hdr #status{margin-right:auto}
 #hdr-staff{order:99;margin-left:0;display:flex;align-items:center;gap:6px}
 #hdr-staff .stg-btn{padding:5px 12px;border-radius:999px;background:var(--row);color:var(--bar-text,var(--text));font-size:12px;font-weight:700;white-space:nowrap}</style>
+<style id="mobile-theme-fix">
+/* ===== phones: lighter blur (smoother scrolling), no double-tap delay, no zoom-on-focus ===== */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+button,.row-ch,.gm-card,.hm-it,#chtabs button{touch-action:manipulation}
+@media (max-width:640px){
+  body[data-theme="glass"]{--g-blur:blur(14px) saturate(160%)}
+  body[data-theme="material"]{--m-blur:blur(14px) saturate(1.4)}
+}
+@media (hover:none) and (pointer:coarse){
+  #inp,#gate input,#gate select,.gm-box input,#gm-q,#ct-ed{font-size:16px}
+}
+</style>
+<script id="theme-guard">
+/* =============== Theme guard: if a theme ever renders text you can't read (same colour as its background, fully transparent,
+   a colour the phone's browser doesn't understand…), repair just those elements so the text always shows =============== */
+(function(){
+  const num = x => /%$/.test(x) ? parseFloat(x) / 100 : parseFloat(x);
+  function parseColor(str){
+    if(!str) return null; str = String(str).trim();
+    let m = str.match(/^rgba?\(\s*([^)]+)\)$/i), p;
+    if(m){ p = m[1].split(/[\s,\/]+/).filter(Boolean); if(p.length < 3) return null; const v = p.map(num); if(v.some(isNaN)) return null; return { r: v[0], g: v[1], b: v[2], a: v.length > 3 ? v[3] : 1 }; }
+    m = str.match(/^color\(\s*srgb\s+([^)]+)\)$/i);
+    if(m){ p = m[1].split(/[\s\/]+/).filter(Boolean); if(p.length < 3) return null; const v = p.map(num); if(v.some(isNaN)) return null; return { r: v[0] * 255, g: v[1] * 255, b: v[2] * 255, a: v.length > 3 ? v[3] : 1 }; }
+    return null;
+  }
+  const over = (f, b) => ({ r: f.r * f.a + b.r * (1 - f.a), g: f.g * f.a + b.g * (1 - f.a), b: f.b * f.a + b.b * (1 - f.a), a: 1 });
+  const chan = v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); };
+  const lum = c => .2126 * chan(c.r) + .7152 * chan(c.g) + .0722 * chan(c.b);
+  const contrast = (a, b) => { let x = lum(a), y = lum(b); if(x < y){ const t = x; x = y; y = t; } return (x + .05) / (y + .05); };
+  window.__pbContrast = { parseColor, over, lum, contrast };
+
+  /* the colour actually painted behind an element (null = can't tell, e.g. a gradient or picture) */
+  function effBg(el){
+    const layers = [];
+    for(let a = el; a && a.nodeType === 1; a = a.parentElement){
+      const cs = getComputedStyle(a);
+      if(cs.backgroundImage && cs.backgroundImage !== "none") return null;
+      const c = parseColor(cs.backgroundColor);
+      if(c && c.a > 0){ layers.push(c); if(c.a >= .97) break; }
+    }
+    if(!layers.length || layers[layers.length - 1].a < .97) return null;
+    let base = layers[layers.length - 1];
+    for(let i = layers.length - 2; i >= 0; i--) base = over(layers[i], base);
+    return base;
+  }
+
+  const SEL = ["#hdr #status", "#chtabs button", "#sb .row-ch b", "#sb .prow", "#inp", "#box .bubble", "#home .hm-it", "#home .hm-banner", "#gate .card", "#gate label", "#ctview .ct-title", "#games .gm-title", ".stg-btn"];
+  let fixed = [];
+  function restore(){ fixed.forEach(el => { try{ el.style.removeProperty("color"); }catch(e){} }); fixed = []; }
+  function check(){
+    if(!document.body) return;
+    restore();
+    const bad = [];
+    SEL.forEach(sel => {
+      let n = 0;
+      document.querySelectorAll(sel).forEach(el => {
+        if(n >= 6 || !el.getClientRects().length) return;
+        if(el.tagName !== "INPUT" && !(el.textContent || "").trim()) return;
+        n++;
+        const cs = getComputedStyle(el);
+        if(cs.visibility === "hidden" || +cs.opacity < .5 || el.disabled) return;
+        const fg = parseColor(cs.color), bg = effBg(el);
+        if(!fg) return;
+        if(fg.a < .15){ bad.push([el, bg]); return; }                                  // fully see-through text
+        if(!bg) return;
+        if(contrast(over(fg, bg), bg) < 1.8) bad.push([el, bg]);                       // same colour as what's behind it
+      });
+    });
+    const dark = window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches;
+    bad.forEach(([el, bg]) => {
+      const useWhite = bg ? lum(bg) < .4 : dark;
+      el.style.setProperty("color", useWhite ? "#ffffff" : "#111111", "important"); fixed.push(el);
+    });
+    if(bad.length) console.info("[theme-guard] repaired unreadable text on " + bad.length + " element(s) in theme “" + (document.body.dataset.theme || "default") + "”");
+  }
+  let t = 0;
+  const later = ms => { clearTimeout(t); t = setTimeout(() => { (window.requestIdleCallback || (f => f()))(check); }, ms); };
+  window.__pbThemeGuard = check;
+  [1500, 4500, 10000].forEach(ms => setTimeout(check, ms));
+  if(document.body) new MutationObserver(() => later(250)).observe(document.body, { attributes: true, attributeFilter: ["data-theme", "style"] });
+  try{ matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => later(250)); }catch(e){}
+  window.addEventListener("orientationchange", () => later(400));
+  window.addEventListener("resize", () => later(600));
+  const _sc = setChannel;
+  setChannel = function(c){ const r = _sc.apply(this, arguments); later(300); return r; };
+})();
+</script>
+
+<style id="ctabs-css">
+/* ===== Mod-made tabs (stored in the cloud, not in this file) ===== */
+#chtabs{max-width:100%;overflow-x:auto;scrollbar-width:none}
+#chtabs::-webkit-scrollbar{display:none}
+#chtabs button.ct-plus{display:none;font-weight:800;padding:5px 11px;opacity:.85}
+#chtabs button.ct-plus.on-mod{display:inline-block}
+body.in-ctab #topbanner{display:none}
+#ctview{display:none;flex:1;min-height:0;flex-direction:column;background:var(--bg);color:var(--text)}
+body.in-ctab #ctview{display:flex}
+body.in-ctab #box,body.in-ctab #typing,body.in-ctab #replybar,body.in-ctab #tray,body.in-ctab #attach{display:none !important}
+.ct-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:14px 18px 6px}
+.ct-title{display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:12px;border:1px solid var(--line);background:color-mix(in srgb,var(--accent) 22%,var(--row));font-size:15px;font-weight:700;max-width:100%}
+.ct-title span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ct-subs{display:flex;flex-wrap:wrap;gap:6px;padding:4px 18px 0}
+.ct-subs:empty{display:none}
+.ct-subs button{border:1px solid var(--line);background:var(--row);color:var(--text);border-radius:999px;padding:6px 13px;font-size:13px;font-weight:650;cursor:pointer}
+.ct-subs button:hover{filter:brightness(1.15)}
+.ct-subs button.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent,#fff)}
+.ct-subs button.sub-add{display:none;opacity:.85;border-style:dashed}
+#ctview.is-mod .ct-subs button.sub-add{display:inline-block}
+.ctm-note{font-size:12px;color:var(--muted);min-height:0}
+.ctm-note:empty{display:none}
+.ct-mod{display:none;gap:6px;flex-wrap:wrap}
+#ctview.is-mod .ct-mod{display:flex}
+.ct-scroll{flex:1;min-height:0;overflow-y:auto;padding:8px 18px 40px}
+.ct-doc,.ct-ed{max-width:820px;margin:0 auto;font-size:16px;line-height:1.6;word-wrap:break-word;overflow-wrap:anywhere}
+.ct-doc{padding:14px 4px 30px}
+.ct-doc :is(h1,h2,h3){line-height:1.25;margin:1.1em 0 .4em}
+.ct-doc h1,.ct-ed h1{font-size:28px}.ct-doc h2,.ct-ed h2{font-size:22px}.ct-doc h3,.ct-ed h3{font-size:18px}
+.ct-doc p,.ct-ed p,.ct-ed div{margin:.5em 0}
+.ct-doc a,.ct-ed a{color:var(--accent);text-decoration:underline}
+.ct-doc img,.ct-ed img{max-width:100%;height:auto;border-radius:8px}
+.ct-doc blockquote,.ct-ed blockquote{margin:.8em 0;padding:.2em 14px;border-left:4px solid var(--accent);opacity:.9}
+.ct-doc :is(pre,code),.ct-ed :is(pre,code){background:var(--row);border-radius:6px;padding:1px 6px;font-family:ui-monospace,Consolas,monospace;font-size:.92em}
+.ct-doc pre,.ct-ed pre{padding:10px 12px;overflow-x:auto}
+.ct-doc hr,.ct-ed hr{border:none;border-top:1px solid var(--line);margin:1.2em 0}
+.ct-doc :is(ul,ol),.ct-ed :is(ul,ol){padding-left:1.5em}
+.ct-doc table,.ct-ed table{border-collapse:collapse;max-width:100%;display:block;overflow-x:auto}
+.ct-doc :is(td,th),.ct-ed :is(td,th){border:1px solid var(--line);padding:6px 10px}
+.ct-empty{opacity:.6;text-align:center;padding:40px 10px;font-size:15px}
+#ct-editwrap{display:none;max-width:820px;margin:0 auto}
+#ct-editwrap.on{display:block}
+.ct-tb{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:4px;padding:8px;margin-bottom:10px;border:1px solid var(--line);border-radius:12px;background:var(--side,var(--row))}
+.ct-tb button,.ct-tb label{border:none;border-radius:8px;background:var(--row);color:var(--text);min-width:32px;height:32px;padding:0 9px;font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.ct-tb button:hover,.ct-tb label:hover{filter:brightness(1.25)}
+.ct-tb input[type=color]{width:0;height:0;opacity:0;position:absolute;pointer-events:none}
+.ct-sep{width:1px;background:var(--line);margin:2px 3px}
+.ct-ed{min-height:46vh;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--input,var(--row));outline:none}
+.ct-ed:focus{border-color:var(--accent)}
+.ct-efoot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}
+#ct-err,#ctm-err{min-height:16px;font-size:13px;color:#ff6b61;flex:1}
+#ct-modal{position:fixed;inset:0;z-index:3000;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.6)}
+#ct-modal.on{display:flex}
+.ctm-emo{display:flex;flex-wrap:wrap;gap:6px}
+.ctm-emo button{border:1px solid var(--line);background:var(--row);border-radius:9px;width:36px;height:36px;font-size:18px;cursor:pointer}
+.ctm-emo button:hover{border-color:var(--accent)}
+@media(max-width:600px){.ct-subs{padding:4px 12px 0}.ct-bar{padding:10px 12px 4px}.ct-scroll{padding:6px 12px 30px}}
+</style>
+<script id="ctabs-js">
+/* =============== Custom tabs: mods/owners make pages (like Google Docs tabs); everyone sees them.
+   Stored only on this device as a cache + in the cloud mailbox (/t) — nothing is hardcoded in this file. =============== */
+(function(){
+  const $$ = id => document.getElementById(id);
+  const LS = "pb_ctabs", LSD = "pb_ctabs_del", MAX = 40, MAXSUB = 20, MAXALL = 200, MAXHTML = 350000;
+  const BUILTIN = ["main","home","gal","polls","shame","draw","tier","games","dm","grp"];   // built-in tabs: never touched by custom tabs
+  let tabs = [], tombs = {};
+  try{ const a = JSON.parse(localStorage.getItem(LS) || "[]"); if(Array.isArray(a)) tabs = a.filter(t => t && typeof t.id === "string" && typeof t.name === "string").slice(0, MAXALL); }catch(e){}
+  try{ const d = JSON.parse(localStorage.getItem(LSD) || "{}"); if(d && typeof d === "object") tombs = d; }catch(e){}
+  const isMod = () => { try{ return !!(window.__pbIsMod && window.__pbIsMod()); }catch(e){ return false; } };
+  const inRoom = () => { const g = $$("gate"); return !g || getComputedStyle(g).display === "none"; };
+  const okId = s => typeof s === "string" && /^[A-Za-z0-9_-]{1,40}$/.test(s) && !BUILTIN.includes(s);
+  const cleanName = s => String(s || "").replace(/[\u0000-\u001f\u007f<>]/g, "").replace(/\s+/g, " ").trim().slice(0, 24);
+  const cleanIc = s => { s = String(s || "").replace(/[\u0000-\u001f\u007f<>]/g, "").trim(); return (Array.from(s).slice(0, 3).join("")) || "📄"; };
+  const newId = () => "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const bump = t => { t.v = Math.max(Date.now(), (t.v || 0) + 1); };
+
+  /* ---------- safe HTML: anything that comes from the cloud or a paste goes through this whitelist ---------- */
+  const OKTAG = /^(P|BR|B|STRONG|I|EM|U|S|STRIKE|DEL|H1|H2|H3|UL|OL|LI|A|BLOCKQUOTE|HR|CODE|PRE|DIV|IMG|TABLE|THEAD|TBODY|TR|TD|TH)$/;
+  const DROP = /^(SCRIPT|STYLE|IFRAME|OBJECT|EMBED|LINK|META|SVG|MATH|FORM|INPUT|TEXTAREA|SELECT|BUTTON|TEMPLATE|NOSCRIPT|AUDIO|VIDEO|CANVAS|HEAD|TITLE|BASE|FRAME|FRAMESET|APPLET)$/;
+  const COLOR = /(?:^|;)\s*color\s*:\s*(#[0-9a-f]{3,8}|rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(?:,\s*[\d.]+\s*)?\))\s*(?:;|$)/i;
+  const ALIGN = /(?:^|;)\s*text-align\s*:\s*(left|center|right)\s*(?:;|$)/i;
+  const IMGOK = /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+\/=]+$/;
+  const hrefOk = h => { h = String(h || "").trim(); return /^(https?:\/\/|mailto:)/i.test(h) && h.length < 800 ? h : ""; };
+  function clean(html){
+    const doc = new DOMParser().parseFromString("<body>" + String(html || "") + "</body>", "text/html");
+    const out = document.createElement("div");
+    (function walk(src, dst, depth){
+      if(depth > 40) return;
+      src.childNodes.forEach(n => {
+        if(n.nodeType === 3){ dst.appendChild(document.createTextNode(n.nodeValue)); return; }
+        if(n.nodeType !== 1) return;
+        const t = n.tagName;
+        if(DROP.test(t)) return;
+        if(t === "SPAN" || t === "FONT"){
+          let c = dst; const st = n.getAttribute("style") || "";
+          let col = (st.match(COLOR) || [])[1] || "";
+          if(!col && t === "FONT" && /^#[0-9a-f]{3,8}$/i.test(n.getAttribute("color") || "")) col = n.getAttribute("color");
+          if(col){ const s = document.createElement("span"); s.style.color = col; c.appendChild(s); c = s; }
+          if(/font-weight\s*:\s*(bold|[6-9]00)/i.test(st)){ const b = document.createElement("b"); c.appendChild(b); c = b; }
+          if(/font-style\s*:\s*italic/i.test(st)){ const b = document.createElement("i"); c.appendChild(b); c = b; }
+          if(/text-decoration[^;]*underline/i.test(st)){ const b = document.createElement("u"); c.appendChild(b); c = b; }
+          if(/text-decoration[^;]*line-through/i.test(st)){ const b = document.createElement("s"); c.appendChild(b); c = b; }
+          walk(n, c, depth + 1); return;
+        }
+        if(!OKTAG.test(t)){ walk(n, dst, depth + 1); return; }      // unknown but harmless: keep its text
+        if(t === "A"){
+          const h = hrefOk(n.getAttribute("href"));
+          if(!h){ walk(n, dst, depth + 1); return; }
+          const a = document.createElement("a"); a.href = h; a.target = "_blank"; a.rel = "noopener noreferrer nofollow";
+          dst.appendChild(a); walk(n, a, depth + 1); return;
+        }
+        if(t === "IMG"){
+          const s = n.getAttribute("src") || "";
+          if(IMGOK.test(s) && s.length < 300000){ const im = document.createElement("img"); im.src = s; im.alt = (n.getAttribute("alt") || "").slice(0, 100); im.loading = "lazy"; im.decoding = "async"; dst.appendChild(im); }
+          return;
+        }
+        const e = document.createElement(t.toLowerCase());
+        if(/^(P|DIV|H1|H2|H3|LI|BLOCKQUOTE|TD|TH)$/.test(t)){
+          const m = (n.getAttribute("style") || "").match(ALIGN) || (/^(left|center|right)$/i.test(n.getAttribute("align") || "") ? [0, n.getAttribute("align").toLowerCase()] : null);
+          if(m) e.style.textAlign = m[1].toLowerCase();
+        }
+        dst.appendChild(e);
+        if(t !== "BR" && t !== "HR") walk(n, e, depth + 1);
+      });
+    })(doc.body, out, 0);
+    return out.innerHTML;
+  }
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  /* ---------- storage + cloud hook ---------- */
+  const persist = () => {
+    let ok = false;
+    try{ localStorage.setItem(LS, JSON.stringify(tabs)); ok = true; }catch(e){}
+    try{ localStorage.setItem(LSD, JSON.stringify(tombs)); }catch(e){}
+    try{ if(window.__tbChanged) window.__tbChanged(); }catch(e){}
+    return ok;
+  };
+  const cmp = (a, b) => ((a.o || 0) - (b.o || 0)) || ((a.v || 0) - (b.v || 0));
+  tabs = tabs.filter(t => okId(t.id)); tabs.forEach(t => { if(typeof t.p !== "string") t.p = ""; });
+  const tops = () => tabs.filter(t => !t.p).sort(cmp);
+  const subsOf = id => tabs.filter(t => t.p === id).sort(cmp);
+  const byId = id => tabs.find(t => t.id === id);
+  /* who may delete: the person who made it, or an owner/admin (mods can't delete each other's tabs) */
+  const isOwner = () => { try{ return !!(window.__pbAdm && window.__pbAdm()); }catch(e){ return false; } };
+  const meName = () => String(typeof usr === "string" ? usr : "").trim().toLowerCase();
+  const madeByMe = t => !!t && !!t.by && String(t.by).trim().toLowerCase() === meName();
+  const canDel = t => !!t && isMod() && (isOwner() || madeByMe(t) || (!!t.p && madeByMe(byId(t.p))));
+
+  /* ---------- the tab bar, sidebar rows and the + button ---------- */
+  const strip = $$("chtabs");
+  const plus = document.createElement("button"); plus.type = "button"; plus.className = "ct-plus"; plus.textContent = "＋"; plus.title = "Make a new tab (mods & owners)";
+  plus.style.order = "999"; strip.appendChild(plus);
+  plus.onclick = () => openModal(null, "");
+  function buildTabs(){
+    const list = tops(), want = new Set(list.map(t => t.id));
+    strip.querySelectorAll("button[data-ctid]").forEach(b => { if(!want.has(b.dataset.ctid)) b.remove(); });
+    document.querySelectorAll('.row-ch[data-ctid]').forEach(r => { if(!want.has(r.dataset.ctid)) r.remove(); });
+    const rows = [];
+    list.forEach((t, i) => {
+      const key = "ct:" + t.id; let b = strip.querySelector('button[data-ctid="' + t.id + '"]');
+      if(!b){ b = document.createElement("button"); b.type = "button"; b.dataset.ctid = t.id; b.dataset.ch = key; b.onclick = () => setChannel(key); strip.insertBefore(b, plus); }
+      const label = t.ic + " " + t.name; if(b.textContent !== label) b.textContent = label;
+      const so = String(50 + i); if(b.style.order !== so) b.style.order = so;
+      const on = curCh === key; if(b.classList.contains("on") !== on) b.classList.toggle("on", on);
+      let r = $$("ch-ct-" + t.id);
+      if(!r){
+        r = document.createElement("div"); r.className = "row-ch"; r.id = "ch-ct-" + t.id; r.dataset.ctid = t.id;
+        const av = document.createElement("div"); av.className = "av-sb"; av.style.fontSize = "18px";
+        const w = document.createElement("div"), nm = document.createElement("b"); nm.style.fontSize = "15px";
+        const br = document.createElement("br"), sub = document.createElement("span"); sub.className = "csub"; sub.textContent = "Mod page";
+        w.append(nm, br, sub); r.append(av, w); r.onclick = () => setChannel(key);
+      }
+      if(r.firstChild.textContent !== t.ic) r.firstChild.textContent = t.ic;
+      const rn = r.querySelector("b"); if(rn.textContent !== t.name) rn.textContent = t.name;
+      if(r.classList.contains("active") !== on) r.classList.toggle("active", on);
+      rows.push(r);
+    });
+    const anchor = $$("sbroster");
+    if(anchor && anchor.parentNode && rows.length){
+      let ok = true, n = anchor.previousElementSibling;
+      for(let i = rows.length - 1; i >= 0; i--){ if(n !== rows[i]){ ok = false; break; } n = n && n.previousElementSibling; }
+      if(!ok) rows.forEach(r => anchor.parentNode.insertBefore(r, anchor));
+    }
+    refreshMod(); renderSubs();
+  }
+  function refreshMod(){
+    const m = isMod();
+    plus.classList.toggle("on-mod", m && inRoom());
+    $$("ctview").classList.toggle("is-mod", m);
+    if(!m && editing) stopEdit();
+  }
+
+  /* ---------- the page view ---------- */
+  const view = document.createElement("div"); view.id = "ctview";
+  view.innerHTML =
+    '<div class="ct-bar"><div class="ct-title"><b id="ct-ic"></b><span id="ct-nm"></span></div><span class="gm-spacer"></span>' +
+      '<div class="ct-mod" id="ct-modbar">' +
+        '<button type="button" class="gm-b alt" id="ct-left" title="Move this tab left">◀</button>' +
+        '<button type="button" class="gm-b alt" id="ct-right" title="Move this tab right">▶</button>' +
+        '<button type="button" class="gm-b alt" id="ct-set">⚙ Rename / delete</button>' +
+        '<button type="button" class="gm-b pri" id="ct-edit">✎ Edit page</button>' +
+      '</div></div>' +
+    '<div class="ct-subs" id="ct-subs"></div>' +
+    '<div class="ct-scroll"><div class="ct-doc" id="ct-doc"></div>' +
+      '<div id="ct-editwrap"><div class="ct-tb" id="ct-tb"></div><div class="ct-ed" id="ct-ed" contenteditable="true" spellcheck="true"></div>' +
+      '<div class="ct-efoot"><div id="ct-err" role="alert"></div><button type="button" class="gm-b alt" id="ct-cancel">Cancel</button><button type="button" class="gm-b pri" id="ct-save">Save</button></div></div>' +
+    '</div>';
+  $$("box").after(view);
+  const doc = $$("ct-doc"), ed = $$("ct-ed"), errEl = $$("ct-err");
+  let curId = "", curSub = "", editing = false, baseV = 0, warned = false, subSig = "";
+  const cur = () => { const sb = curSub && byId(curSub); return (sb && sb.p === curId) ? sb : byId(curId); };   // the page being shown (a subtab, or the tab's own page)
+  function renderSubs(force){
+    const box = $$("ct-subs"), t = byId(curId);
+    if(!t){ if(subSig){ box.replaceChildren(); subSig = ""; } return; }
+    if(curSub && !(byId(curSub) && byId(curSub).p === curId)) curSub = "";
+    const subs = subsOf(curId), sig = curId + "|" + curSub + "|" + subs.map(x => x.id + x.ic + x.name).join(",");
+    if(!force && sig === subSig) return; subSig = sig;
+    const chip = (label, id) => {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = label; b.classList.toggle("on", curSub === id);
+      b.onclick = () => { if(editing){ errEl.textContent = "Save or cancel your edit before switching pages."; return; } curSub = id; renderSubs(true); renderPage(); };
+      return b;
+    };
+    const kids = [];
+    if(subs.length){ kids.push(chip("📄 Main page", "")); subs.forEach(x => kids.push(chip(x.ic + " " + x.name, x.id))); }
+    const add = document.createElement("button"); add.type = "button"; add.className = "sub-add"; add.textContent = "＋ Subtab"; add.title = "Add a subtab inside this tab";
+    add.onclick = () => openModal(null, curId); kids.push(add);
+    box.replaceChildren.apply(box, kids);
+  }
+  function renderPage(){
+    const top = byId(curId), t = cur(); if(!top || !t) return;
+    $$("ct-ic").textContent = top.ic; $$("ct-nm").textContent = top.name;
+    const h = clean(t.html);
+    if(h.replace(/<[^>]*>/g, "").trim() || /<img|<hr|<table/i.test(h)) doc.innerHTML = h;
+    else doc.innerHTML = '<div class="ct-empty">This page is empty.' + (isMod() ? "<br>Tap “✎ Edit page” to add something." : "") + "</div>";
+  }
+  function stopEdit(){ editing = false; $$("ct-editwrap").classList.remove("on"); doc.style.display = ""; $$("ct-edit").style.display = ""; errEl.textContent = ""; }
+  function startEdit(){
+    const t = cur(); if(!t || !isMod()) return;
+    editing = true; baseV = t.v || 0; warned = false; ed.innerHTML = clean(t.html); errEl.textContent = "";
+    doc.style.display = "none"; $$("ct-edit").style.display = "none"; $$("ct-editwrap").classList.add("on");
+    setTimeout(() => ed.focus(), 30);
+  }
+  function saveEdit(){
+    const t = cur(); if(!t) return;
+    if(!isMod()){ errEl.textContent = "Only mods and owners can edit tabs."; return; }
+    const html = clean(ed.innerHTML);
+    if(html.length > MAXHTML){ errEl.textContent = "This page is too big (" + Math.round(html.length / 1000) + " KB, max " + Math.round(MAXHTML / 1000) + " KB). Remove or shrink some pictures."; return; }
+    if((t.v || 0) !== baseV && !warned){ warned = true; errEl.textContent = "Another mod changed this page while you were editing. Press Save again to replace their version."; return; }
+    const old = t.html; t.html = html; bump(t);
+    if(!persist()){ t.html = old; errEl.textContent = "This device is out of storage space. Use smaller pictures."; return; }
+    stopEdit(); renderPage();
+  }
+  $$("ct-edit").onclick = startEdit; $$("ct-save").onclick = saveEdit; $$("ct-cancel").onclick = () => { stopEdit(); renderPage(); };
+  function move(dir){
+    const it = cur(); if(!it) return;
+    const l = it.p ? subsOf(it.p) : tops(), i = l.findIndex(t => t.id === it.id), j = i + dir;
+    if(i < 0 || j < 0 || j >= l.length) return;
+    l.forEach((t, k) => { if((t.o || 0) !== k){ t.o = k; bump(t); } });   // make the order explicit first
+    const a = l[i], b = l[j], ao = a.o; a.o = b.o; b.o = ao; bump(a); bump(b);
+    persist(); buildTabs(); renderSubs(true);
+  }
+  $$("ct-left").onclick = () => move(-1); $$("ct-right").onclick = () => move(1);
+
+  /* ---------- editor toolbar ---------- */
+  const tb = $$("ct-tb");
+  const cmd = (c, a) => { ed.focus(); try{ document.execCommand(c, false, a); }catch(e){} };
+  const BTN = [
+    ["B", "Bold", () => cmd("bold")], ["I", "Italic", () => cmd("italic")], ["U", "Underline", () => cmd("underline")], ["S", "Strikethrough", () => cmd("strikeThrough")], "|",
+    ["H1", "Big heading", () => cmd("formatBlock", "<h1>")], ["H2", "Heading", () => cmd("formatBlock", "<h2>")], ["H3", "Small heading", () => cmd("formatBlock", "<h3>")], ["¶", "Normal text", () => cmd("formatBlock", "<p>")], ["❝", "Quote", () => cmd("formatBlock", "<blockquote>")], "|",
+    ["• List", "Bulleted list", () => cmd("insertUnorderedList")], ["1. List", "Numbered list", () => cmd("insertOrderedList")], "|",
+    ["⇤", "Align left", () => cmd("justifyLeft")], ["↔", "Center", () => cmd("justifyCenter")], ["⇥", "Align right", () => cmd("justifyRight")], "|",
+    ["🔗", "Add link", addLink], ["Unlink", "Remove link", () => cmd("unlink")], ["―", "Divider line", () => cmd("insertHorizontalRule")], "|",
+    ["Tx", "Clear formatting", () => cmd("removeFormat")], ["↶", "Undo", () => cmd("undo")], ["↷", "Redo", () => cmd("redo")]
+  ];
+  BTN.forEach(x => {
+    if(x === "|"){ const s = document.createElement("span"); s.className = "ct-sep"; tb.appendChild(s); return; }
+    const b = document.createElement("button"); b.type = "button"; b.textContent = x[0]; b.title = x[1]; b.setAttribute("aria-label", x[1]);
+    b.onmousedown = e => e.preventDefault(); b.onclick = x[2]; tb.appendChild(b);
+  });
+  (function(){   // colour + picture
+    const lab = document.createElement("label"); lab.title = "Text colour"; lab.textContent = "🎨";
+    const ci = document.createElement("input"); ci.type = "color"; ci.value = "#ff453a"; lab.appendChild(ci);
+    let saved = null;
+    lab.onmousedown = () => { const s = getSelection(); saved = s.rangeCount ? s.getRangeAt(0).cloneRange() : null; };
+    ci.oninput = () => { ed.focus(); if(saved){ const s = getSelection(); s.removeAllRanges(); s.addRange(saved); } try{ document.execCommand("styleWithCSS", false, true); document.execCommand("foreColor", false, ci.value); document.execCommand("styleWithCSS", false, false); }catch(e){} };
+    tb.appendChild(lab);
+    const pl = document.createElement("label"); pl.title = "Add a picture"; pl.textContent = "🖼️";
+    const fi = document.createElement("input"); fi.type = "file"; fi.accept = "image/png,image/jpeg,image/webp,image/gif"; pl.appendChild(fi);
+    let ps = null; pl.onmousedown = () => { const s = getSelection(); ps = s.rangeCount ? s.getRangeAt(0).cloneRange() : null; };
+    fi.onchange = () => {
+      const f = fi.files && fi.files[0]; fi.value = ""; if(!f) return;
+      if(!/^image\/(png|jpe?g|webp|gif)$/i.test(f.type)){ errEl.textContent = "Pick a PNG, JPG, WEBP or GIF picture."; return; }
+      const fr = new FileReader(); fr.onerror = () => { errEl.textContent = "Couldn’t read that picture."; };
+      fr.onload = () => {
+        const im = new Image(); im.onerror = () => { errEl.textContent = "Couldn’t read that picture."; };
+        im.onload = () => {
+          let out = "";
+          for(const [S, q] of [[900, .8], [700, .68], [520, .58], [380, .5]]){
+            const r = Math.min(1, S / Math.max(im.width, im.height)), c = document.createElement("canvas");
+            c.width = Math.max(1, Math.round(im.width * r)); c.height = Math.max(1, Math.round(im.height * r));
+            const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height); x.drawImage(im, 0, 0, c.width, c.height);
+            try{ out = c.toDataURL("image/jpeg", q); }catch(e){ out = ""; break; }
+            if(out.length < 240000) break;
+          }
+          if(!out || out.length >= 300000){ errEl.textContent = "That picture is too big to store. Try a smaller one."; return; }
+          errEl.textContent = ""; ed.focus();
+          if(ps){ const s = getSelection(); s.removeAllRanges(); s.addRange(ps); }
+          cmd("insertImage", out);
+        };
+        im.src = fr.result;
+      };
+      fr.readAsDataURL(f);
+    };
+    tb.appendChild(pl);
+  })();
+  function addLink(){
+    const s = getSelection(), had = s.rangeCount ? s.getRangeAt(0).cloneRange() : null, collapsed = !s.rangeCount || s.isCollapsed;
+    let u = prompt("Link address (https://…)", "https://"); if(u === null) return;
+    if(!/^[a-z][a-z0-9+.-]*:/i.test(u.trim())) u = "https://" + u.trim();
+    u = hrefOk(u); if(!u){ errEl.textContent = "That link has to start with https://"; return; }
+    ed.focus(); if(had){ s.removeAllRanges(); s.addRange(had); }
+    if(collapsed) cmd("insertHTML", '<a href="' + esc(u) + '">' + esc(u) + "</a>"); else cmd("createLink", u);
+  }
+  ed.addEventListener("paste", e => {
+    e.preventDefault(); const cd = e.clipboardData; if(!cd) return;
+    const h = cd.getData("text/html"), t = cd.getData("text/plain");
+    cmd("insertHTML", h ? clean(h) : esc(t).replace(/\r?\n/g, "<br>"));
+  });
+  ed.addEventListener("keydown", e => { if((e.ctrlKey || e.metaKey) && e.key === "Enter"){ e.preventDefault(); saveEdit(); } });
+
+  /* ---------- new / rename / delete window ---------- */
+  const modal = document.createElement("div"); modal.id = "ct-modal";
+  modal.innerHTML =
+    '<div class="gm-box" role="dialog" aria-modal="true" aria-labelledby="ctm-t"><h3 id="ctm-t">New tab</h3>' +
+      '<label>Tab name<input id="ctm-name" type="text" maxlength="24" autocomplete="off" placeholder="e.g. Rules"></label>' +
+      '<label>Icon<input id="ctm-ic" type="text" maxlength="6" autocomplete="off" placeholder="📄"></label>' +
+      '<div class="ctm-emo" id="ctm-emo"></div>' +
+      '<div class="ctm-note" id="ctm-note"></div>' +
+      '<div class="gm-foot"><div id="ctm-err" role="alert"></div></div>' +
+      '<div class="gm-foot"><button type="button" id="ctm-del" class="gm-b red">Delete tab</button><span class="gm-spacer"></span><button type="button" id="ctm-cancel" class="gm-b alt">Cancel</button><button type="button" id="ctm-save" class="gm-b pri">Save</button></div>' +
+    '</div>';
+  document.body.appendChild(modal);
+  ["📄", "📢", "📜", "📖", "🎉", "📅", "🏆", "💡", "🔗", "❓", "⭐", "🛠️", "📌", "🎮", "🎵", "🔒"].forEach(e => {
+    const b = document.createElement("button"); b.type = "button"; b.textContent = e; b.onclick = () => { $$("ctm-ic").value = e; };
+    $$("ctm-emo").appendChild(b);
+  });
+  let editId = null, delArmed = 0, newParent = "";
+  function openModal(t, parent){
+    if(!isMod()) return;
+    editId = t ? t.id : null; newParent = t ? (t.p || "") : (parent || ""); delArmed = 0;
+    $$("ctm-t").textContent = t ? (t.p ? "Rename subtab" : "Rename tab") : (newParent ? "New subtab" : "New tab");
+    $$("ctm-name").value = t ? t.name : ""; $$("ctm-ic").value = t ? t.ic : "";
+    $$("ctm-del").style.display = (t && canDel(t)) ? "" : "none"; $$("ctm-del").textContent = t && t.p ? "Delete subtab" : "Delete tab"; $$("ctm-err").textContent = "";
+    $$("ctm-note").textContent = (t && !canDel(t)) ? "Only " + (t.by || "an owner") + " (who made this" + (t.p ? " subtab’s tab" : " tab") + ") or an owner can delete it. You can still rename and edit it." : "";
+    modal.classList.add("on"); setTimeout(() => $$("ctm-name").focus(), 30);
+  }
+  const closeModal = () => modal.classList.remove("on");
+  $$("ctm-cancel").onclick = closeModal;
+  modal.addEventListener("mousedown", e => { if(e.target === modal) closeModal(); });
+  $$("ct-set").onclick = () => { const t = cur(); if(t) openModal(t, ""); };
+  $$("ctm-save").onclick = () => {
+    if(!isMod()) return;
+    const name = cleanName($$("ctm-name").value), ic = cleanIc($$("ctm-ic").value);
+    if(!name){ $$("ctm-err").textContent = "Give the tab a name."; return; }
+    let t = editId && byId(editId);
+    if(t){ t.name = name; t.ic = ic; bump(t); delete tombs[t.id]; }
+    else {
+      if(tabs.length >= MAXALL){ $$("ctm-err").textContent = "Too many tabs already."; return; }
+      if(!newParent && tops().length >= MAX){ $$("ctm-err").textContent = "You can have up to " + MAX + " custom tabs."; return; }
+      if(newParent && subsOf(newParent).length >= MAXSUB){ $$("ctm-err").textContent = "A tab can have up to " + MAXSUB + " subtabs."; return; }
+      const sibs = newParent ? subsOf(newParent) : tops();
+      t = { id: newId(), name, ic, html: "", p: newParent, o: sibs.reduce((m, x) => Math.max(m, (x.o || 0) + 1), 0), v: Date.now(), by: (typeof usr === "string" ? usr : "").slice(0, 12) };
+      tabs.push(t);
+    }
+    if(!persist()){ $$("ctm-err").textContent = "This device is out of storage space."; return; }
+    closeModal();
+    if(!editId && !t.p){ buildTabs(); setChannel("ct:" + t.id); startEdit(); }
+    else { if(!editId && t.p){ curSub = t.id; } buildTabs(); renderSubs(true); renderPage(); if(!editId) startEdit(); }
+  };
+  $$("ctm-del").onclick = () => {
+    if(!delArmed){ delArmed = 1; $$("ctm-del").textContent = "Really delete for everyone?"; return; }
+    const id = editId, it = id && byId(id);
+    if(!it || !canDel(it)){ $$("ctm-err").textContent = "Only the person who made this tab, or an owner, can delete it."; return; }
+    const now = Date.now(), kill = x => { tombs[x.id] = Math.max(now, (x.v || 0) + 1); };
+    subsOf(id).forEach(kill); kill(it);                         // a tab takes its subtabs with it
+    tabs = tabs.filter(t => t.id !== id && t.p !== id); persist(); closeModal();
+    if(it.p){ if(curSub === id) curSub = ""; if(editing) stopEdit(); buildTabs(); renderSubs(true); renderPage(); }
+    else { buildTabs(); if(curId === id){ if(editing) stopEdit(); setChannel("main"); } }
+  };
+  modal.addEventListener("keydown", e => {
+    if(e.key === "Escape"){ e.stopPropagation(); closeModal(); }
+    else if(e.key === "Enter" && e.target.tagName === "INPUT"){ e.preventDefault(); $$("ctm-save").click(); }
+  });
+
+  /* ---------- hook into the tab switcher ---------- */
+  const _sc = setChannel;
+  setChannel = function(c){
+    const id = typeof c === "string" && c.indexOf("ct:") === 0 ? c.slice(3) : "";
+    if(id && !byId(id)){ c = "main"; }
+    _sc(c);
+    const t = id && byId(id);
+    if(editing && (!t || t.id !== curId)) stopEdit();
+    document.body.classList.toggle("in-ctab", !!t);
+    const prevId = curId; curId = t ? t.id : ""; if(curId !== prevId) curSub = "";
+    buildTabs(); renderSubs(true);
+    if(t){ renderPage(); try{ if(window.__tbPull) window.__tbPull(); }catch(e){} }
+  };
+
+  /* ---------- cloud sync hooks (used by the mailbox script below) ---------- */
+  window.__tb = {
+    canPush: () => isMod(),
+    out(){
+      const o = [], have = new Set();
+      tabs.forEach(t => { have.add(t.id); o.push({ id: t.id, name: t.name, ic: t.ic, html: t.html || "", p: t.p || "", o: t.o || 0, by: t.by || "", v: t.v || 1 }); });
+      Object.keys(tombs).forEach(id => { if(!have.has(id)) o.push({ id, del: 1, v: tombs[id] }); });
+      return o;
+    },
+    apply(list){
+      let ch = false;
+      list.forEach(r => {
+        if(!r || !okId(r.id)) return;
+        const v = +r.v || 0; if(v <= 0) return;
+        const i = tabs.findIndex(t => t.id === r.id), loc = tabs[i];
+        if(r.del){
+          if(loc && (loc.v || 0) > v) return;
+          if(loc){ tabs.splice(i, 1); ch = true; }
+          tabs = tabs.filter(x => { if(x.p === r.id){ tombs[x.id] = Math.max(tombs[x.id] || 0, v); ch = true; return false; } return true; });
+          if((tombs[r.id] || 0) < v){ tombs[r.id] = v; ch = true; }
+          return;
+        }
+        if((tombs[r.id] || 0) >= v) return;
+        if(loc && (loc.v || 0) >= v) return;
+        const p = (r.p === "" || r.p == null) ? "" : (okId(r.p) && r.p !== r.id ? r.p : null); if(p === null) return;
+        const name = cleanName(r.name); if(!name) return;
+        const html = clean(r.html); if(html.length > MAXHTML + 20000) return;
+        const nt = { id: r.id, name, ic: cleanIc(r.ic), html, p, o: isFinite(+r.o) ? +r.o : 0, by: String(r.by || "").slice(0, 12), v };
+        if(loc) tabs[i] = nt; else { if(tabs.length >= MAXALL) return; tabs.push(nt); }
+        delete tombs[r.id]; ch = true;
+      });
+      if(ch){
+        persist(); buildTabs();
+        if(curId && !byId(curId)){ if(editing) stopEdit(); setChannel("main"); }
+        else { renderSubs(true); if(!editing) renderPage(); }
+      }
+      return ch;
+    }
+  };
+
+  buildTabs();
+  setInterval(() => { if(!document.hidden) buildTabs(); }, 3000);
+})();
+</script>
+
 <script id="mailbox">
 /* ---------- cloud mailbox: lets people who were offline catch up even when nobody who saw the messages is online ----------
    Public chat only (DMs and group chats stay peer-to-peer). Everything is encrypted with a key derived from the room code
@@ -12706,6 +13250,50 @@ body.in-home #home{display:flex}
   setInterval(() => { if(!document.hidden) gpull(); }, 8000);
   document.addEventListener("visibilitychange", () => { if(!document.hidden) gpull(); });
   setTimeout(gpull, 700);
+  /* ---- Custom tabs: pages made by mods/owners. Everyone downloads them; only mods/owners upload (add / rename / edit / reorder / delete) ---- */
+  const K_TS = "pb_mb_tsent", K_TSINCE = "pb_mb_tsince";
+  let tsent = jget(K_TS, {}), tsince = +jget(K_TSINCE, 0) || 0, tbusy = false, tready = false, tpushing = false, tT = 0;
+  const tsig = o => (o.del ? "d" : "") + o.v;
+  let tlast = 0;
+  async function tpull(){
+    if(tbusy || !window.__tb || (tlast && Date.now() - tlast < 3500)) return; tbusy = true; tlast = Date.now();
+    try {
+      const r = await fetch(base + "/t.json?orderBy=%22up%22&startAt=" + Math.max(0, tsince - 5000), { cache: "no-store" });
+      if(!r.ok){ console.warn("Mailbox tabs read failed:", r.status); return; }
+      const obj = (await r.json()) || {}; let maxUp = tsince;
+      const ws = Object.values(obj).filter(w => w && typeof w.d === "string");
+      ws.forEach(w => { if(+w.up > maxUp) maxUp = +w.up; });
+      const items = (await Promise.all(ws.map(async w => { try { const o = await dec(w.d); return (o && typeof o.id === "string") ? o : null; } catch(e){ return null; } }))).filter(Boolean);
+      if(window.__tb.apply(items)) flashSync();
+      items.forEach(o => { tsent[o.id] = tsig(o); });
+      tsince = maxUp; jset(K_TSINCE, tsince); jset(K_TS, tsent); tready = true;
+      tSchedule();
+    } catch(e){ console.warn("Mailbox tabs read error", e); }
+    finally { tbusy = false; }
+  }
+  async function tpush(){
+    if(tpushing || !tready || !window.__tb || !window.__tb.canPush()) return; tpushing = true; let end = null;
+    try {
+      const batch = {}, pend = {}; let n = 0;
+      for(const o of window.__tb.out()){
+        if(tsent[o.id] === tsig(o)) continue;
+        if(n >= 8) break;
+        batch[keyOf(o.id)] = { up: { ".sv": "timestamp" }, d: await enc(o) }; pend[o.id] = tsig(o); n++;
+      }
+      if(!n) return;
+      end = beginSync();
+      const r = await fetch(base + "/t.json", { method: "PATCH", body: JSON.stringify(batch) });
+      if(r.ok){ Object.assign(tsent, pend); jset(K_TS, tsent); tSchedule(); }
+      else console.warn("Mailbox tabs write failed:", r.status);
+    } catch(e){ console.warn("Mailbox tabs write error", e); }
+    finally { tpushing = false; if(end) end(); }
+  }
+  function tSchedule(){ clearTimeout(tT); tT = setTimeout(tpush, 800); }
+  window.__tbChanged = tSchedule;
+  window.__tbPull = tpull;
+  setInterval(() => { if(!document.hidden) tpull(); }, 8000);
+  document.addEventListener("visibilitychange", () => { if(!document.hidden) tpull(); });
+  setTimeout(tpull, 2500);
   window.__mbPull = pull;
 })();
 </script>
