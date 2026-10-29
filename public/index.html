@@ -12222,7 +12222,15 @@ body.in-games #box,body.in-games #typing,body.in-games #replybar,body.in-games #
   try{ const a = JSON.parse(localStorage.getItem(LS) || "[]"); if(Array.isArray(a)) games = a.filter(g => g && typeof g.id === "string" && typeof g.name === "string" && typeof g.url === "string").slice(0, MAX); }catch(e){}
   let mode = "default"; try{ const m = localStorage.getItem(LSM); if(["default","az","fav","recent"].includes(m)) mode = m; }catch(e){}
   let q = "", editId = null, draftIcon = "";
-  const persist = () => { try{ localStorage.setItem(LS, JSON.stringify(games)); return true; }catch(e){ return false; } };
+  let tombs = {}; try{ const t = JSON.parse(localStorage.getItem("pb_games_del") || "{}"); if(t && typeof t === "object") tombs = t; }catch(e){}
+  games.forEach(g => { if(!g.v) g.v = g.added || 1; });
+  const persist = () => {
+    let ok = false;
+    try{ localStorage.setItem(LS, JSON.stringify(games)); ok = true; }catch(e){}
+    try{ localStorage.setItem("pb_games_del", JSON.stringify(tombs)); }catch(e){}
+    try{ if(window.__gmChanged) window.__gmChanged(); }catch(e){}
+    return ok;
+  };
   const newId = () => "g" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   const cleanName = s => String(s || "").replace(/[\u0000-\u001f\u007f<>]/g, "").replace(/\s+/g, " ").trim().slice(0, 40);
   const cleanUrl = s => {
@@ -12379,17 +12387,17 @@ body.in-games #box,body.in-games #typing,body.in-games #replybar,body.in-games #
   modal.addEventListener("mousedown", e => { if(e.target === modal) closeModal(); });
   $$("gm-del").onclick = () => {
     if(!delArmed){ delArmed = 1; $$("gm-del").textContent = "Really delete?"; return; }
-    games = games.filter(g => g.id !== editId); persist(); closeModal(); render();
+    tombs[editId] = Date.now(); games = games.filter(g => g.id !== editId); persist(); closeModal(); render();
   };
   function save(){
     const name = cleanName($$("gm-name").value), url = cleanUrl($$("gm-url").value);
     if(!name){ err("Give the game a name."); $$("gm-name").focus(); return; }
     if(!url){ err("Paste a working link (it has to start with https://)."); $$("gm-url").focus(); return; }
     const old = editId && games.find(g => g.id === editId);
-    if(old){ old.name = name; old.url = url; old.icon = draftIcon; }
+    if(old){ old.name = name; old.url = url; old.icon = draftIcon; old.v = Date.now(); delete tombs[old.id]; }
     else {
       if(games.length >= MAX){ err("You can keep up to " + MAX + " games."); return; }
-      games.push({ id: newId(), name, url, icon: draftIcon, fav: 0, plays: 0, last: 0, added: Date.now() });
+      games.push({ id: newId(), name, url, icon: draftIcon, fav: 0, plays: 0, last: 0, added: Date.now(), v: Date.now() });
     }
     if(!persist()){ err("This device is out of storage space. Remove a game or use a smaller icon."); if(!old) games.pop(); return; }
     closeModal(); render();
@@ -12406,7 +12414,41 @@ body.in-games #box,body.in-games #typing,body.in-games #replybar,body.in-games #
     _sc(c);
     document.body.classList.toggle("in-games", c === "games");
     const r = $$("ch-games"); if(r) r.classList.toggle("active", c === "games");
-    if(c === "games") render();
+    if(c === "games"){ render(); try{ if(window.__gmPull) window.__gmPull(); }catch(e){} }
+  };
+  /* ---- community sync hooks (used by the cloud mailbox script) ---- */
+  window.__gm = {
+    out(){
+      const o = [], have = new Set();
+      games.forEach(g => { have.add(g.id); o.push({ id: g.id, name: g.name, url: g.url, icon: g.icon || "", added: g.added || 0, v: g.v || g.added || 1 }); });
+      Object.keys(tombs).forEach(id => { if(!have.has(id)) o.push({ id, del: 1, v: tombs[id] }); });
+      return o;
+    },
+    apply(list){
+      let ch = false;
+      list.forEach(r => {
+        if(!r || typeof r.id !== "string" || !r.id || r.id.length > 40) return;
+        const v = +r.v || 0; if(v <= 0) return;
+        const i = games.findIndex(g => g.id === r.id), loc = games[i];
+        if(r.del){
+          if(loc && (loc.v || 0) > v) return;                      // my copy was edited after that delete
+          if(loc){ games.splice(i, 1); ch = true; }
+          if((tombs[r.id] || 0) < v){ tombs[r.id] = v; ch = true; }
+          return;
+        }
+        if((tombs[r.id] || 0) >= v) return;                         // deleted after this version
+        const name = cleanName(r.name), url = cleanUrl(r.url); if(!name || !url) return;
+        const icon = okIcon(r.icon) ? r.icon : "";
+        if(!loc){
+          if(games.length >= MAX) return;
+          games.push({ id: r.id, name, url, icon, fav: 0, plays: 0, last: 0, added: +r.added || Date.now(), v }); delete tombs[r.id]; ch = true;
+        } else if(v > (loc.v || 0)){
+          loc.name = name; loc.url = url; loc.icon = icon; loc.added = +r.added || loc.added; loc.v = v; delete tombs[r.id]; ch = true;
+        }
+      });
+      if(ch){ persist(); render(); }
+      return ch;
+    }
   };
   render();
 })();
@@ -12496,6 +12538,10 @@ body.in-home #home{display:flex}
   const K_SENT = "pb_mb_sent", K_SINCE = "pb_mb_since";
   const jget = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch(e){ return d; } };
   const jset = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} };
+  let announced = false, warned = false, caught = 0;
+  const note = t => { try { if(typeof sys === "function" && inRoom()) sys(t); } catch(e){} };
+  const announce = () => { if(announced || !inRoom()) return; announced = true; note("\u2601\ufe0f Cloud sync is on" + (caught ? " \u2014 caught up on " + caught + " message" + (caught === 1 ? "" : "s") + "." : ".")); };
+  const fail = why => { if(warned) return; warned = true; setTimeout(() => note("\u26a0\ufe0f Cloud sync can't reach the mailbox (" + why + "). Live chat still works."), 1500); };
   let sent = jget(K_SENT, {}), since = +jget(K_SINCE, 0) || 0, ready = false, busy = false, pushing = false, pushT = 0;
 
   /* --- encryption (AES-GCM, key derived from the room code) --- */
@@ -12523,10 +12569,10 @@ body.in-home #home{display:flex}
 
   /* --- download what I missed --- */
   async function pull(){
-    if(busy || !inRoom()) return; busy = true;
+    if(busy) return; busy = true;
     try {
       const r = await fetch(base + "/m.json?orderBy=%22up%22&startAt=" + Math.max(0, since - 5000), { cache: "no-store" });
-      if(!r.ok){ console.warn("Mailbox read failed:", r.status); return; }
+      if(!r.ok){ console.warn("Mailbox read failed:", r.status); fail("read error " + r.status); return; }
       const obj = (await r.json()) || {}, items = []; let maxUp = since;
       for(const w of Object.values(obj)){
         if(!w || typeof w.d !== "string") continue;
@@ -12539,20 +12585,20 @@ body.in-home #home{display:flex}
         const cur = logs.find(l => l.i === o.i);
         if(cur && sigOf(cur) === sigOf(o)) sent[o.i] = sigOf(cur);       // the mailbox already has this exact version
       });
-      since = maxUp; jset(K_SINCE, since); jset(K_SENT, sent); ready = true;
+      since = maxUp; jset(K_SINCE, since); jset(K_SENT, sent); ready = true; caught += changed.length;
       if(changed.length){
         logs.sort((a, b) => (a.ts || 0) - (b.ts || 0)); persist();
         if(changed.length > 4 && typeof rerender === "function") rerender(); else changed.forEach(applyToDom);
         if(typeof dmChanged === "function") dmChanged(changed);
       }
-      schedulePush();
-    } catch(e){ console.warn("Mailbox read error", e); }
+      announce(); schedulePush();
+    } catch(e){ console.warn("Mailbox read error", e); fail("network"); }
     finally { busy = false; }
   }
 
   /* --- upload what's new or changed on my side --- */
   async function push(){
-    if(pushing || !ready) return; pushing = true;
+    if(pushing || !ready || (typeof isHost !== "undefined" && !isHost)) return; pushing = true;
     try {
       const batch = {}, pend = {}; let n = 0, more = false;
       for(const l of logs){
@@ -12565,7 +12611,7 @@ body.in-home #home{display:flex}
       if(!n){ jset(K_SENT, sent); return; }
       const r = await fetch(base + "/m.json", { method: "PATCH", body: JSON.stringify(batch) });
       if(r.ok){ Object.assign(sent, pend); jset(K_SENT, sent); if(more) schedulePush(); }
-      else console.warn("Mailbox write failed:", r.status);
+      else { console.warn("Mailbox write failed:", r.status); fail("write error " + r.status); }
     } catch(e){ console.warn("Mailbox write error", e); }
     finally { pushing = false; }
   }
@@ -12578,7 +12624,53 @@ body.in-home #home{display:flex}
   setInterval(() => { if(!document.hidden) pull(); }, 15000);
   document.addEventListener("visibilitychange", () => { if(!document.hidden) pull(); });
   window.addEventListener("online", pull);
-  setTimeout(pull, 2000);
+  setTimeout(pull, 400);
+  setInterval(() => { if(!document.hidden){ announce(); push(); } }, 5000);
+
+  /* ---- Games tab: one community list for everyone (add / edit / delete sync, online or offline) ---- */
+  const K_GS = "pb_mb_gsent", K_GSINCE = "pb_mb_gsince";
+  let gsent = jget(K_GS, {}), gsince = +jget(K_GSINCE, 0) || 0, gbusy = false, gready = false, gpushing = false, gT = 0;
+  const gsig = o => (o.del ? "d" : "") + o.v;
+  async function gpull(){
+    if(gbusy || !window.__gm) return; gbusy = true;
+    try {
+      const r = await fetch(base + "/g.json?orderBy=%22up%22&startAt=" + Math.max(0, gsince - 5000), { cache: "no-store" });
+      if(!r.ok){ console.warn("Mailbox games read failed:", r.status); return; }
+      const obj = (await r.json()) || {}, items = []; let maxUp = gsince;
+      for(const w of Object.values(obj)){
+        if(!w || typeof w.d !== "string") continue;
+        if(+w.up > maxUp) maxUp = +w.up;
+        try { const o = await dec(w.d); if(o && typeof o.id === "string") items.push(o); } catch(e){}
+      }
+      window.__gm.apply(items);
+      items.forEach(o => { gsent[o.id] = gsig(o); });
+      gsince = maxUp; jset(K_GSINCE, gsince); jset(K_GS, gsent); gready = true;
+      gSchedule();
+    } catch(e){ console.warn("Mailbox games read error", e); }
+    finally { gbusy = false; }
+  }
+  async function gpush(){
+    if(gpushing || !gready || !window.__gm) return; gpushing = true;
+    try {
+      const batch = {}, pend = {}; let n = 0;
+      for(const o of window.__gm.out()){
+        if(gsent[o.id] === gsig(o)) continue;
+        if(n >= 15) break;
+        batch[keyOf(o.id)] = { up: { ".sv": "timestamp" }, d: await enc(o) }; pend[o.id] = gsig(o); n++;
+      }
+      if(!n) return;
+      const r = await fetch(base + "/g.json", { method: "PATCH", body: JSON.stringify(batch) });
+      if(r.ok){ Object.assign(gsent, pend); jset(K_GS, gsent); gSchedule(); }
+      else console.warn("Mailbox games write failed:", r.status);
+    } catch(e){ console.warn("Mailbox games write error", e); }
+    finally { gpushing = false; }
+  }
+  function gSchedule(){ clearTimeout(gT); gT = setTimeout(gpush, 800); }
+  window.__gmChanged = gSchedule;
+  window.__gmPull = gpull;
+  setInterval(() => { if(!document.hidden) gpull(); }, 8000);
+  document.addEventListener("visibilitychange", () => { if(!document.hidden) gpull(); });
+  setTimeout(gpull, 700);
   window.__mbPull = pull;
 })();
 </script>
