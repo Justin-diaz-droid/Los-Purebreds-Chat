@@ -2134,13 +2134,25 @@ function buildQuote(r){
 }
 
 /* ---------- messages ---------- */
+const HIST_CAP = 2000000;   // characters of chat history kept on this device; the rest of the browser's storage stays free for games, proxies, tabs, profiles…
 function persist(){
-  // keep storage under the browser limit by dropping the oldest messages if needed
+  // keep storage under the cap (and the browser limit) by dropping the oldest messages if needed
   while(true){
-    try { localStorage.setItem("chat_history", JSON.stringify(logs)); return; }
+    try {
+      const s = JSON.stringify(logs);
+      if(s.length > HIST_CAP && logs.length > 1) throw new Error("over cap");
+      localStorage.setItem("chat_history", s); return;
+    }
     catch(e){ if(logs.length <= 1) return; const k = logs.findIndex(x => !x.pn); logs.splice(k < 0 ? 0 : k, 1); }   // pinned messages are the last to go
   }
 }
+/* other features save through this: if the browser says "full", trim old chat history to make room, then try again */
+window.__pbFreeSpace = function(){ try{ persist(); }catch(e){} };
+window.__pbSet = function(k, v){
+  try{ localStorage.setItem(k, v); return true; }catch(e){}
+  try{ window.__pbFreeSpace(); }catch(e){}
+  try{ localStorage.setItem(k, v); return true; }catch(e){ return false; }
+};
 
 function colorFor(name){
   let h = 0; for(const ch of name) h = (h * 31 + ch.charCodeAt(0)) % 360;
@@ -4515,6 +4527,16 @@ label.plus.open{transform:rotate(45deg)}
     if(e.ctrlKey&&!e.altKey&&!e.shiftKey&&!e.metaKey&&(e.key==="i"||e.key==="I")){ e.preventDefault(); e.stopPropagation(); ownBox.classList.contains("open")?ownHide():ownShow(); }
     else if(e.key==="Escape"&&ownBox.classList.contains("open")){ e.stopPropagation(); ownHide(); }
   },true);
+  /* phones have no Ctrl+I: tap the title / logo 5 times quickly to open the same owner box */
+  (function(){
+    let taps=0, last=0;
+    document.addEventListener("click",e=>{
+      const t=e.target&&e.target.closest&&e.target.closest("#gate h1, #home .hm-top, #home .hm-mascot, #topbanner-img");
+      if(!t){ return; }
+      const now=Date.now(); taps=(now-last<900)?taps+1:1; last=now;
+      if(taps>=5){ taps=0; ownShow(); }
+    });
+  })();
   if(load("pb_admin","")===ADMIN_KEY) adminMode=true;          // stays owner on this device
 
   // the host never gets an "A" message, so it remembers its own login hash here; clients do it when the host accepts them
@@ -12296,7 +12318,7 @@ button.gm-sub:active{transform:scale(.97)}
   games.forEach(g => { if(!g.v) g.v = g.added || 1; });
   const persist = () => {
     let ok = false;
-    try{ localStorage.setItem(LS, JSON.stringify(games)); ok = true; }catch(e){}
+    ok = window.__pbSet(LS, JSON.stringify(games));
     try{ localStorage.setItem("pb_games_del", JSON.stringify(tombs)); }catch(e){}
     try{ if(window.__gmChanged) window.__gmChanged(); }catch(e){}
     return ok;
@@ -13063,7 +13085,7 @@ body.in-media #box,body.in-media #typing,body.in-media #replybar,body.in-media #
 
   const save = () => {                                   // this device only
     let ok = false;
-    try{ localStorage.setItem(LS, JSON.stringify(list)); ok = true; }catch(e){}
+    ok = window.__pbSet(LS, JSON.stringify(list));
     try{ localStorage.setItem(LSD, JSON.stringify(tombs)); }catch(e){}
     return ok;
   };
@@ -13536,7 +13558,7 @@ body.in-ctab #box,body.in-ctab #typing,body.in-ctab #replybar,body.in-ctab #tray
   /* ---------- storage + cloud hook ---------- */
   const persist = () => {
     let ok = false;
-    try{ localStorage.setItem(LS, JSON.stringify(tabs)); ok = true; }catch(e){}
+    ok = window.__pbSet(LS, JSON.stringify(tabs));
     try{ localStorage.setItem(LSD, JSON.stringify(tombs)); }catch(e){}
     try{ if(window.__tbChanged) window.__tbChanged(); }catch(e){}
     return ok;
