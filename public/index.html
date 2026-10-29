@@ -4956,10 +4956,10 @@ label.plus.open{transform:rotate(45deg)}
 
   /* =============== 🏷 admin-editable tab names + icons (synced to everyone) =============== */
   (function(){
-    const TD={app:{i:"",n:"Los Purebreds"},main:{i:"💬",n:"Chat"},gal:{i:"🖼️",n:"Image Gallery"},shame:{i:"🚨",n:"Hall of Shame"},draw:{i:"🎨",n:"Draw"},polls:{i:"📊",n:"Polls"},tier:{i:"🏆",n:"Tiers"},games:{i:"🎮",n:"Games"},proxy:{i:"🌐",n:"Proxy"},media:{i:"🎬",n:"Media"},home:{i:"🏠",n:"Home"}};
+    const TD={app:{i:"",n:"Los Purebreds"},main:{i:"💬",n:"Chat"},gal:{i:"🖼️",n:"Image Gallery"},shame:{i:"🚨",n:"Hall of Shame"},draw:{i:"🎨",n:"Draw"},polls:{i:"📊",n:"Polls"},tier:{i:"🏆",n:"Tiers"},games:{i:"🎮",n:"Games"},media:{i:"🎬",n:"Media"},home:{i:"🏠",n:"Home"}};
     /* Any OTHER hard-coded tab button (#chtabs button[data-ch=…]) is picked up automatically below — you never have to list it here.
        (Add a line to TD/LBL only if you want a nicer label than the tab's own name.) */
-    const LBL={app:"App name + logo",main:"Chat tab",gal:"Gallery",shame:"Hall of Shame",draw:"Drawing board",polls:"Polls",tier:"Tier lists",games:"Games",proxy:"Proxy",media:"Media",home:"Home"};
+    const LBL={app:"App name + logo",main:"Chat tab",gal:"Gallery",shame:"Hall of Shame",draw:"Drawing board",polls:"Polls",tier:"Tier lists",games:"Games",media:"Media",home:"Home"};
     const set=(el,t)=>{ if(el&&el.textContent!==t) el.textContent=t; };
     const avImg=(el,im,t)=>{
       if(!el) return;
@@ -7515,7 +7515,7 @@ body.tab-dragging,body.tab-dragging *{user-select:none !important;-webkit-user-s
 <script>
 /* =============== ↕ drag to reorder your tabs (header tabs + sidebar rooms) — saved on this device only =============== */
 (function(){
-  const KEYS=["main","shame","gal","polls","draw","tier","games","proxy","media"], LS="pb_taborder", DEF=["main","shame","gal","polls","draw","tier","games","proxy","media"];
+  const KEYS=["main","shame","gal","polls","draw","tier","games","media"], LS="pb_taborder", DEF=["main","shame","gal","polls","draw","tier","games","media"];
   let order=[];
   try{ const a=JSON.parse(localStorage.getItem(LS)||"[]"); if(Array.isArray(a)) order=a.filter(k=>KEYS.includes(k)); }catch(e){}
   const full=()=>{ const o=order.filter((k,i,a)=>KEYS.includes(k)&&a.indexOf(k)===i); DEF.forEach(k=>{ if(!o.includes(k)) o.push(k); }); return o; };
@@ -12196,9 +12196,10 @@ body.in-games #box,body.in-games #typing,body.in-games #replybar,body.in-games #
 .gm-title{display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:12px;border:1px solid var(--line);background:color-mix(in srgb,var(--accent) 22%,var(--row));color:var(--text);font-size:15px;font-weight:700}
 .gm-title small{font-size:12px;font-weight:600;opacity:.7}
 .gm-bar .gm-title{box-sizing:border-box;width:140px;height:40px;padding:0 14px;justify-content:center;white-space:nowrap;line-height:1}
-button.gm-proxy{font-family:inherit;cursor:pointer;margin:0}
-button.gm-proxy:hover{filter:brightness(1.2)}
-button.gm-proxy:active{transform:scale(.97)}
+button.gm-sub{font-family:inherit;cursor:pointer;margin:0;background:var(--row)}
+button.gm-sub.on{background:color-mix(in srgb,var(--accent) 22%,var(--row));border-color:var(--accent)}
+button.gm-sub:hover{filter:brightness(1.2)}
+button.gm-sub:active{transform:scale(.97)}
 .gm-spacer{flex:1}
 .gm-search{flex:0 1 320px;min-width:150px;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:var(--input,var(--row));color:var(--text);font-size:14px;outline:none}
 .gm-search:focus{border-color:var(--accent)}
@@ -12322,7 +12323,7 @@ button.gm-proxy:active{transform:scale(.97)}
   const view = document.createElement("div"); view.id = "games";
   view.innerHTML =
     '<div class="gm-bar">' +
-      '<div class="gm-title">🎮 Games <small id="gm-count"></small></div><button type="button" class="gm-title gm-proxy" id="gm-proxy" title="Open the proxy">🕹️ Proxy</button><span class="gm-spacer"></span>' +
+      '<button type="button" class="gm-title gm-sub on" data-sub="games" title="Games">🎮 Games <small id="gm-count"></small></button><button type="button" class="gm-title gm-sub" data-sub="proxy" title="Proxy links">🌐 Proxy</button><span class="gm-spacer"></span>' +
       '<input class="gm-search" id="gm-q" type="search" placeholder="Search games" autocomplete="off" aria-label="Search games">' +
       '<div class="gm-chips" id="gm-chips">' +
         '<button type="button" class="gm-chip" data-m="default">Default</button>' +
@@ -12596,15 +12597,12 @@ body.in-home #home{display:flex}
 #hdr-staff .stg-btn{padding:5px 12px;border-radius:999px;background:var(--row);color:var(--bar-text,var(--text));font-size:12px;font-weight:700;white-space:nowrap}</style>
 <script id="gm-proxy-js">
 (function(){
-  /* The 🕹️ Proxy button in the Games bar now opens the Proxy tab. An old single link set here (or saved earlier with Shift+click) becomes the first card there. */
+  /* Proxy is now a sub-tab inside Games (wired up in the proxy script below). An old single link set here (or saved earlier with Shift+click) becomes the first card there. */
   const PROXY_URL = "";
-  const LS = "pb_proxy_url", b = document.getElementById("gm-proxy");
+  const LS = "pb_proxy_url";
   const norm = s => { s = String(s || "").trim(); if(!s) return ""; if(!/^[a-z][a-z0-9+.-]*:/i.test(s)) s = "https://" + s; try{ const u = new URL(s); return (u.protocol === "https:" || u.protocol === "http:") ? u.href : ""; }catch(e){ return ""; } };
   const saved = () => { try{ return norm(localStorage.getItem(LS)); }catch(e){ return ""; } };
   window.__pxLegacy = norm(PROXY_URL) || saved();
-  if(!b) return;
-  b.title = "Open the Proxy tab";
-  b.addEventListener("click", () => setChannel("proxy"));
 })();
 </script>
 <style id="media-css">
@@ -13037,11 +13035,10 @@ body.in-media #box,body.in-media #typing,body.in-media #replybar,body.in-media #
 </script>
 
 <style id="proxy-css">
-/* ===== Proxy tab (same look as Games) ===== */
-body.in-proxy #topbanner{display:none}
-#proxyview{display:none;flex:1;min-height:0;flex-direction:column;background:var(--bg);color:var(--text)}
-body.in-proxy #proxyview{display:flex}
-body.in-proxy #box,body.in-proxy #typing,body.in-proxy #replybar,body.in-proxy #tray,body.in-proxy #attach{display:none !important}
+/* ===== Proxy sub-tab (inside the Games tab, same look as Games) ===== */
+#games #proxyview{display:none;flex:1;min-height:0;flex-direction:column;color:var(--text)}
+#games.sub-proxy #proxyview{display:flex}
+#games.sub-proxy > .gm-bar,#games.sub-proxy > .gm-scroll{display:none}
 #px-modal{position:fixed;inset:0;z-index:3000;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.6)}
 #px-modal.on{display:flex}
 #px-err{min-height:16px;font-size:13px;color:#ff6b61}
@@ -13085,18 +13082,11 @@ body.in-proxy #box,body.in-proxy #typing,body.in-proxy #replybar,body.in-proxy #
   /* a link that was set up with the old single "Proxy" button becomes the first card */
   try{ const lg = window.__pxLegacy; if(lg && !list.length && !tombs.p_legacy){ list.push({ id: "p_legacy", name: "Proxy", url: lg, icon: "", fav: 0, last: 0, added: 1, v: 1 }); save(); } }catch(e){}
 
-  /* ---------------- tab, sidebar row, page ---------------- */
-  const row = document.createElement("div"); row.className = "row-ch"; row.id = "ch-proxy";
-  row.innerHTML = '<div class="av-sb" style="font-size:18px">🌐</div><div><b style="font-size:15px">Proxy</b><br><span class="csub">Proxy links</span></div>';
-  const oldRow = $$("ch-proxy"); if(oldRow) oldRow.replaceWith(row); else (($$("ch-media") || $$("ch-games") || $$("ch-polls") || $$("ch-gal")).after(row));
-  row.onclick = () => setChannel("proxy");
-  const tab = document.createElement("button"); tab.type = "button"; tab.dataset.ch = "proxy"; tab.textContent = "🌐 Proxy"; tab.onclick = () => setChannel("proxy");
-  $$("chtabs").appendChild(tab);
-
+  /* ---------------- page (a sub-tab of Games — no separate top tab or sidebar row) ---------------- */
   const view = document.createElement("div"); view.id = "proxyview";
   view.innerHTML =
     '<div class="gm-bar">' +
-      '<div class="gm-title">🌐 Proxy <small id="px-count"></small></div><span class="gm-spacer"></span>' +
+      '<button type="button" class="gm-title gm-sub" data-sub="games" title="Games">🎮 Games</button><button type="button" class="gm-title gm-sub on" data-sub="proxy" title="Proxy links">🌐 Proxy <small id="px-count"></small></button><span class="gm-spacer"></span>' +
       '<input class="gm-search" id="px-q" type="search" placeholder="Search proxies" autocomplete="off" aria-label="Search proxies">' +
       '<div class="gm-chips" id="px-chips">' +
         '<button type="button" class="gm-chip" data-m="default">Default</button>' +
@@ -13106,7 +13096,7 @@ body.in-proxy #box,body.in-proxy #typing,body.in-proxy #replybar,body.in-proxy #
       '</div>' +
     '</div>' +
     '<div class="gm-scroll"><div class="gm-grid" id="px-grid"></div></div>';
-  $$("box").after(view);
+  $$("games").appendChild(view);
   const grid = $$("px-grid");
 
   function visible(){
@@ -13256,13 +13246,20 @@ body.in-proxy #box,body.in-proxy #typing,body.in-proxy #replybar,body.in-proxy #
     else if(e.key === "Enter" && e.target.tagName === "INPUT" && e.target.type === "text"){ e.preventDefault(); saveLink(); }
   });
 
-  /* ---------------- hook into the tab switcher ---------------- */
+  /* ---------------- sub-tab switch (Games | Proxy) ---------------- */
+  const gv = $$("games");
+  let sub = "games";
+  function setSub(x){
+    sub = x === "proxy" ? "proxy" : "games";
+    gv.classList.toggle("sub-proxy", sub === "proxy");
+    if(sub === "proxy"){ render(); try{ if(window.__gmPull) window.__gmPull(); }catch(e){} }
+  }
+  gv.addEventListener("click", e => { const b = e.target.closest(".gm-sub"); if(b) setSub(b.dataset.sub); });
   const _sc = setChannel;
   setChannel = function(c){
+    if(c === "proxy"){ c = "games"; setSub("proxy"); }     // anything that still asks for the old Proxy tab lands on the Proxy sub-tab
     _sc(c);
-    document.body.classList.toggle("in-proxy", c === "proxy");
-    const r = $$("ch-proxy"); if(r) r.classList.toggle("active", c === "proxy");
-    if(c === "proxy"){ render(); try{ if(window.__gmPull) window.__gmPull(); }catch(e){} }
+    if(c === "games" && sub === "proxy") render();
   };
 
   /* ---------------- sync: the links ride on the same cloud list as Games (records tagged k:"p"), so everybody gets them ---------------- */
