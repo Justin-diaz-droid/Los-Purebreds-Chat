@@ -3872,7 +3872,7 @@ label.plus.open{transform:rotate(45deg)}
     o.mto=!!r.mto; o.mao=!!r.mao;
     if(r.tn&&typeof r.tn==="object"){
       let tot=0;
-      ["app","main","gal","shame","draw","polls","tier"].forEach(k=>{
+      Object.keys(r.tn).filter(k=>k==="app"||/^[a-z][a-z0-9_]{0,15}$/.test(k)).slice(0,60).forEach(k=>{      // any tab key is fine: new hard-coded tabs show up in Tab names & icons by themselves
         const x=r.tn[k];
         if(x&&typeof x==="object"){
           const n=String(x.n||"").trim().slice(0,24), i=String(x.i||"").trim().slice(0,8);
@@ -4956,17 +4956,31 @@ label.plus.open{transform:rotate(45deg)}
 
   /* =============== 🏷 admin-editable tab names + icons (synced to everyone) =============== */
   (function(){
-    const TD={app:{i:"",n:"Los Purebreds"},main:{i:"💬",n:"Chat"},gal:{i:"🖼️",n:"Image Gallery"},shame:{i:"🚨",n:"Hall of Shame"},draw:{i:"🎨",n:"Draw"},polls:{i:"📊",n:"Polls"},tier:{i:"🏆",n:"Tiers"}};
-    const LBL={app:"App name + logo",main:"Chat tab",gal:"Gallery",shame:"Hall of Shame",draw:"Drawing board",polls:"Polls",tier:"Tier lists"};
+    const TD={app:{i:"",n:"Los Purebreds"},main:{i:"💬",n:"Chat"},gal:{i:"🖼️",n:"Image Gallery"},shame:{i:"🚨",n:"Hall of Shame"},draw:{i:"🎨",n:"Draw"},polls:{i:"📊",n:"Polls"},tier:{i:"🏆",n:"Tiers"},games:{i:"🎮",n:"Games"},proxy:{i:"🌐",n:"Proxy"},media:{i:"🎬",n:"Media"},home:{i:"🏠",n:"Home"}};
+    /* Any OTHER hard-coded tab button (#chtabs button[data-ch=…]) is picked up automatically below — you never have to list it here.
+       (Add a line to TD/LBL only if you want a nicer label than the tab's own name.) */
+    const LBL={app:"App name + logo",main:"Chat tab",gal:"Gallery",shame:"Hall of Shame",draw:"Drawing board",polls:"Polls",tier:"Tier lists",games:"Games",proxy:"Proxy",media:"Media",home:"Home"};
     const set=(el,t)=>{ if(el&&el.textContent!==t) el.textContent=t; };
     const avImg=(el,im,t)=>{
       if(!el) return;
       if(im){ if(el.dataset.im!==im){ el.dataset.im=im; el.style.setProperty("background","url("+im+") center/cover no-repeat","important"); } el.classList.add("hasimg"); if(el.textContent) el.textContent=""; }
       else { if(el.dataset.im){ delete el.dataset.im; el.style.removeProperty("background"); } el.classList.remove("hasimg"); if(t!==undefined) set(el,t); }
     };
+    const SKIPTAB=new Set(["app","dm","grp"]);
+    function discover(){                       // find tabs nobody listed yet; remember their current icon + name as the defaults
+      let added=false;
+      document.querySelectorAll('#chtabs button[data-ch]:not([data-ctid])').forEach(b=>{
+        const k=b.dataset.ch;
+        if(!k||SKIPTAB.has(k)||TD[k]||!/^[a-z][a-z0-9_]{0,15}$/.test(k)) return;
+        const t=(b.textContent||"").trim(), m=t.match(/^(\S+)\s+(.+)$/);
+        TD[k]={i:m?m[1]:"",n:(m?m[2]:t||k).slice(0,24)}; LBL[k]=TD[k].n; added=true;
+      });
+      return added;
+    }
     window.__pbTabs=function(){
       const tn=reg.tn||{};
-      ["main","gal","shame","draw","polls","tier"].forEach(k=>{
+      if(discover()&&window.__pbTabRows) window.__pbTabRows();
+      Object.keys(TD).filter(k=>k!=="app").forEach(k=>{
         const o=tn[k]||{}, d=TD[k], n=o.n||d.n, i=o.i||d.i, im=o.im||"";
         const b=document.querySelector('#chtabs button[data-ch="'+k+'"]');
         if(b){
@@ -5006,7 +5020,9 @@ label.plus.open{transform:rotate(45deg)}
       im.onerror=()=>{ URL.revokeObjectURL(url); cb(""); };
       im.src=url;
     }
-    Object.keys(TD).forEach(k=>{
+    const rowsBox=document.createElement("div"); host.appendChild(rowsBox);
+    const built=new Set();
+    function mkRow(k){
       const r=document.createElement("div"); r.className="aform"; r.style.marginBottom="6px";
       const l=document.createElement("span"); l.className="none"; l.style.cssText="width:96px;align-self:center"; l.textContent=LBL[k];
       r.appendChild(l); inp[k]={};
@@ -5020,18 +5036,22 @@ label.plus.open{transform:rotate(45deg)}
       xb.onclick=()=>{ imgs[k]=""; showImg(k); };
       fi.onchange=()=>{ const f=fi.files&&fi.files[0]; fi.value=""; if(f) tabImgFrom(f,d=>{ if(d){ imgs[k]=d; showImg(k); } else note("Couldn't use that picture — try a different one."); }); };
       r.append(pv,ib,xb,fi); inp[k].pv=pv; inp[k].xb=xb;
-      host.appendChild(r);
-    });
+      rowsBox.appendChild(r); built.add(k);
+    }
+    function syncRows(){ discover(); Object.keys(TD).forEach(k=>{ if(!built.has(k)) mkRow(k); }); }
+    window.__pbTabRows=syncRows; syncRows();
     const btns=document.createElement("div"); btns.className="aform";
     const sv=document.createElement("button"); sv.type="button"; sv.className="abtn"; sv.textContent="💾 Save for everyone";
     const rs=document.createElement("button"); rs.type="button"; rs.className="abtn red"; rs.textContent="Reset to default";
     btns.append(sv,rs); host.appendChild(btns);
     function fill(){
-      Object.keys(TD).forEach(k=>{ const o=(reg.tn||{})[k]||{}; inp[k].n.value=o.n||TD[k].n; if(inp[k].i) inp[k].i.value=o.i||TD[k].i; imgs[k]=o.im||""; showImg(k); });
+      syncRows();
+      Object.keys(TD).forEach(k=>{ if(!inp[k]) return; const o=(reg.tn||{})[k]||{}; inp[k].n.value=o.n||TD[k].n; if(inp[k].i) inp[k].i.value=o.i||TD[k].i; imgs[k]=o.im||""; showImg(k); });
     }
     sv.onclick=()=>{
       const tn={};
       Object.keys(TD).forEach(k=>{
+        if(!inp[k]) return;
         const n=inp[k].n.value.trim(), i=inp[k].i?inp[k].i.value.trim():"";
         const nn=n===TD[k].n?"":n, ii=i===TD[k].i?"":i;
         if(nn||ii||imgs[k]) tn[k]={n:nn,i:ii,im:imgs[k]||""};
@@ -7495,7 +7515,7 @@ body.tab-dragging,body.tab-dragging *{user-select:none !important;-webkit-user-s
 <script>
 /* =============== ↕ drag to reorder your tabs (header tabs + sidebar rooms) — saved on this device only =============== */
 (function(){
-  const KEYS=["main","shame","gal","polls","draw","tier","games","media"], LS="pb_taborder", DEF=["main","shame","gal","polls","draw","tier","games","media"];
+  const KEYS=["main","shame","gal","polls","draw","tier","games","proxy","media"], LS="pb_taborder", DEF=["main","shame","gal","polls","draw","tier","games","proxy","media"];
   let order=[];
   try{ const a=JSON.parse(localStorage.getItem(LS)||"[]"); if(Array.isArray(a)) order=a.filter(k=>KEYS.includes(k)); }catch(e){}
   const full=()=>{ const o=order.filter((k,i,a)=>KEYS.includes(k)&&a.indexOf(k)===i); DEF.forEach(k=>{ if(!o.includes(k)) o.push(k); }); return o; };
@@ -12576,22 +12596,15 @@ body.in-home #home{display:flex}
 #hdr-staff .stg-btn{padding:5px 12px;border-radius:999px;background:var(--row);color:var(--bar-text,var(--text));font-size:12px;font-weight:700;white-space:nowrap}</style>
 <script id="gm-proxy-js">
 (function(){
-  /* Put your proxy link between the quotes so it works for everybody, e.g. "https://my-proxy.example.com/" */
+  /* The 🕹️ Proxy button in the Games bar now opens the Proxy tab. An old single link set here (or saved earlier with Shift+click) becomes the first card there. */
   const PROXY_URL = "";
-  const LS = "pb_proxy_url", b = document.getElementById("gm-proxy"); if(!b) return;
+  const LS = "pb_proxy_url", b = document.getElementById("gm-proxy");
   const norm = s => { s = String(s || "").trim(); if(!s) return ""; if(!/^[a-z][a-z0-9+.-]*:/i.test(s)) s = "https://" + s; try{ const u = new URL(s); return (u.protocol === "https:" || u.protocol === "http:") ? u.href : ""; }catch(e){ return ""; } };
-  const isMod = () => { try{ return !!(window.__pbIsMod && window.__pbIsMod()); }catch(e){ return false; } };
   const saved = () => { try{ return norm(localStorage.getItem(LS)); }catch(e){ return ""; } };
-  function setLink(){
-    const v = norm(prompt("Paste the proxy link (saved on this device):", saved() || "https://"));
-    if(v){ try{ localStorage.setItem(LS, v); }catch(e){} } return v;
-  }
-  b.addEventListener("click", e => {
-    let u = norm(PROXY_URL) || saved();
-    if(e.shiftKey && isMod() && !norm(PROXY_URL)) u = setLink() || u;      // mods: Shift+click changes the link
-    if(!u){ if(isMod()) u = setLink(); else { alert("No proxy link has been set up yet."); return; } }
-    if(u) window.open(u, "_blank", "noopener,noreferrer");
-  });
+  window.__pxLegacy = norm(PROXY_URL) || saved();
+  if(!b) return;
+  b.title = "Open the Proxy tab";
+  b.addEventListener("click", () => setChannel("proxy"));
 })();
 </script>
 <style id="media-css">
@@ -13023,6 +13036,286 @@ body.in-media #box,body.in-media #typing,body.in-media #replybar,body.in-media #
 })();
 </script>
 
+<style id="proxy-css">
+/* ===== Proxy tab (same look as Games) ===== */
+body.in-proxy #topbanner{display:none}
+#proxyview{display:none;flex:1;min-height:0;flex-direction:column;background:var(--bg);color:var(--text)}
+body.in-proxy #proxyview{display:flex}
+body.in-proxy #box,body.in-proxy #typing,body.in-proxy #replybar,body.in-proxy #tray,body.in-proxy #attach{display:none !important}
+#px-modal{position:fixed;inset:0;z-index:3000;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.6)}
+#px-modal.on{display:flex}
+#px-err{min-height:16px;font-size:13px;color:#ff6b61}
+</style>
+<script id="proxy-js">
+(function(){
+  const $$ = id => document.getElementById(id);
+  /* true  = only mods/owners can add, edit or delete proxy links (everybody can still open them)
+     false = anybody can add links, exactly like the Games tab */
+  const MODS_ONLY = true;
+  const LS = "pb_proxies", LSM = "pb_proxies_mode", LSD = "pb_proxies_del", MAX = 200;
+  const isMod = () => { try{ return !!(window.__pbIsMod && window.__pbIsMod()); }catch(e){ return false; } };
+  const canEdit = () => !MODS_ONLY || isMod();
+
+  /* ---------------- data ---------------- */
+  let list = [];
+  try{ const a = JSON.parse(localStorage.getItem(LS) || "[]"); if(Array.isArray(a)) list = a.filter(g => g && typeof g.id === "string" && typeof g.name === "string" && typeof g.url === "string").slice(0, MAX); }catch(e){}
+  let mode = "default"; try{ const m = localStorage.getItem(LSM); if(["default","az","fav","recent"].includes(m)) mode = m; }catch(e){}
+  let tombs = {}; try{ const t = JSON.parse(localStorage.getItem(LSD) || "{}"); if(t && typeof t === "object") tombs = t; }catch(e){}
+  let q = "", editId = null, draftIcon = "";
+  list.forEach(g => { if(!g.v) g.v = g.added || 1; });
+
+  const save = () => {                                   // this device only
+    let ok = false;
+    try{ localStorage.setItem(LS, JSON.stringify(list)); ok = true; }catch(e){}
+    try{ localStorage.setItem(LSD, JSON.stringify(tombs)); }catch(e){}
+    return ok;
+  };
+  const persist = () => { const ok = save(); try{ if(window.__gmChanged) window.__gmChanged(); }catch(e){} return ok; };   // + tell everyone
+  const newId = () => "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const cleanName = s => String(s || "").replace(/[\u0000-\u001f\u007f<>]/g, "").replace(/\s+/g, " ").trim().slice(0, 40);
+  const cleanUrl = s => {
+    s = String(s || "").trim(); if(!s) return "";
+    if(!/^[a-z][a-z0-9+.-]*:/i.test(s)) s = "https://" + s;
+    try{ const u = new URL(s); return (u.protocol === "https:" || u.protocol === "http:") ? u.href : ""; }catch(e){ return ""; }
+  };
+  const okIcon = s => typeof s === "string" && /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(s) && s.length < 400000;
+  const siteIcon = url => "https://www.google.com/s2/favicons?sz=128&domain_url=" + encodeURIComponent(url);
+  const tileColor = n => { try{ if(typeof colorFor === "function") return colorFor(n); }catch(e){} return "#6d5bd0"; };
+
+  /* a link that was set up with the old single "Proxy" button becomes the first card */
+  try{ const lg = window.__pxLegacy; if(lg && !list.length && !tombs.p_legacy){ list.push({ id: "p_legacy", name: "Proxy", url: lg, icon: "", fav: 0, last: 0, added: 1, v: 1 }); save(); } }catch(e){}
+
+  /* ---------------- tab, sidebar row, page ---------------- */
+  const row = document.createElement("div"); row.className = "row-ch"; row.id = "ch-proxy";
+  row.innerHTML = '<div class="av-sb" style="font-size:18px">🌐</div><div><b style="font-size:15px">Proxy</b><br><span class="csub">Proxy links</span></div>';
+  const oldRow = $$("ch-proxy"); if(oldRow) oldRow.replaceWith(row); else (($$("ch-media") || $$("ch-games") || $$("ch-polls") || $$("ch-gal")).after(row));
+  row.onclick = () => setChannel("proxy");
+  const tab = document.createElement("button"); tab.type = "button"; tab.dataset.ch = "proxy"; tab.textContent = "🌐 Proxy"; tab.onclick = () => setChannel("proxy");
+  $$("chtabs").appendChild(tab);
+
+  const view = document.createElement("div"); view.id = "proxyview";
+  view.innerHTML =
+    '<div class="gm-bar">' +
+      '<div class="gm-title">🌐 Proxy <small id="px-count"></small></div><span class="gm-spacer"></span>' +
+      '<input class="gm-search" id="px-q" type="search" placeholder="Search proxies" autocomplete="off" aria-label="Search proxies">' +
+      '<div class="gm-chips" id="px-chips">' +
+        '<button type="button" class="gm-chip" data-m="default">Default</button>' +
+        '<button type="button" class="gm-chip" data-m="az">A–Z</button>' +
+        '<button type="button" class="gm-chip" data-m="fav">★ Favorites</button>' +
+        '<button type="button" class="gm-chip" data-m="recent">Recent</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="gm-scroll"><div class="gm-grid" id="px-grid"></div></div>';
+  $$("box").after(view);
+  const grid = $$("px-grid");
+
+  function visible(){
+    let l = list.slice(); const s = q.trim().toLowerCase();
+    if(s) l = l.filter(g => g.name.toLowerCase().includes(s));
+    if(mode === "fav") l = l.filter(g => g.fav);
+    if(mode === "az") l.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+    else if(mode === "recent") l = l.filter(g => g.last).sort((a, b) => b.last - a.last);
+    return l;
+  }
+  function iconNode(g, big){
+    const box = document.createElement("div"); box.className = big ? "gm-prev" : "gm-ic";
+    const name = g.name || "?", url = g.url || "";
+    const letter = () => { box.replaceChildren(); box.style.background = tileColor(name); box.textContent = (name.trim()[0] || "?").toUpperCase(); };
+    if(okIcon(g.icon)){ const im = new Image(); im.alt = ""; im.src = g.icon; box.appendChild(im); }
+    else if(url){
+      const im = new Image(); im.alt = ""; im.className = "site"; im.referrerPolicy = "no-referrer"; im.src = siteIcon(url);
+      im.onerror = letter; box.appendChild(im);
+    } else letter();
+    return box;
+  }
+  function openProxy(g){                                  // click the icon → straight to the website
+    window.open(g.url, "_blank", "noopener,noreferrer");
+    g.last = Date.now(); save();
+    if(mode === "recent") render();
+  }
+  function cardFor(g){
+    const c = document.createElement("div"); c.className = "gm-card"; c.tabIndex = 0; c.setAttribute("role", "link"); c.setAttribute("aria-label", "Open " + g.name);
+    const ic = iconNode(g, false);
+    const star = document.createElement("button"); star.type = "button"; star.className = "gm-star";
+    const paint = () => { star.textContent = g.fav ? "★" : "☆"; star.setAttribute("aria-pressed", g.fav ? "true" : "false"); star.title = g.fav ? "Remove from favorites" : "Add to favorites"; };
+    paint();
+    star.onclick = e => { e.stopPropagation(); g.fav = g.fav ? 0 : 1; save(); if(mode === "fav") render(); else paint(); };
+    if(canEdit()){
+      const ed = document.createElement("button"); ed.type = "button"; ed.className = "gm-edit"; ed.textContent = "✎"; ed.title = "Edit or delete this link"; ed.setAttribute("aria-label", "Edit " + g.name);
+      ed.onclick = e => { e.stopPropagation(); openModal(g); };
+      ic.append(ed);
+    }
+    ic.append(star);
+    const nm = document.createElement("div"); nm.className = "gm-nm"; nm.textContent = g.name;
+    c.append(ic, nm);
+    c.onclick = () => openProxy(g);
+    c.onkeydown = e => { if(e.target === c && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); openProxy(g); } };
+    return c;
+  }
+  function addTile(){
+    const c = document.createElement("div"); c.className = "gm-card gm-add"; c.tabIndex = 0; c.setAttribute("role", "button"); c.setAttribute("aria-label", "Add a proxy link");
+    const ic = document.createElement("div"); ic.className = "gm-ic"; ic.textContent = "+";
+    const nm = document.createElement("div"); nm.className = "gm-nm"; nm.textContent = "Click the + to add proxy links";
+    c.append(ic, nm);
+    c.onclick = () => openModal(null);
+    c.onkeydown = e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); openModal(null); } };
+    return c;
+  }
+  function render(){
+    const l = visible(), ed = canEdit();
+    $$("px-count").textContent = list.length ? "· " + list.length : "";
+    document.querySelectorAll("#px-chips .gm-chip").forEach(b => b.classList.toggle("on", b.dataset.m === mode));
+    const kids = (ed ? [addTile()] : []).concat(l.map(cardFor));
+    if(!l.length){
+      const t = q.trim() ? "No proxies match your search." : mode === "fav" ? "No favorites yet. Tap the ☆ on a proxy." : mode === "recent" ? "Nothing opened yet." : (!list.length && !ed) ? "No proxy links have been added yet." : "";
+      if(t){ const n = document.createElement("div"); n.className = "gm-none"; n.textContent = t; kids.push(n); }
+    }
+    grid.replaceChildren.apply(grid, kids);
+  }
+  $$("px-q").addEventListener("input", e => { q = e.target.value; render(); });
+  $$("px-chips").addEventListener("click", e => {
+    const b = e.target.closest(".gm-chip"); if(!b) return;
+    mode = b.dataset.m; try{ localStorage.setItem(LSM, mode); }catch(err){} render();
+  });
+
+  /* ---------------- add / edit window ---------------- */
+  const modal = document.createElement("div"); modal.id = "px-modal";
+  modal.innerHTML =
+    '<div class="gm-box" role="dialog" aria-modal="true" aria-labelledby="px-mt"><h3 id="px-mt">Add a proxy link</h3>' +
+      '<label>Name<input id="px-name" type="text" maxlength="40" autocomplete="off" placeholder="e.g. Proxy 1"></label>' +
+      '<label>Proxy link<input id="px-url" type="text" inputmode="url" maxlength="600" autocomplete="off" spellcheck="false" placeholder="https://…"></label>' +
+      '<div class="gm-icrow"><div id="px-prevwrap"></div><div class="gm-icbtns"><button type="button" id="px-pick" class="gm-b alt">Choose icon</button><button type="button" id="px-rm" class="gm-b alt">Use the site’s icon</button></div><input id="px-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden></div>' +
+      '<div id="px-err" role="alert"></div>' +
+      '<div class="gm-foot"><button type="button" id="px-del" class="gm-b red">Delete</button><span class="gm-spacer"></span><button type="button" id="px-cancel" class="gm-b alt">Cancel</button><button type="button" id="px-save" class="gm-b pri">Save</button></div>' +
+    '</div>';
+  document.body.appendChild(modal);
+  const err = t => { $$("px-err").textContent = t || ""; };
+  function paintPrev(){
+    const url = cleanUrl($$("px-url").value), name = cleanName($$("px-name").value) || "?";
+    $$("px-prevwrap").replaceChildren(iconNode({ name, url, icon: draftIcon }, true));
+    $$("px-rm").style.display = draftIcon ? "" : "none";
+  }
+  let delArmed = 0;
+  function openModal(g){
+    if(!canEdit()) return;
+    editId = g ? g.id : null; draftIcon = g && okIcon(g.icon) ? g.icon : ""; delArmed = 0;
+    $$("px-mt").textContent = g ? "Edit proxy link" : "Add a proxy link";
+    $$("px-name").value = g ? g.name : ""; $$("px-url").value = g ? g.url : "";
+    $$("px-del").style.display = g ? "" : "none"; $$("px-del").textContent = "Delete";
+    err(""); paintPrev(); modal.classList.add("on");
+    setTimeout(() => $$("px-name").focus(), 30);
+  }
+  const closeModal = () => modal.classList.remove("on");
+  $$("px-name").addEventListener("input", paintPrev);
+  $$("px-url").addEventListener("input", paintPrev);
+  $$("px-pick").onclick = () => $$("px-file").click();
+  $$("px-rm").onclick = () => { draftIcon = ""; paintPrev(); };
+  $$("px-file").addEventListener("change", e => {
+    const f = e.target.files && e.target.files[0]; e.target.value = ""; if(!f) return;
+    if(!/^image\/(png|jpe?g|webp|gif)$/i.test(f.type)){ err("Pick a PNG, JPG, WEBP or GIF picture."); return; }
+    const fr = new FileReader();
+    fr.onerror = () => err("Couldn’t read that picture.");
+    fr.onload = () => {
+      const im = new Image();
+      im.onerror = () => err("Couldn’t read that picture.");
+      im.onload = () => {
+        const S = 256, c = document.createElement("canvas"); c.width = c.height = S;
+        const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, S, S);
+        const r = Math.max(S / im.width, S / im.height), w = im.width * r, h = im.height * r;
+        x.drawImage(im, (S - w) / 2, (S - h) / 2, w, h);
+        try{ draftIcon = c.toDataURL("image/jpeg", .85); err(""); paintPrev(); }catch(ex){ err("Couldn’t use that picture."); }
+      };
+      im.src = fr.result;
+    };
+    fr.readAsDataURL(f);
+  });
+  $$("px-cancel").onclick = closeModal;
+  modal.addEventListener("mousedown", e => { if(e.target === modal) closeModal(); });
+  $$("px-del").onclick = () => {
+    if(!canEdit()) return;
+    if(!delArmed){ delArmed = 1; $$("px-del").textContent = "Really delete?"; return; }
+    tombs[editId] = Date.now(); list = list.filter(g => g.id !== editId); persist(); closeModal(); render();
+  };
+  function saveLink(){
+    if(!canEdit()) return;
+    const name = cleanName($$("px-name").value), url = cleanUrl($$("px-url").value);
+    if(!name){ err("Give the link a name."); $$("px-name").focus(); return; }
+    if(!url){ err("Paste a working link (it has to start with https://)."); $$("px-url").focus(); return; }
+    const old = editId && list.find(g => g.id === editId);
+    if(old){ old.name = name; old.url = url; old.icon = draftIcon; old.v = Date.now(); delete tombs[old.id]; }
+    else {
+      if(list.length >= MAX){ err("You can keep up to " + MAX + " proxy links."); return; }
+      list.push({ id: newId(), name, url, icon: draftIcon, fav: 0, last: 0, added: Date.now(), v: Date.now() });
+    }
+    if(!persist()){ err("This device is out of storage space. Remove a link or use a smaller icon."); if(!old) list.pop(); return; }
+    closeModal(); render();
+  }
+  $$("px-save").onclick = saveLink;
+  modal.addEventListener("keydown", e => {
+    if(e.key === "Escape"){ e.stopPropagation(); closeModal(); }
+    else if(e.key === "Enter" && e.target.tagName === "INPUT" && e.target.type === "text"){ e.preventDefault(); saveLink(); }
+  });
+
+  /* ---------------- hook into the tab switcher ---------------- */
+  const _sc = setChannel;
+  setChannel = function(c){
+    _sc(c);
+    document.body.classList.toggle("in-proxy", c === "proxy");
+    const r = $$("ch-proxy"); if(r) r.classList.toggle("active", c === "proxy");
+    if(c === "proxy"){ render(); try{ if(window.__gmPull) window.__gmPull(); }catch(e){} }
+  };
+
+  /* ---------------- sync: the links ride on the same cloud list as Games (records tagged k:"p"), so everybody gets them ---------------- */
+  const px = {
+    out(){
+      const o = [], have = new Set();
+      list.forEach(g => { have.add(g.id); o.push({ k: "p", id: g.id, name: g.name, url: g.url, icon: g.icon || "", added: g.added || 0, v: g.v || g.added || 1 }); });
+      Object.keys(tombs).forEach(id => { if(!have.has(id)) o.push({ k: "p", id, del: 1, v: tombs[id] }); });
+      return o;
+    },
+    apply(items){
+      let ch = false;
+      items.forEach(r => {
+        if(!r || typeof r.id !== "string" || !r.id || r.id.length > 40) return;
+        const v = +r.v || 0; if(v <= 0) return;
+        const i = list.findIndex(g => g.id === r.id), loc = list[i];
+        if(r.del){
+          if(loc && (loc.v || 0) > v) return;
+          if(loc){ list.splice(i, 1); ch = true; }
+          if((tombs[r.id] || 0) < v){ tombs[r.id] = v; ch = true; }
+          return;
+        }
+        if((tombs[r.id] || 0) >= v) return;
+        const name = cleanName(r.name), url = cleanUrl(r.url); if(!name || !url) return;
+        const icon = okIcon(r.icon) ? r.icon : "";
+        if(!loc){
+          if(list.length >= MAX) return;
+          list.push({ id: r.id, name, url, icon, fav: 0, last: 0, added: +r.added || Date.now(), v }); delete tombs[r.id]; ch = true;
+        } else if(v > (loc.v || 0)){
+          loc.name = name; loc.url = url; loc.icon = icon; loc.added = +r.added || loc.added; loc.v = v; delete tombs[r.id]; ch = true;
+        }
+      });
+      if(ch){ save(); render(); }
+      return ch;
+    }
+  };
+  window.__px = px;
+  const gm = window.__gm;
+  if(gm && !gm.__px){
+    const _out = gm.out, _apply = gm.apply;
+    gm.out = function(){ return _out.apply(gm, arguments).concat(px.out()); };
+    gm.apply = function(items){
+      const mine = [], rest = [];
+      (items || []).forEach(r => (r && r.k === "p" ? mine : rest).push(r));
+      const a = _apply.call(gm, rest), b = px.apply(mine);
+      return a || b;
+    };
+    gm.__px = 1;
+  }
+  render();
+})();
+</script>
+
 <style id="mobile-theme-fix">
 /* ===== phones: lighter blur (smoother scrolling), no double-tap delay, no zoom-on-focus ===== */
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
@@ -13069,7 +13362,7 @@ button,.row-ch,.gm-card,.hm-it,#chtabs button{touch-action:manipulation}
     return base;
   }
 
-  const SEL = ["#hdr #status", "#chtabs button", "#sb .row-ch b", "#sb .prow", "#inp", "#box .bubble", "#home .hm-it", "#home .hm-banner", "#gate .card", "#gate label", "#ctview .ct-title", "#games .gm-title", ".stg-btn"];
+  const SEL = ["#hdr #status", "#chtabs button", "#sb .row-ch b", "#sb .prow", "#inp", "#box .bubble", "#home .hm-it", "#home .hm-banner", "#gate .card", "#gate label", "#ctview .ct-title", "#games .gm-title", "#proxyview .gm-title", ".stg-btn"];
   let fixed = [];
   function restore(){ fixed.forEach(el => { try{ el.style.removeProperty("color"); }catch(e){} }); fixed = []; }
   function check(){
@@ -13176,7 +13469,7 @@ body.in-ctab #box,body.in-ctab #typing,body.in-ctab #replybar,body.in-ctab #tray
 (function(){
   const $$ = id => document.getElementById(id);
   const LS = "pb_ctabs", LSD = "pb_ctabs_del", MAX = 40, MAXMINE = 3, MAXSUB = 20, MAXALL = 200, MAXHTML = 350000;
-  const BUILTIN = ["main","home","gal","polls","shame","draw","tier","games","dm","grp"];   // built-in tabs: never touched by custom tabs
+  const BUILTIN = ["main","home","gal","polls","shame","draw","tier","games","media","proxy","dm","grp"];   // built-in tabs: never touched by custom tabs
   let tabs = [], tombs = {};
   try{ const a = JSON.parse(localStorage.getItem(LS) || "[]"); if(Array.isArray(a)) tabs = a.filter(t => t && typeof t.id === "string" && typeof t.name === "string").slice(0, MAXALL); }catch(e){}
   try{ const d = JSON.parse(localStorage.getItem(LSD) || "{}"); if(d && typeof d === "object") tombs = d; }catch(e){}
