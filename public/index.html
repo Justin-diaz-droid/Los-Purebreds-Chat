@@ -11447,6 +11447,19 @@ button.gm-sub:active{transform:scale(.97)}
 .gm-prev img.site{object-fit:contain;padding:22%;box-sizing:border-box}
 .gm-icbtns{display:flex;flex-wrap:wrap;gap:8px}
 #gm-err{min-height:16px;font-size:13px;color:#ff6b61}
+.gm-kind{display:flex;gap:6px}
+.gm-kind button{flex:1;border:1px solid var(--line);background:var(--row);color:var(--text);border-radius:10px;padding:8px;font-size:13px;font-weight:700;cursor:pointer}
+.gm-kind button.on{background:var(--accent);color:var(--on-accent,#fff);border-color:transparent}
+#gm-html{width:100%;box-sizing:border-box;min-height:130px;max-height:34vh;resize:vertical;padding:10px 12px;border-radius:11px;border:1px solid var(--line);background:var(--input,var(--row));color:var(--text);font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;outline:none;font-weight:400}
+.gm-note{font-size:12px;color:var(--muted);font-weight:400;margin-top:6px}
+.gm-hb{position:absolute;left:6px;bottom:6px;font-size:11px;background:rgba(0,0,0,.55);color:#fff;padding:1px 6px;border-radius:999px;pointer-events:none}
+#gm-play{position:fixed;inset:0;z-index:3500;display:none;flex-direction:column;background:#000;color:#fff}
+#gm-play.on{display:flex}
+#gm-play .gp-bar{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#111;font-size:14px}
+#gm-play .gp-bar b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#gm-play .gp-bar button{border:none;background:rgba(255,255,255,.14);color:#fff;border-radius:999px;padding:6px 14px;font-weight:700;cursor:pointer}
+#gm-play iframe{flex:1;min-height:0;width:100%;border:0;background:#fff}
+#gm-play .gp-msg{position:absolute;left:0;right:0;top:50%;text-align:center;transform:translateY(-50%);font-size:15px;opacity:.85;padding:0 20px}
 .gm-foot{display:flex;align-items:center;gap:8px}
 .gm-b{border:none;border-radius:11px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer;background:var(--accent);color:var(--on-accent,#fff)}
 .gm-b.alt{background:var(--row);color:var(--text)}
@@ -11457,7 +11470,7 @@ button.gm-sub:active{transform:scale(.97)}
 <script id="games-js">
 (function(){
   const $$ = id => document.getElementById(id);
-  const LS = "pb_games", LSM = "pb_games_mode", MAX = 300;
+  const LS = "pb_games", LSM = "pb_games_mode", MAX = 300, MAX_HTML = 900000;   // uploaded HTML games: up to ~900 KB of code each
 
   /* ---------------- 1. Settings: chats & people (mirrors the hidden sidebar) + the options that used to be in it ---------------- */
   const closeSettings = () => { try{ if(typeof setStg === "function") setStg(false); }catch(e){} };
@@ -11563,7 +11576,49 @@ button.gm-sub:active{transform:scale(.97)}
     } else letter();
     return box;
   }
+  /* uploaded HTML games: nothing is downloaded until someone presses play, and the frame is destroyed when they leave */
+  const canManage = g => g.k !== "h" || (typeof uid !== "undefined" && g.by === uid) || !!(window.__pbIsMod && window.__pbIsMod());
+  let playEl = null, playTok = 0;
+  const SHIM = '<script>(function(){function m(){var d={};return{getItem:function(k){return k in d?d[k]:null},setItem:function(k,v){d[k]=String(v)},removeItem:function(k){delete d[k]},clear:function(){d={}},key:function(i){return Object.keys(d)[i]||null},get length(){return Object.keys(d).length}}}["localStorage","sessionStorage"].forEach(function(n){try{window[n].getItem("x")}catch(e){try{Object.defineProperty(window,n,{value:m(),configurable:true})}catch(e2){}}})})();<\/script>';
+  function withShim(h){
+    if(/<head[^>]*>/i.test(h)) return h.replace(/<head[^>]*>/i, m => m + SHIM);
+    if(/<html[^>]*>/i.test(h)) return h.replace(/<html[^>]*>/i, m => m + SHIM);
+    return SHIM + h;
+  }
+  function closePlay(){
+    playTok++;
+    if(!playEl) return;
+    const f = playEl.querySelector("iframe"); if(f){ f.srcdoc = ""; f.remove(); }   // frees the game's memory and stops it running
+    playEl.classList.remove("on");
+    document.removeEventListener("keydown", playKey, true);
+  }
+  function playKey(e){ if(e.key === "Escape" && !document.fullscreenElement){ e.stopPropagation(); closePlay(); } }
+  async function playHtml(g){
+    if(!playEl){
+      playEl = document.createElement("div"); playEl.id = "gm-play";
+      playEl.innerHTML = '<div class="gp-bar"><button type="button" class="gp-x">← Back</button><b class="gp-t"></b><button type="button" class="gp-fs" title="Fullscreen">⛶</button></div><div class="gp-msg"></div>';
+      document.body.appendChild(playEl);
+      playEl.querySelector(".gp-x").onclick = closePlay;
+      playEl.querySelector(".gp-fs").onclick = () => { const f = playEl.querySelector("iframe"); if(f && f.requestFullscreen) f.requestFullscreen().catch(() => {}); };
+    }
+    const old = playEl.querySelector("iframe"); if(old) old.remove();
+    const msg = playEl.querySelector(".gp-msg"); msg.style.display = ""; msg.textContent = "Loading " + g.name + "…";
+    playEl.querySelector(".gp-t").textContent = g.name;
+    playEl.classList.add("on"); document.addEventListener("keydown", playKey, true);
+    const tok = ++playTok;
+    try{
+      if(!window.__gmCode) throw new Error("no cloud");
+      const html = await window.__gmCode.get(g.id, g.cv);
+      if(tok !== playTok) return;
+      const f = document.createElement("iframe");
+      f.setAttribute("sandbox", "allow-scripts allow-pointer-lock allow-forms allow-modals");   // no same-origin: the game can't touch the chat, logins or storage
+      f.setAttribute("allow", "fullscreen; autoplay; gamepad"); f.referrerPolicy = "no-referrer";
+      f.srcdoc = withShim(html);
+      playEl.appendChild(f); msg.style.display = "none"; f.focus();
+    }catch(e){ if(tok === playTok) msg.textContent = "Couldn't load this game. Check your connection and try again."; }
+  }
   function openGame(g){
+    if(g.k === "h"){ g.plays = (g.plays || 0) + 1; g.last = Date.now(); persist(); playHtml(g); return; }
     window.open(g.url, "_blank", "noopener,noreferrer");
     g.plays = (g.plays || 0) + 1; g.last = Date.now(); persist();
     if(mode === "recent") render();
@@ -11577,7 +11632,8 @@ button.gm-sub:active{transform:scale(.97)}
     star.onclick = e => { e.stopPropagation(); g.fav = g.fav ? 0 : 1; persist(); if(mode === "fav") render(); else paint(); };
     const ed = document.createElement("button"); ed.type = "button"; ed.className = "gm-edit"; ed.textContent = "✎"; ed.title = "Edit or delete this game"; ed.setAttribute("aria-label", "Edit " + g.name);
     ed.onclick = e => { e.stopPropagation(); openModal(g); };
-    ic.append(ed, star);
+    if(canManage(g)) ic.append(ed, star); else ic.append(star);
+    if(g.k === "h"){ const hb = document.createElement("span"); hb.className = "gm-hb"; hb.textContent = "📄 HTML"; ic.appendChild(hb); }
     const nm = document.createElement("div"); nm.className = "gm-nm"; nm.textContent = g.name;
     c.append(ic, nm);
     c.onclick = () => openGame(g);
@@ -11616,7 +11672,9 @@ button.gm-sub:active{transform:scale(.97)}
   modal.innerHTML =
     '<div class="gm-box" role="dialog" aria-modal="true" aria-labelledby="gm-mt"><h3 id="gm-mt">Add a game</h3>' +
       '<label>Game name<input id="gm-name" type="text" maxlength="40" autocomplete="off" placeholder="e.g. Slope"></label>' +
-      '<label>Game link<input id="gm-url" type="text" inputmode="url" maxlength="600" autocomplete="off" spellcheck="false" placeholder="https://…"></label>' +
+      '<div class="gm-kind" id="gm-kind"><button type="button" data-k="l" class="on">🔗 Link</button><button type="button" data-k="h">📄 HTML game</button></div>' +
+      '<label id="gm-linkrow">Game link<input id="gm-url" type="text" inputmode="url" maxlength="600" autocomplete="off" spellcheck="false" placeholder="https://…"></label>' +
+      '<div id="gm-htmlrow" style="display:none"><label>Game code<textarea id="gm-html" spellcheck="false" autocomplete="off" placeholder="Paste your game\'s HTML here…"></textarea></label><div class="gm-icbtns" style="margin-top:8px"><button type="button" id="gm-hpick" class="gm-b alt">📂 Choose .html file</button></div><div id="gm-hinfo" class="gm-note"></div><input id="gm-hfile" type="file" accept=".html,.htm,text/html" hidden></div>' +
       '<div class="gm-icrow"><div id="gm-prevwrap"></div><div class="gm-icbtns"><button type="button" id="gm-pick" class="gm-b alt">Choose icon</button><button type="button" id="gm-rm" class="gm-b alt">Use the site’s icon</button></div><input id="gm-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden></div>' +
       '<div id="gm-err" role="alert"></div>' +
       '<div class="gm-foot"><button type="button" id="gm-del" class="gm-b red">Delete</button><span class="gm-spacer"></span><button type="button" id="gm-cancel" class="gm-b alt">Cancel</button><button type="button" id="gm-save" class="gm-b pri">Save</button></div>' +
@@ -11628,11 +11686,30 @@ button.gm-sub:active{transform:scale(.97)}
     $$("gm-prevwrap").replaceChildren(iconNode({ name, url, icon: draftIcon }, true));
     $$("gm-rm").style.display = draftIcon ? "" : "none";
   }
-  let delArmed = 0;
+  let delArmed = 0, kind = "l";
+  function setKind(k, locked){
+    kind = k;
+    document.querySelectorAll("#gm-kind button").forEach(b => b.classList.toggle("on", b.dataset.k === k));
+    $$("gm-kind").style.display = locked ? "none" : "";
+    $$("gm-linkrow").style.display = k === "l" ? "" : "none";
+    $$("gm-htmlrow").style.display = k === "h" ? "" : "none";
+  }
+  $$("gm-kind").addEventListener("click", e => { const b = e.target.closest("button"); if(b) setKind(b.dataset.k, false); });
+  const htmlInfo = () => { const n = $$("gm-html").value.length; $$("gm-hinfo").textContent = n ? Math.round(n / 1024) + " KB of code" + (n > MAX_HTML ? " — too big (max " + Math.round(MAX_HTML / 1024) + " KB)" : "") : (editId ? "Leave this empty to keep the current game code." : "Paste code or choose a file. It only loads when someone plays it."); };
+  $$("gm-html").addEventListener("input", htmlInfo);
+  $$("gm-hpick").onclick = () => $$("gm-hfile").click();
+  $$("gm-hfile").addEventListener("change", e => {
+    const f = e.target.files && e.target.files[0]; e.target.value = ""; if(!f) return;
+    if(f.size > MAX_HTML){ err("That file is too big (max " + Math.round(MAX_HTML / 1024) + " KB)."); return; }
+    const fr = new FileReader(); fr.onerror = () => err("Couldn’t read that file.");
+    fr.onload = () => { $$("gm-html").value = String(fr.result || ""); if(!$$("gm-name").value.trim()) $$("gm-name").value = cleanName(f.name.replace(/\.html?$/i, "")); err(""); htmlInfo(); paintPrev(); };
+    fr.readAsText(f);
+  });
   function openModal(g){
     editId = g ? g.id : null; draftIcon = g && okIcon(g.icon) ? g.icon : ""; delArmed = 0;
+    $$("gm-html").value = ""; setKind(g && g.k === "h" ? "h" : "l", !!g); htmlInfo();
     $$("gm-mt").textContent = g ? "Edit game" : "Add a game";
-    $$("gm-name").value = g ? g.name : ""; $$("gm-url").value = g ? g.url : "";
+    $$("gm-name").value = g ? g.name : ""; $$("gm-url").value = g && g.k !== "h" ? g.url : "";
     $$("gm-del").style.display = g ? "" : "none"; $$("gm-del").textContent = "Delete";
     err(""); paintPrev(); modal.classList.add("on");
     setTimeout(() => $$("gm-name").focus(), 30);
@@ -11665,9 +11742,37 @@ button.gm-sub:active{transform:scale(.97)}
   modal.addEventListener("mousedown", e => { if(e.target === modal) closeModal(); });
   $$("gm-del").onclick = () => {
     if(!delArmed){ delArmed = 1; $$("gm-del").textContent = "Really delete?"; return; }
+    const dg = games.find(g => g.id === editId);
+    if(dg && !canManage(dg)){ closeModal(); return; }
+    if(dg && dg.k === "h" && window.__gmCode) window.__gmCode.del(dg.id);
     tombs[editId] = Date.now(); games = games.filter(g => g.id !== editId); persist(); closeModal(); render();
   };
+  async function saveHtml(){
+    const name = cleanName($$("gm-name").value), html = $$("gm-html").value;
+    const old = editId && games.find(g => g.id === editId);
+    if(!name){ err("Give the game a name."); $$("gm-name").focus(); return; }
+    if(old && !canManage(old)){ err("Only the person who added this game (or a mod) can change it."); return; }
+    if(!old && !html.trim()){ err("Paste your game code or choose an .html file."); return; }
+    if(html.length > MAX_HTML){ err("That game is too big (max " + Math.round(MAX_HTML / 1024) + " KB)."); return; }
+    if(!old && games.length >= MAX){ err("You can keep up to " + MAX + " games."); return; }
+    if(!window.__gmCode){ err("Sharing games needs the cloud sync, which isn't available right now."); return; }
+    const id = old ? old.id : newId(), v = Date.now(), btn = $$("gm-save");
+    let cv = old ? old.cv : 0;
+    if(html.trim()){
+      btn.disabled = true; btn.textContent = "Uploading…";
+      const ok = await window.__gmCode.put(id, v, html);
+      btn.disabled = false; btn.textContent = "Save";
+      if(!ok){ err("Couldn’t upload the game. Check your connection and try again."); return; }
+      cv = v;
+    }
+    const sz = html.trim() ? html.length : (old ? old.sz : 0);
+    if(old){ old.name = name; old.icon = draftIcon; old.cv = cv; old.sz = sz; old.v = v; delete tombs[old.id]; }
+    else games.push({ id, k: "h", name, url: "", icon: draftIcon, cv, sz, by: typeof uid !== "undefined" ? uid : "", fav: 0, plays: 0, last: 0, added: v, v });
+    if(!persist()){ err("This device is out of storage space. Remove a game or use a smaller icon."); return; }
+    closeModal(); render();
+  }
   function save(){
+    if(kind === "h"){ saveHtml(); return; }
     const name = cleanName($$("gm-name").value), url = cleanUrl($$("gm-url").value);
     if(!name){ err("Give the game a name."); $$("gm-name").focus(); return; }
     if(!url){ err("Paste a working link (it has to start with https://)."); $$("gm-url").focus(); return; }
@@ -11698,7 +11803,7 @@ button.gm-sub:active{transform:scale(.97)}
   window.__gm = {
     out(){
       const o = [], have = new Set();
-      games.forEach(g => { have.add(g.id); o.push({ id: g.id, name: g.name, url: g.url, icon: g.icon || "", added: g.added || 0, v: g.v || g.added || 1 }); });
+      games.forEach(g => { have.add(g.id); const r = { id: g.id, name: g.name, url: g.url, icon: g.icon || "", added: g.added || 0, v: g.v || g.added || 1 }; if(g.k === "h"){ r.k = "h"; r.cv = g.cv || 0; r.sz = g.sz || 0; r.by = g.by || ""; r.url = ""; } o.push(r); });
       Object.keys(tombs).forEach(id => { if(!have.has(id)) o.push({ id, del: 1, v: tombs[id] }); });
       return o;
     },
@@ -11715,13 +11820,15 @@ button.gm-sub:active{transform:scale(.97)}
           return;
         }
         if((tombs[r.id] || 0) >= v) return;                         // deleted after this version
-        const name = cleanName(r.name), url = cleanUrl(r.url); if(!name || !url) return;
+        const isH = r.k === "h", name = cleanName(r.name), url = isH ? "" : cleanUrl(r.url); if(!name || (!isH && !url)) return;
         const icon = okIcon(r.icon) ? r.icon : "";
+        const ex = isH ? { k: "h", cv: +r.cv || 0, sz: Math.max(0, Math.min(MAX_HTML, +r.sz || 0)), by: String(r.by || "").slice(0, 40) } : {};
         if(!loc){
           if(games.length >= MAX) return;
-          games.push({ id: r.id, name, url, icon, fav: 0, plays: 0, last: 0, added: +r.added || Date.now(), v }); delete tombs[r.id]; ch = true;
+          games.push(Object.assign({ id: r.id, name, url, icon, fav: 0, plays: 0, last: 0, added: +r.added || Date.now(), v }, ex)); delete tombs[r.id]; ch = true;
         } else if(v > (loc.v || 0)){
-          loc.name = name; loc.url = url; loc.icon = icon; loc.added = +r.added || loc.added; loc.v = v; delete tombs[r.id]; ch = true;
+          if(loc.k === "h" && isH && loc.by && ex.by !== loc.by && false){ return; }
+          loc.name = name; loc.url = url; loc.icon = icon; loc.added = +r.added || loc.added; loc.v = v; Object.assign(loc, ex); delete tombs[r.id]; ch = true;
         }
       });
       if(ch){ persist(); render(); }
@@ -13291,6 +13398,30 @@ body.in-ctab #box,body.in-ctab #typing,body.in-ctab #replybar,body.in-ctab #tray
     finally { gpushing = false; if(end) end(); }
   }
   function gSchedule(){ clearTimeout(gT); gT = setTimeout(gpush, 800); }
+  /* uploaded HTML games: the code lives in its own cloud node and is only downloaded when someone plays that game */
+  const gcache = new Map();
+  window.__gmCode = {
+    async put(id, v, html){
+      try {
+        const end = beginSync();
+        try {
+          const r = await fetch(base + "/gc/" + keyOf(id) + ".json", { method: "PUT", body: JSON.stringify({ up: { ".sv": "timestamp" }, d: await enc({ id, v, h: html }) }) });
+          if(r.ok) gcache.set(id + ":" + v, html);
+          return r.ok;
+        } finally { end(); }
+      } catch(e){ return false; }
+    },
+    async get(id, cv){
+      const k = id + ":" + cv; if(gcache.has(k)) return gcache.get(k);
+      const r = await fetch(base + "/gc/" + keyOf(id) + ".json", { cache: "no-store" });
+      if(!r.ok) throw new Error("read " + r.status);
+      const w = await r.json(); if(!w || typeof w.d !== "string") throw new Error("missing");
+      const o = await dec(w.d); if(!o || typeof o.h !== "string") throw new Error("bad");
+      if(gcache.size > 6) gcache.delete(gcache.keys().next().value);
+      gcache.set(k, o.h); return o.h;
+    },
+    del(id){ try { fetch(base + "/gc/" + keyOf(id) + ".json", { method: "DELETE" }).catch(() => {}); } catch(e){} }
+  };
   window.__gmChanged = gSchedule;
   window.__gmPull = gpull;
   setInterval(() => { if(!document.hidden) gpull(); }, 8000);
