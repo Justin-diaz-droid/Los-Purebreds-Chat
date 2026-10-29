@@ -12483,5 +12483,105 @@ body.in-home #home{display:flex}
 #hdr #status{margin-right:auto}
 #hdr-staff{order:99;margin-left:0;display:flex;align-items:center;gap:6px}
 #hdr-staff .stg-btn{padding:5px 12px;border-radius:999px;background:var(--row);color:var(--bar-text,var(--text));font-size:12px;font-weight:700;white-space:nowrap}</style>
+<script id="mailbox">
+/* ---------- cloud mailbox: lets people who were offline catch up even when nobody who saw the messages is online ----------
+   Public chat only (DMs and group chats stay peer-to-peer). Everything is encrypted with a key derived from the room code
+   before it leaves the browser. Paste your Firebase Realtime Database URL below to switch it on. */
+(function(){
+  const DB = "https://los-purebreds-c0ebc-default-rtdb.firebaseio.com";   // e.g. "https://your-project-default-rtdb.firebaseio.com"   (empty = feature off)
+  const MAX_BODY = 500000;            // bigger photos/files are not stored in the mailbox (they still sync peer-to-peer)
+  if(!DB || !window.crypto || !crypto.subtle || typeof persist !== "function" || typeof mergeEntry !== "function") return;
+
+  const base = DB.replace(/\/+$/, "") + "/rooms/" + encodeURIComponent(ROOM_CODE);
+  const K_SENT = "pb_mb_sent", K_SINCE = "pb_mb_since";
+  const jget = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch(e){ return d; } };
+  const jset = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} };
+  let sent = jget(K_SENT, {}), since = +jget(K_SINCE, 0) || 0, ready = false, busy = false, pushing = false, pushT = 0;
+
+  /* --- encryption (AES-GCM, key derived from the room code) --- */
+  let keyP = null;
+  const getKey = () => keyP || (keyP = (async () => {
+    const km = await crypto.subtle.importKey("raw", new TextEncoder().encode("purebred-mailbox:" + ROOM_CODE), "PBKDF2", false, ["deriveKey"]);
+    return crypto.subtle.deriveKey({ name: "PBKDF2", salt: new TextEncoder().encode("purebred-mailbox-v1"), iterations: 100000, hash: "SHA-256" }, km, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+  })());
+  const b64 = u => { let s = ""; for(let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); };
+  const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+  async function enc(o){
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, await getKey(), new TextEncoder().encode(JSON.stringify(o))));
+    const out = new Uint8Array(12 + ct.length); out.set(iv); out.set(ct, 12); return b64(out);
+  }
+  async function dec(s){
+    const u = unb64(s);
+    return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: u.subarray(0, 12) }, await getKey(), u.subarray(12))));
+  }
+
+  const keyOf = id => String(id).replace(/[.$#\[\]\/]/g, "_");
+  const sigOf = l => [l.v || 0, rxSig(l.rx), l.del ? 1 : 0, (l.b || "").length].join("|");
+  const isPublic = l => l && !l.to && !l.g;
+  const inRoom = () => { const g = document.getElementById("gate"); return !g || getComputedStyle(g).display === "none"; };
+
+  /* --- download what I missed --- */
+  async function pull(){
+    if(busy || !inRoom()) return; busy = true;
+    try {
+      const r = await fetch(base + "/m.json?orderBy=%22up%22&startAt=" + Math.max(0, since - 5000), { cache: "no-store" });
+      if(!r.ok){ console.warn("Mailbox read failed:", r.status); return; }
+      const obj = (await r.json()) || {}, items = []; let maxUp = since;
+      for(const w of Object.values(obj)){
+        if(!w || typeof w.d !== "string") continue;
+        if(+w.up > maxUp) maxUp = +w.up;
+        try { const o = cleanEntry(await dec(w.d)); if(o && !o.to && !o.g) items.push(o); } catch(e){}
+      }
+      const changed = [];
+      items.forEach(o => {
+        if(mergeEntry(o)) changed.push(o);
+        const cur = logs.find(l => l.i === o.i);
+        if(cur && sigOf(cur) === sigOf(o)) sent[o.i] = sigOf(cur);       // the mailbox already has this exact version
+      });
+      since = maxUp; jset(K_SINCE, since); jset(K_SENT, sent); ready = true;
+      if(changed.length){
+        logs.sort((a, b) => (a.ts || 0) - (b.ts || 0)); persist();
+        if(changed.length > 4 && typeof rerender === "function") rerender(); else changed.forEach(applyToDom);
+        if(typeof dmChanged === "function") dmChanged(changed);
+      }
+      schedulePush();
+    } catch(e){ console.warn("Mailbox read error", e); }
+    finally { busy = false; }
+  }
+
+  /* --- upload what's new or changed on my side --- */
+  async function push(){
+    if(pushing || !ready) return; pushing = true;
+    try {
+      const batch = {}, pend = {}; let n = 0, more = false;
+      for(const l of logs){
+        if(!isPublic(l) || !l.i) continue;
+        const s = sigOf(l); if(sent[l.i] === s) continue;
+        if((l.b || "").length > MAX_BODY){ sent[l.i] = s; continue; }
+        if(n >= 20){ more = true; break; }
+        batch[keyOf(l.i)] = { up: { ".sv": "timestamp" }, d: await enc(l) }; pend[l.i] = s; n++;
+      }
+      if(!n){ jset(K_SENT, sent); return; }
+      const r = await fetch(base + "/m.json", { method: "PATCH", body: JSON.stringify(batch) });
+      if(r.ok){ Object.assign(sent, pend); jset(K_SENT, sent); if(more) schedulePush(); }
+      else console.warn("Mailbox write failed:", r.status);
+    } catch(e){ console.warn("Mailbox write error", e); }
+    finally { pushing = false; }
+  }
+  function schedulePush(){ clearTimeout(pushT); pushT = setTimeout(push, 1200); }
+
+  /* push whenever the chat history changes (new message, edit, reaction, delete) */
+  const _persist = persist;
+  persist = function(){ const r = _persist.apply(this, arguments); schedulePush(); return r; };
+
+  setInterval(() => { if(!document.hidden) pull(); }, 15000);
+  document.addEventListener("visibilitychange", () => { if(!document.hidden) pull(); });
+  window.addEventListener("online", pull);
+  setTimeout(pull, 2000);
+  window.__mbPull = pull;
+})();
+</script>
+
 </body>
 </html>
