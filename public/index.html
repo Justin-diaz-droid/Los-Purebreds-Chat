@@ -10219,7 +10219,7 @@ function join(u,p){S.redo=false;
  G("g-go").click();
 }
 function loadScr(auto){
- scr(ic.hi,"Loading chat",'<div class="prog"><i id="fill"></i></div><p id="pc" class="dim">0%</p><p id="sub" class="dim">Connecting to the room…</p>','<button class="link" id="b">Cancel</button>','');
+ scr(ic.hi,"Loading..",'<div class="prog"><i id="fill"></i></div><p id="pc" class="dim">0%</p><p id="sub" class="dim">Connecting to the room…</p>','<button class="link" id="b">Cancel</button>','');
  $("#b").onclick=function(){clearInterval(tm);var sk=G("al-skip");if(auto&&H.classList.contains("autoload")&&sk)sk.click();else if(window.__leave&&window.__entering)window.__leave("");S.err="";login()};
  var p=0,t0=Date.now(),started=!auto;
  function paint(){var n=Math.round(p),f=$("#fill");if(!f)return;f.style.width=p+"%";$("#pc").textContent=n+"%";$("#sub").textContent=n>=100?"All done!":n<30?"Connecting to the room…":n<70?"Checking your name & password…":"Loading chat…"}
