@@ -719,6 +719,7 @@ html.px-on #gate{visibility:hidden!important}
       </div>
       <div class="stg-card"><h3>🧩 Layout</h3>
         <label class="chk"><input type="checkbox" id="hh">Hide top bar</label>
+        <label class="chk" for="hdrpos" style="gap:10px;flex-wrap:wrap">Top bar position <select id="hdrpos" style="margin-left:auto;background:var(--row);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:5px 8px;font:inherit"><option value="top">Top (default)</option><option value="left">Left</option><option value="right">Right</option><option value="bottom">Bottom</option></select></label>
         <label class="chk"><input type="checkbox" id="hs">Show messages sidebar</label>
         <div class="stg-note">The sidebar is off by default. Turn it on to keep your channels, chats and who's online on the left.</div>
       </div>
@@ -2135,10 +2136,23 @@ function iconBtn(cls, title, svg, fn){
   b.innerHTML = svg; b.onclick = ev => { ev.stopPropagation(); fn(); }; return b;
 }
 
-/* inline editing: works on ANY text message in the room (DMs: your own only) */
+/* inline editing: works on ANY text message in the room (DMs: your own only).
+   Editing somebody else's message has a 10 second cooldown (your own messages: no limit). */
+const EDIT_OTHERS_COOLDOWN = 10000;
+const editCdLeft = () => { let t = 0; try{ t = +localStorage.getItem("pb_editcd") || 0; }catch(e){} return Math.max(0, EDIT_OTHERS_COOLDOWN - (Date.now() - t)); };
+function editToast(txt){
+  let e = document.getElementById("editcd-toast");
+  if(!e){
+    e = document.createElement("div"); e.id = "editcd-toast"; e.setAttribute("role", "status");
+    e.style.cssText = "position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:5000;max-width:90vw;padding:9px 14px;border-radius:12px;background:rgba(20,20,24,.94);color:#fff;font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,.4);display:none";
+    document.body.appendChild(e);
+  }
+  e.textContent = txt; e.style.display = "block"; clearTimeout(editToast.t); editToast.t = setTimeout(() => { e.style.display = "none"; }, 2500);
+}
 function startEdit(id){
   const l = logs.find(x => x.i === id), w = $(id);
   if(!l || l.img || l.aud || l.fl || l.poll || l.del || !w || ((l.to || l.g) && l.c !== uid)) return;
+  if(!isMine(l)){ const left = editCdLeft(); if(left > 0){ editToast("Wait " + Math.ceil(left / 1000) + "s before editing someone else’s message again."); return; } }
   const bub = w.querySelector("[data-bubble]"); if(!bub || w.classList.contains("editing")) return;
   const inp = document.createElement("input");
   inp.type = "text"; inp.className = "editin"; inp.value = l.b; inp.maxLength = 1999;
@@ -2154,6 +2168,7 @@ function startEdit(id){
       (l.eh = l.eh || []).push({ o: l.b, u: usr, c: uid, t: Date.now() });   // keep what it said before + who changed it (owners can read this)
       if(l.eh.length > 10) l.eh.splice(1, 1);                               // always keep the very first original
       l.b = nv; l.edited = true; l.v = Date.now();
+      if(!isMine(l)){ try{ localStorage.setItem("pb_editcd", String(Date.now())); }catch(e){} }   // starts the 10s cooldown
       persist(); applyToDom(l); sendEntry(l);
     }
   };
@@ -3675,8 +3690,26 @@ label.plus.open{transform:rotate(45deg)}
   sendText=function(){
     if(!adminMode&&(reg.muteAll||reg.mutes.includes(low(usr)))){ sys("You're muted by an owner."); return; }
     if(isHost&&!adminMode&&blHit($("inp").value)){ sys(BL_MSG); return; }   // keep what they typed so they can edit it
-    return _sendText();
+    /* ---- anti-spam: 5 identical messages in a row => 10 second cooldown ---- */
+    if(adminMode) return _sendText();
+    const now=Date.now();
+    if(now<spamUntil){
+      if(now-spamWarned>1500){ spamWarned=now; sys("Slow down — you can send messages again in "+Math.ceil((spamUntil-now)/1000)+"s."); }
+      return;   // keep what they typed
+    }
+    const el=$("inp"), raw=el.value.trim(), key=raw.toLowerCase().replace(/\s+/g," ");
+    const r=_sendText();
+    if(raw && el.value===""){   // it actually went out
+      if(key===spamLast) spamCount++; else { spamLast=key; spamCount=1; }
+      if(spamCount>=SPAM_MAX){
+        spamUntil=Date.now()+SPAM_CD; spamWarned=Date.now(); spamCount=0; spamLast="";
+        sys("Stop spamming — you're on a "+(SPAM_CD/1000)+" second cooldown.");
+      }
+    }
+    return r;
   };
+  const SPAM_MAX=5, SPAM_CD=10000;
+  let spamLast="", spamCount=0, spamUntil=0, spamWarned=0;
   window.__leave=leaveRoom;
   window.addEventListener("offline",()=>{ if(peer) leaveRoom("You went offline. Rejoin when you're back."); });
   const _reveal=window.revealChat;
@@ -12630,6 +12663,35 @@ body.in-media #box,body.in-media #typing,body.in-media #replybar,body.in-media #
 })();
 </script>
 
+<style id="changelog-css">
+#hdr-log{order:98;display:inline-flex;align-items:center;gap:5px;position:relative;margin-left:6px;padding:5px 12px;border-radius:999px;border:none;background:var(--row);color:var(--bar-text,var(--text));font:inherit;font-size:12px;font-weight:700;white-space:nowrap;cursor:pointer}
+#hdr-log:hover{filter:brightness(1.15)}
+#hdr-log .dot{display:none;width:8px;height:8px;border-radius:50%;background:#ff4d4f;position:absolute;top:-1px;right:-1px}
+#hdr-log.new .dot{display:block}
+@media(max-width:600px){#hdr-log{padding:4px 8px;font-size:16px}#hdr-log .lbl{display:none}}
+</style>
+<script id="changelog-js">
+/* Top-bar Changelog button: opens the same GitHub-synced "What's new" window as the sidebar button (#cl-open),
+   so it works even while the sidebar is hidden. A red dot shows when there are commits you haven't opened yet. */
+(function(){
+  const $$ = id => document.getElementById(id);
+  const hdr = $$("hdr"); if(!hdr || $$("hdr-log")) return;
+  const btn = document.createElement("button"); btn.type = "button"; btn.id = "hdr-log"; btn.title = "Changelog \u2014 what's new";
+  btn.setAttribute("aria-haspopup", "dialog");
+  btn.innerHTML = '\ud83d\udcdd<span class="lbl">Changelog</span><span class="dot"></span>';
+  hdr.appendChild(btn);
+  btn.addEventListener("click", () => { btn.classList.remove("new"); const o = $$("cl-open"); if(o) o.click(); });
+  async function check(){
+    try{
+      if(typeof window.__pbClLoad !== "function") return;
+      const list = await window.__pbClLoad(), seen = localStorage.getItem("cl_seen");
+      btn.classList.toggle("new", !!(list[0] && seen && list[0].sha !== seen));
+    }catch(e){}
+  }
+  window.addEventListener("load", () => setTimeout(check, 4000));
+})();
+</script>
+
 <style id="mobile-theme-fix">
 /* ===== phones: lighter blur (smoother scrolling), no double-tap delay, no zoom-on-focus ===== */
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
@@ -13293,6 +13355,21 @@ body.in-ctab #box,body.in-ctab #typing,body.in-ctab #replybar,body.in-ctab #tray
   }
 
   const keyOf = id => String(id).replace(/[.$#\[\]\/]/g, "_");
+  const MAX_D = 690000;   // the database rejects any record whose "d" is 700000+ characters (checked AFTER encryption), and it rejects the whole upload if one record is bad
+  /* upload a batch. If the database refuses it, resend the records one by one so one bad record can't hold up everything behind it.
+     done = keys that are finished (bad ones included, they are skipped); failed = nothing got through (server / rules / quota problem) */
+  async function sendBatch(path, batch){
+    const keys = Object.keys(batch), send = b => fetch(base + path, { method: "PATCH", body: JSON.stringify(b) });
+    const r = await send(batch);
+    if(r.ok) return { done: keys, bad: [], failed: false };
+    let text = ""; try { text = (await r.text()).replace(/\s+/g, " ").slice(0, 90); } catch(e){}
+    const status = r.status;
+    if(keys.length < 2) return { done: [], bad: [], failed: true, status, text };
+    const done = [], bad = [];
+    for(const k of keys){ ((await send({ [k]: batch[k] })).ok ? done : bad).push(k); }
+    if(!done.length) return { done: [], bad: [], failed: true, status, text };
+    return { done: done.concat(bad), bad, failed: false, status, text };
+  }
   const sigOf = l => [l.v || 0, rxSig(l.rx), l.del ? 1 : 0, (l.b || "").length].join("|");
   const isPublic = l => l && !l.to && !l.g;
   const inRoom = () => { const g = document.getElementById("gate"); return !g || getComputedStyle(g).display === "none"; };
@@ -13303,7 +13380,7 @@ body.in-ctab #box,body.in-ctab #typing,body.in-ctab #replybar,body.in-ctab #tray
     try {
       if(!since) end = beginSync();                // first download of the whole history
       const r = await fetch(base + "/m.json?orderBy=%22up%22&startAt=" + Math.max(0, since - 5000), { cache: "no-store" });
-      if(!r.ok){ console.warn("Mailbox read failed:", r.status); fail("read error " + r.status); return; }
+      if(!r.ok){ let t = ""; try { t = (await r.text()).replace(/\s+/g, " ").slice(0, 90); } catch(e){} console.warn("Mailbox read failed:", r.status, t); fail("read error " + r.status + (t ? ": " + t : "")); return; }
       const obj = (await r.json()) || {}, items = []; let maxUp = since;
       for(const w of Object.values(obj)){
         if(!w || typeof w.d !== "string") continue;
@@ -13332,19 +13409,22 @@ body.in-ctab #box,body.in-ctab #typing,body.in-ctab #replybar,body.in-ctab #tray
   async function push(){
     if(pushing || !ready || (typeof isHost !== "undefined" && !isHost)) return; pushing = true; let end = null;
     try {
-      const batch = {}, pend = {}; let n = 0, more = false;
+      const batch = {}, pend = {}, kid = {}; let n = 0, more = false;
       for(const l of logs){
         if(!isPublic(l) || !l.i) continue;
         const s = sigOf(l); if(sent[l.i] === s) continue;
         if((l.b || "").length > MAX_BODY){ sent[l.i] = s; continue; }
         if(n >= 20){ more = true; break; }
-        batch[keyOf(l.i)] = { up: { ".sv": "timestamp" }, d: await enc(l) }; pend[l.i] = s; n++;
+        const d = await enc(l); if(d.length >= MAX_D){ sent[l.i] = s; continue; }   // too big for the mailbox: stays peer-to-peer only
+        batch[keyOf(l.i)] = { up: { ".sv": "timestamp" }, d }; pend[l.i] = s; kid[keyOf(l.i)] = l.i; n++;
       }
       if(!n){ jset(K_SENT, sent); return; }
       end = beginSync();
-      const r = await fetch(base + "/m.json", { method: "PATCH", body: JSON.stringify(batch) });
-      if(r.ok){ Object.assign(sent, pend); jset(K_SENT, sent); if(more) schedulePush(); }
-      else { console.warn("Mailbox write failed:", r.status); fail("write error " + r.status); }
+      const res = await sendBatch("/m.json", batch);
+      res.done.forEach(k => { sent[kid[k]] = pend[kid[k]]; });
+      if(res.done.length){ jset(K_SENT, sent); if(more || res.bad.length) schedulePush(); }
+      if(res.bad.length) console.warn("Mailbox skipped records the database refused:", res.bad);
+      if(res.failed){ console.warn("Mailbox write failed:", res.status, res.text); fail("write error " + res.status + (res.text ? ": " + res.text : "")); }
     } catch(e){ console.warn("Mailbox write error", e); }
     finally { pushing = false; if(end) end(); }
   }
@@ -13368,7 +13448,7 @@ body.in-ctab #box,body.in-ctab #typing,body.in-ctab #replybar,body.in-ctab #tray
     if(gbusy || !window.__gm) return; gbusy = true;
     try {
       const r = await fetch(base + "/g.json?orderBy=%22up%22&startAt=" + Math.max(0, gsince - 5000), { cache: "no-store" });
-      if(!r.ok){ console.warn("Mailbox games read failed:", r.status); return; }
+      if(!r.ok){ console.warn("Mailbox games read failed:", r.status); fail("games read error " + r.status); return; }
       const obj = (await r.json()) || {}, items = []; let maxUp = gsince;
       for(const w of Object.values(obj)){
         if(!w || typeof w.d !== "string") continue;
@@ -13385,17 +13465,20 @@ body.in-ctab #box,body.in-ctab #typing,body.in-ctab #replybar,body.in-ctab #tray
   async function gpush(){
     if(gpushing || !gready || !window.__gm) return; gpushing = true; let end = null;
     try {
-      const batch = {}, pend = {}; let n = 0;
+      const batch = {}, pend = {}, kid = {}; let n = 0;
       for(const o of window.__gm.out()){
         if(gsent[o.id] === gsig(o)) continue;
         if(n >= 15) break;
-        batch[keyOf(o.id)] = { up: { ".sv": "timestamp" }, d: await enc(o) }; pend[o.id] = gsig(o); n++;
+        const d = await enc(o); if(d.length >= MAX_D){ gsent[o.id] = gsig(o); continue; }
+        batch[keyOf(o.id)] = { up: { ".sv": "timestamp" }, d }; pend[o.id] = gsig(o); kid[keyOf(o.id)] = o.id; n++;
       }
       if(!n) return;
       end = beginSync();
-      const r = await fetch(base + "/g.json", { method: "PATCH", body: JSON.stringify(batch) });
-      if(r.ok){ Object.assign(gsent, pend); jset(K_GS, gsent); gSchedule(); }
-      else console.warn("Mailbox games write failed:", r.status);
+      const res = await sendBatch("/g.json", batch);
+      res.done.forEach(k => { gsent[kid[k]] = pend[kid[k]]; });
+      if(res.done.length){ jset(K_GS, gsent); gSchedule(); }
+      if(res.bad.length) console.warn("Mailbox skipped games the database refused:", res.bad);
+      if(res.failed){ console.warn("Mailbox games write failed:", res.status, res.text); fail("games write error " + res.status + (res.text ? ": " + res.text : "")); }
     } catch(e){ console.warn("Mailbox games write error", e); }
     finally { gpushing = false; if(end) end(); }
   }
@@ -13440,7 +13523,7 @@ body.in-ctab #box,body.in-ctab #typing,body.in-ctab #replybar,body.in-ctab #tray
     try {
       let r = await fetch(base + "/t.json?orderBy=%22up%22&startAt=" + (full ? 0 : Math.max(0, tsince - 5000)), { cache: "no-store" }), unindexed = false;
       if(!r.ok){ unindexed = true; r = await fetch(base + "/t.json", { cache: "no-store" }); }   // the "t" index rule isn't published yet: download all and filter here
-      if(!r.ok){ console.warn("Mailbox tabs read failed:", r.status); tready = true; tSchedule(); return; }   // still let uploads try
+      if(!r.ok){ console.warn("Mailbox tabs read failed:", r.status); fail("tabs read error " + r.status); tready = true; tSchedule(); return; }   // still let uploads try
       let obj = (await r.json()) || {}; let maxUp = tsince;
       if(unindexed){ const lo = full ? 0 : Math.max(0, tsince - 5000); obj = Object.fromEntries(Object.entries(obj).filter(([k, w]) => w && +w.up >= lo)); }
       const ws = Object.values(obj).filter(w => w && typeof w.d === "string");
@@ -13460,17 +13543,20 @@ body.in-ctab #box,body.in-ctab #typing,body.in-ctab #replybar,body.in-ctab #tray
   async function tpush(){
     if(tpushing || !tready || !window.__tb || !(window.__tb.canPush() || (window.__md && window.__md.canPush()) || (window.__cl && window.__cl.canPush()))) return; tpushing = true; let end = null;
     try {
-      const batch = {}, pend = {}; let n = 0;
+      const batch = {}, pend = {}, kid = {}; let n = 0;
       for(const o of window.__tb.out().concat(window.__md ? window.__md.out() : [], window.__cl ? window.__cl.out() : [])){
         if(tsent[o.id] === tsig(o)) continue;
         if(n >= 8) break;
-        batch[keyOf(o.id)] = { up: { ".sv": "timestamp" }, d: await enc(o) }; pend[o.id] = tsig(o); n++;
+        const d = await enc(o); if(d.length >= MAX_D){ tsent[o.id] = tsig(o); console.warn("Tab record too big for the mailbox, skipped:", o.id); continue; }
+        batch[keyOf(o.id)] = { up: { ".sv": "timestamp" }, d }; pend[o.id] = tsig(o); kid[keyOf(o.id)] = o.id; n++;
       }
-      if(!n) return;
+      if(!n){ jset(K_TS, tsent); return; }
       end = beginSync();
-      const r = await fetch(base + "/t.json", { method: "PATCH", body: JSON.stringify(batch) });
-      if(r.ok){ Object.assign(tsent, pend); jset(K_TS, tsent); tSchedule(); }
-      else { console.warn("Mailbox tabs write failed:", r.status); setTimeout(tSchedule, 15000); }
+      const res = await sendBatch("/t.json", batch);
+      res.done.forEach(k => { tsent[kid[k]] = pend[kid[k]]; });
+      if(res.done.length){ jset(K_TS, tsent); tSchedule(); }
+      if(res.bad.length) console.warn("Mailbox skipped tab records the database refused:", res.bad);
+      if(res.failed){ console.warn("Mailbox tabs write failed:", res.status, res.text); fail("tabs write error " + res.status + (res.text ? ": " + res.text : "")); setTimeout(tSchedule, 15000); }
     } catch(e){ console.warn("Mailbox tabs write error", e); setTimeout(tSchedule, 15000); }
     finally { tpushing = false; if(end) end(); }
   }
@@ -13519,7 +13605,108 @@ body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not(
 body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) .stg-card{transition:box-shadow .2s ease}
 body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) button:not(:disabled){cursor:pointer}
 body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) button:disabled{opacity:.55;cursor:not-allowed}
+/* ---- round 2: more visible refinements ---- */
+body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) .gm-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:18px}
+body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) .gm-card{border-radius:20px;background:linear-gradient(180deg,color-mix(in srgb,var(--row) 90%,transparent),color-mix(in srgb,var(--row) 60%,transparent));box-shadow:0 2px 8px rgba(0,0,0,.22)}
+body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) .gm-ic{background:linear-gradient(135deg,#2b2b33,#1b1b21)}
+body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) .gm-ic img.site{background:#fff}
+body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) .gm-nm{padding:12px 14px 14px;letter-spacing:.1px}
+body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) .gm-card.gm-add{background:transparent;border:2px dashed color-mix(in srgb,var(--text,#fff) 28%,transparent);box-shadow:none}
+body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) .gm-card.gm-add .gm-ic{background:transparent;color:var(--accent,#0a84ff);font-size:64px;font-weight:300}
+body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) .gm-card.gm-add:hover{border-color:var(--accent,#0a84ff);background:color-mix(in srgb,var(--accent,#0a84ff) 8%,transparent)}
+body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) .gm-card.gm-add .gm-nm{opacity:.75;font-weight:600;white-space:normal;text-align:center}
+body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) .gm-bar .gm-title{border-radius:999px;width:auto;min-width:120px;height:38px;font-size:14px}
+body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) .gm-chip{border-radius:999px;padding:8px 14px}
+body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) .gm-search{border-radius:999px;padding:10px 16px}
+body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) .gm-b{border-radius:12px;transition:transform .15s ease,filter .15s ease}
+body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) .gm-b:hover{transform:translateY(-1px)}
+body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) .gm-b:active{transform:scale(.97)}
+body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) .gm-box{border-radius:22px;padding:24px;gap:14px}
+body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) .gm-box input[type=text],body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) #gm-html{border-radius:12px;transition:border-color .16s ease,box-shadow .16s ease}
+body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) .gm-box input[type=text]:focus,body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) #gm-html:focus{border-color:var(--accent,#0a84ff);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent,#0a84ff) 25%,transparent)}
+body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) #chtabs{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--text,#fff) 8%,transparent),0 2px 10px rgba(0,0,0,.22)}
+body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) #chtabs button.on{box-shadow:0 2px 8px color-mix(in srgb,var(--accent,#0a84ff) 40%,transparent)}
+body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) #hdr{box-shadow:0 1px 0 color-mix(in srgb,var(--text,#fff) 7%,transparent)}
+body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) #tray{box-shadow:0 -1px 0 color-mix(in srgb,var(--text,#fff) 7%,transparent),0 -8px 24px rgba(0,0,0,.12)}
+body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) .msg .bubble{padding:10px 16px}
+body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) .msg .av{box-shadow:0 1px 3px rgba(0,0,0,.3)}
+body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) .msg .lbl{letter-spacing:.2px}
+body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) .img{border-radius:16px;box-shadow:0 4px 14px rgba(0,0,0,.28)}
+body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) .stg-card{border-radius:16px}
+body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) .stg-card h3{letter-spacing:.2px}
+body:not([data-theme=win95]):not([data-theme=winxp]):not([data-theme=ios6]):not([data-theme=terminal]):not([data-theme=minecraft]) #gm-play .gp-bar{background:rgba(17,17,20,.9);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}}
 </style>
+<style id="hdr-pos-css">
+/* ===== Top bar position: top (default) / left / right / bottom — chosen in Settings > Layout ===== */
+:root{--hpw:152px}
+@media(max-width:600px){:root{--hpw:120px}}
+body[data-theme="simple"]{--hpw:64px}
+#main{transition:padding .28s cubic-bezier(.2,.9,.3,1)}
+
+/* ---- bottom ---- */
+body[data-hp="bottom"] #hdrwrap{order:99}
+body[data-hp="bottom"] #hdr{border-bottom-width:0 !important;border-top:1px solid var(--line) !important;box-shadow:none !important;padding-bottom:calc(6px + env(safe-area-inset-bottom,0px))}
+body[data-hp="bottom"].hide-hdr #hdr{padding-bottom:0 !important;border-top-width:0 !important}
+body[data-hp="bottom"] #hdr-arrow{top:auto;bottom:100%;border-radius:10px 10px 0 0}
+body[data-hp="bottom"] #onpop{top:auto;bottom:100%;margin:0 0 4px;transform-origin:bottom right}
+body[data-hp="bottom"] #tray{padding-bottom:8px !important}
+
+/* ---- left / right: the bar becomes a vertical rail on the side of the chat ---- */
+body[data-hp="left"] #main,body[data-hp="right"] #main{position:relative}
+body[data-hp="left"] #main{padding-left:var(--hpw)}
+body[data-hp="right"] #main{padding-right:var(--hpw)}
+body[data-hp="left"].hide-hdr #main,body[data-hp="right"].hide-hdr #main{padding-left:0;padding-right:0}
+body[data-hp="left"] #hdrwrap,body[data-hp="right"] #hdrwrap{position:absolute;top:0;bottom:0;width:var(--hpw);z-index:6}
+body[data-hp="left"] #hdrwrap{left:0}
+body[data-hp="right"] #hdrwrap{right:0}
+body[data-hp="left"].hide-hdr #hdrwrap,body[data-hp="right"].hide-hdr #hdrwrap{width:0}
+body[data-hp="left"] #hdr,body[data-hp="right"] #hdr{flex-direction:column;flex-wrap:nowrap;align-items:stretch;justify-content:flex-start !important;gap:10px;width:100%;height:100%;max-height:none;min-height:0 !important;padding:12px 8px;margin:0 !important;overflow-x:hidden;overflow-y:auto;border-radius:0 !important;border-bottom-width:0 !important;box-shadow:none !important;text-align:center;scrollbar-width:thin}
+body[data-hp="left"] #hdr{border-right:1px solid var(--line) !important}
+body[data-hp="right"] #hdr{border-left:1px solid var(--line) !important}
+body[data-hp="left"].hide-hdr #hdr,body[data-hp="right"].hide-hdr #hdr{width:0;padding:0 !important;border-width:0 !important;opacity:0;visibility:hidden}
+body[data-hp="left"] #hdr > *,body[data-hp="right"] #hdr > *{max-width:100%}
+body[data-hp="left"] #hdr-set,body[data-hp="right"] #hdr-set{order:-2;align-self:center;margin:0 !important}
+body[data-hp="left"] #status,body[data-hp="right"] #status{white-space:normal;overflow:visible;margin:0 !important;text-align:center}
+body[data-hp="left"] #cloudsync,body[data-hp="right"] #cloudsync{justify-content:center}
+body[data-hp="left"] #chtabs,body[data-hp="right"] #chtabs{flex-direction:column;gap:3px;padding:4px;border-radius:16px;overflow:visible;max-width:100%}
+body[data-hp="left"] #chtabs button,body[data-hp="right"] #chtabs button{display:block;width:100%;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:8px 12px !important;font-size:13px !important;min-width:0;transform:none !important}
+html body[data-hp="left"]:not([data-theme="simple"]) #chtabs .tl,html body[data-hp="right"]:not([data-theme="simple"]) #chtabs .tl{display:inline !important}
+body[data-hp="left"][data-theme="simple"] #chtabs button,body[data-hp="right"][data-theme="simple"] #chtabs button{text-align:center;padding:8px 0 !important}
+body[data-hp="left"] #online,body[data-hp="right"] #online{justify-content:center;flex-wrap:wrap;margin:0}
+body[data-hp="left"] #hdr-log,body[data-hp="right"] #hdr-log{order:97;margin:0;width:100%;justify-content:center}
+body[data-hp="left"] #hdr-staff,body[data-hp="right"] #hdr-staff{flex-direction:column;align-items:stretch;margin:0}
+body[data-hp="left"] #onpop{top:8px;left:100%;right:auto;margin:0 0 0 4px;transform-origin:top left}
+body[data-hp="right"] #onpop{top:8px;right:100%;left:auto;margin:0 4px 0 0;transform-origin:top right}
+body[data-hp="left"] #hdr-arrow,body[data-hp="right"] #hdr-arrow{top:50%;bottom:auto;width:16px;height:54px;font-size:18px;transform:translateY(-50%) !important}
+body[data-hp="left"] #hdr-arrow{left:100%;right:auto;border-radius:0 10px 10px 0}
+body[data-hp="right"] #hdr-arrow{right:100%;left:auto;border-radius:10px 0 0 10px}
+</style>
+<script id="hdr-pos-js">
+(function(){
+  const K = "pb_hdr_pos", P = ["top", "left", "right", "bottom"];
+  const $$ = id => document.getElementById(id), sel = $$("hdrpos"), arrow = $$("hdr-arrow");
+  const get = () => { try{ const v = localStorage.getItem(K); return P.indexOf(v) >= 0 ? v : "top"; }catch(e){ return "top"; } };
+  /* [bar showing, bar hidden] — the arrow always points the way the bar will slide */
+  const GLYPH = { top:["\u25b2","\u25bc"], bottom:["\u25bc","\u25b2"], left:["\u2039","\u203a"], right:["\u203a","\u2039"] };
+  function paintArrow(){
+    if(!arrow) return;
+    const g = GLYPH[document.body.dataset.hp || "top"] || GLYPH.top;
+    const t = document.body.classList.contains("hide-hdr") ? g[1] : g[0];
+    if(arrow.textContent !== t) arrow.textContent = t;
+  }
+  function apply(p, save){
+    if(P.indexOf(p) < 0) p = "top";
+    if(p === "top") document.body.removeAttribute("data-hp"); else document.body.dataset.hp = p;
+    if(sel) sel.value = p;
+    if(save){ try{ localStorage.setItem(K, p); }catch(e){} }
+    paintArrow();
+    setTimeout(() => window.dispatchEvent(new Event("resize")), 320);   // lets the tab-label fitter re-measure
+  }
+  if(arrow) new MutationObserver(paintArrow).observe(arrow, { childList:true, characterData:true, subtree:true });
+  if(sel) sel.addEventListener("change", () => apply(sel.value, true));
+  apply(get(), false);
+})();
+</script>
 </body>
 </html>
