@@ -629,6 +629,24 @@ html.px-on #gate{visibility:hidden!important}
 #autoload,html.autoload #autoload{display:none!important}
 </style>
 <script>(function(){try{document.documentElement.classList.add("px-on");localStorage.setItem("pb_setup2","1")}catch(e){}})();</script>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no">
+<style id="watch-css">
+/* ===== Apple Watch / tiny-screen mode (auto on narrow screens, or add ?watch=1 to the link) ===== */
+html.watch{font-size:15px;-webkit-text-size-adjust:100%}
+html.watch body{min-width:0}
+html.watch #hdr{padding:4px !important;min-height:0 !important;gap:4px !important}
+html.watch #hdr-set,html.watch #online,html.watch #status{display:none !important}
+html.watch #chtabs{order:0;flex:1 1 100%;overflow-x:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start;border-radius:12px}
+html.watch #chtabs button{flex:0 0 auto;padding:8px 12px;font-size:14px}
+html.watch .msg{font-size:15px;line-height:1.3;max-width:100% !important}
+html.watch .pill input{font-size:16px;min-height:44px}
+html.watch #sendbtn{min-width:44px;min-height:44px}
+html.watch #tray .plus,html.watch #emo-btn{display:none !important}
+html.watch .arrow{display:none !important}
+#watch-note{display:none;position:fixed;left:6px;right:6px;bottom:6px;z-index:99999;background:#222;color:#fff;border-radius:12px;padding:8px 10px;font:13px/1.3 system-ui,sans-serif;text-align:center}
+html.watch #watch-note.on{display:block}
+</style>
 </head>
 <body data-theme="imessage">
 <div id="autoload" role="status" aria-live="polite"><div class="al-card"><div class="al-spin"></div><b>Auto loading…</b><span id="al-sub">Signing you in</span><button id="al-skip" type="button">Go to login screen instead</button></div></div>
@@ -832,10 +850,11 @@ const okBc = c => typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c) ? c : "";
 const okBi = a => typeof a === "string" && a.length < 3000000 && /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(a) ? a : "";
 
 /* ---------- device (PC / mobile / tablet) ---------- */
-const DEVS = { pc: ["💻", "PC"], mobile: ["📱", "Mobile"], tablet: ["📱", "Tablet"] };
+const DEVS = { pc: ["💻", "PC"], mobile: ["📱", "Mobile"], tablet: ["📱", "Tablet"], watch: ["⌚", "Apple Watch"] };
 const okDev = d => typeof d === "string" && Object.prototype.hasOwnProperty.call(DEVS, d) ? d : "";
 function detectDevice(){
   const ua = navigator.userAgent || "", touch = (navigator.maxTouchPoints || 0) > 1;
+  if(/Watch/i.test(ua) || /[?&]watch=1\b/.test(location.search || "")) return "watch";   // shows ⌚ Apple Watch next to your name
   if(/iPad|Tablet|PlayBook|Silk/i.test(ua) || (/Macintosh/.test(ua) && touch) || (/Android/i.test(ua) && !/Mobile/i.test(ua))) return "tablet";
   if(/Mobi|iPhone|iPod|Android|Windows Phone/i.test(ua) || (navigator.userAgentData && navigator.userAgentData.mobile)) return "mobile";
   return "pc";
@@ -13706,6 +13725,26 @@ body[data-hp="right"] #hdr-arrow{right:100%;left:auto;border-radius:10px 0 0 10p
   if(arrow) new MutationObserver(paintArrow).observe(arrow, { childList:true, characterData:true, subtree:true });
   if(sel) sel.addEventListener("change", () => apply(sel.value, true));
   apply(get(), false);
+})();
+</script>
+<script id="watch-js">
+(function(){
+  /* Apple Watch / tiny screen support */
+  try{
+    var ua=navigator.userAgent||"", q=location.search||"";
+    var on=/[?&]watch=1\b/.test(q)||/Watch/i.test(ua)||Math.min(screen.width||9999,window.innerWidth||9999)<=280;
+    if(/[?&]watch=0\b/.test(q)) on=false;
+    if(!on) return;
+    document.documentElement.classList.add("watch");
+    var n=document.createElement("div"); n.id="watch-note";
+    var rtc=typeof RTCPeerConnection!=="undefined"||typeof webkitRTCPeerConnection!=="undefined";
+    if(!rtc){
+      n.textContent="This watch browser can't do live chat (no WebRTC). Open the link on your iPhone to join.";
+      n.className="on";
+    }
+    document.body.appendChild(n);
+    setTimeout(function(){ if(n.parentNode&&rtc) n.parentNode.removeChild(n); },100);
+  }catch(e){}
 })();
 </script>
 </body>
