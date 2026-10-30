@@ -35,6 +35,21 @@ if(L.getItem("pb_autologin")==="1"&&L.getItem("pb_code")==="lospurebro"&&L.getIt
     window.addEventListener("error",function(e){ show("ERR: "+(e.message||"?")+" @"+String(e.filename||"").split("/").pop()+":"+(e.lineno||0)); });
     window.addEventListener("unhandledrejection",function(e){ show("REJ: "+(e.reason&&e.reason.message||e.reason)); });
     window.addEventListener("load",function(){ if(typeof WebSocket==="undefined") show("No WebSocket support"); });
+    if(typeof WebSocket!=="undefined"){   /* log what the chat socket does, so we can see why "chat server is down" appears */
+      var WS0=WebSocket, n=0;
+      var WS=function(u,p){
+        var id=++n, w=p===undefined?new WS0(u):new WS0(u,p);
+        try{
+          show("WS"+id+" connecting");
+          w.addEventListener("open",function(){ show("WS"+id+" open"); });
+          w.addEventListener("error",function(){ show("WS"+id+" error"); });
+          w.addEventListener("close",function(e){ show("WS"+id+" close code="+e.code+(e.reason?" "+e.reason:"")); });
+        }catch(x){}
+        return w;
+      };
+      WS.prototype=WS0.prototype; WS.CONNECTING=0; WS.OPEN=1; WS.CLOSING=2; WS.CLOSED=3;
+      window.WebSocket=WS;
+    }
   }catch(e){}
 })();
 </script>
