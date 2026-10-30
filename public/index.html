@@ -22,6 +22,22 @@ if(L.getItem("pb_sb_optin")!=="1"){L.setItem("pb_sb_optin","1");L.setItem("hide_
 if(L.getItem("pb_autologin")==="1"&&L.getItem("pb_code")==="lospurebro"&&L.getItem("pb_pwh")&&(L.getItem("chat_usr")||"User")!=="User")d.classList.add("autoload");}catch(e){}})();</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script id="watch-dbg-js">
+(function(){
+  try{
+    var q=location.search||"", ua=navigator.userAgent||"";
+    var on=/[?&]watch=1\b/.test(q)||/Watch/i.test(ua)||Math.min(screen.width||9999,window.innerWidth||9999)<=280;
+    if(/[?&]watch=0\b/.test(q)) on=false;
+    if(!on) return;
+    var box=document.createElement("div");
+    box.id="watch-dbg"; box.style.cssText="position:fixed;left:4px;right:4px;bottom:4px;z-index:99999;background:#400;color:#fff;border-radius:10px;padding:6px 8px;font:11px/1.25 monospace;display:none;word-break:break-word;max-height:45vh;overflow:auto";
+    function show(t){ var h=document.body||document.documentElement; if(!box.parentNode) h.appendChild(box); box.style.display="block"; box.textContent+=t+"\n"; }
+    window.addEventListener("error",function(e){ show("ERR: "+(e.message||"?")+" @"+String(e.filename||"").split("/").pop()+":"+(e.lineno||0)); });
+    window.addEventListener("unhandledrejection",function(e){ show("REJ: "+(e.reason&&e.reason.message||e.reason)); });
+    window.addEventListener("load",function(){ if(typeof WebSocket==="undefined") show("No WebSocket support"); });
+  }catch(e){}
+})();
+</script>
 <title>Los Purebreds</title>
 <link id="fav" rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%92%AC%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://purebred-chat.226739.workers.dev" crossorigin>
@@ -13736,14 +13752,6 @@ body[data-hp="right"] #hdr-arrow{right:100%;left:auto;border-radius:10px 0 0 10p
     if(/[?&]watch=0\b/.test(q)) on=false;
     if(!on) return;
     document.documentElement.classList.add("watch");
-    var n=document.createElement("div"); n.id="watch-note";
-    var rtc=typeof RTCPeerConnection!=="undefined"||typeof webkitRTCPeerConnection!=="undefined";
-    if(!rtc){
-      n.textContent="This watch browser can't do live chat (no WebRTC). Open the link on your iPhone to join.";
-      n.className="on";
-    }
-    document.body.appendChild(n);
-    setTimeout(function(){ if(n.parentNode&&rtc) n.parentNode.removeChild(n); },100);
   }catch(e){}
 })();
 </script>
