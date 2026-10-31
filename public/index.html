@@ -13770,5 +13770,128 @@ body[data-hp="right"] #hdr-arrow{right:100%;left:auto;border-radius:10px 0 0 10p
   }catch(e){}
 })();
 </script>
+<style id="lpx-css">
+/* ===== Los Purebred proxy browser tab ===== */
+body.in-lpx #topbanner{display:none}
+#lpx{display:none;flex:1;min-height:0;flex-direction:column;background:var(--bg);color:var(--text);position:relative;overflow:hidden}
+body.in-lpx #lpx{display:flex}
+body.in-lpx #box,body.in-lpx #typing,body.in-lpx #replybar,body.in-lpx #tray,body.in-lpx #attach{display:none !important}
+#lpx .lp-tabs{display:flex;gap:4px;padding:10px 16px 0;overflow-x:auto;border-bottom:1px solid var(--line)}
+#lpx .lp-tabs button{background:none;border:0;border-bottom:2px solid transparent;padding:9px 14px;color:var(--muted,inherit);white-space:nowrap;font:inherit;cursor:pointer}
+#lpx .lp-tabs button.on{color:var(--text);border-color:var(--accent)}
+#lpx .lp-addr{display:flex;gap:8px;padding:10px 16px}
+#lpx input.lp-in{flex:1;min-width:0;background:var(--row);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font:inherit}
+#lpx .lp-b{background:var(--row);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 14px;font:inherit;cursor:pointer}
+#lpx .lp-b.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 24%,var(--row))}
+#lpx .lp-b.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+#lpx .lp-stage{flex:1;min-height:0;display:flex;flex-direction:column}
+#lpx iframe{flex:1;border:0;width:100%;background:#fff;min-height:0}
+#lpx .lp-home{margin:auto;text-align:center;padding:20px;width:min(640px,92%)}
+#lpx .lp-home h2{font-size:clamp(30px,6vw,52px);margin:0 0 6px;letter-spacing:.03em}
+#lpx .lp-home p{margin:0 0 20px;opacity:.7}
+#lpx .lp-short{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px}
+#lpx .lp-short button{background:var(--row);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:12px 16px;font:inherit;cursor:pointer}
+#lpx .lp-gear{position:absolute;left:16px;bottom:16px;width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:var(--row);color:var(--text);font-size:20px;cursor:pointer;z-index:5}
+#lpx dialog{background:var(--row);color:var(--text);border:1px solid var(--line);border-radius:14px;width:min(540px,92vw);padding:0}
+#lpx dialog::backdrop{background:#0009}
+#lpx .lp-sec{padding:14px 18px;border-bottom:1px solid var(--line)}
+#lpx .lp-sec h3{margin:0 0 8px;font-size:15px}
+#lpx .lp-row{display:flex;gap:8px;flex-wrap:wrap}
+#lpx .lp-foot{padding:12px 18px;display:flex;justify-content:space-between;align-items:center;opacity:.85;font-size:13px}
+</style>
+<script id="lpx-js">
+(function(){
+  const $$ = id => document.getElementById(id);
+  /* ====== PROXY BACKEND: plug yours in here (Ultraviolet / Scramjet / etc.) ======
+     encode(url) must return the address your proxy serves that page from. */
+  const PROXY_HOST = "https://YOUR-PROXY-HOST";   // <-- your deployed proxy-server URL, no trailing slash
+  const PROXY = { encode: u => PROXY_HOST + "/embed.html?u=" + encodeURIComponent(u) };
+  const ENGINES = {DuckDuckGo:"https://duckduckgo.com/?q=%s", Google:"https://www.google.com/search?q=%s", Bing:"https://www.bing.com/search?q=%s", Brave:"https://search.brave.com/search?q=%s"};
+  const SHORT = [["YouTube","youtube.com"],["Twitch","twitch.tv"],["Spotify","open.spotify.com"],["Discord","discord.com/app"]];
+  const CLOAKS = {"Los Purebred":"Los Purebreds","Google Classroom":"Classes","Canvas":"Dashboard","Google Docs":"Untitled document - Google Docs"};
+  const LS = "lpx_settings";
+  const S = Object.assign({cloak:"Los Purebred", auto:"Off", panic:"", redir:"https://classroom.google.com", engine:"DuckDuckGo"}, (()=>{try{return JSON.parse(localStorage.getItem(LS)||"{}")}catch(e){return {}}})());
+  const save = () => { try{ localStorage.setItem(LS, JSON.stringify(S)); }catch(e){} };
+  const origTitle = document.title;
+
+  /* ---- tab button + view ---- */
+  const tab = document.createElement("button"); tab.type="button"; tab.dataset.ch="lpx"; tab.textContent="🔎 Browse"; tab.onclick=()=>setChannel("lpx");
+  $$("chtabs").appendChild(tab);
+
+  const view = document.createElement("div"); view.id = "lpx";
+  view.innerHTML =
+    '<div class="lp-tabs" id="lp-tabs"></div>' +
+    '<div class="lp-addr"><input class="lp-in" id="lp-addr" placeholder="Enter a URL or search" autocomplete="off"><button class="lp-b" id="lp-go" type="button">Go</button></div>' +
+    '<div class="lp-stage" id="lp-stage"></div>' +
+    '<button class="lp-gear" id="lp-gear" type="button" aria-label="Proxy settings" title="Proxy settings">⚙</button>' +
+    '<dialog id="lp-dlg">' +
+      '<div class="lp-sec"><h3>Tab cloak</h3><div class="lp-row" id="lp-cloaks"></div></div>' +
+      '<div class="lp-sec"><h3>Auto cloak</h3><div class="lp-row" id="lp-auto"></div><div style="margin-top:8px"><button class="lp-b" id="lp-open" type="button">Open cloaked tab</button></div></div>' +
+      '<div class="lp-sec"><h3>Panic key</h3><div class="lp-row"><button class="lp-b" id="lp-key" type="button">Not set</button></div><input class="lp-in" id="lp-redir" placeholder="Redirect to" style="margin-top:8px;width:100%"></div>' +
+      '<div class="lp-sec"><h3>Search engine</h3><div class="lp-row" id="lp-engines"></div></div>' +
+      '<div class="lp-foot"><span id="lp-status">Ready</span><button class="lp-b pri" id="lp-close" type="button">Done</button></div>' +
+    '</dialog>';
+  const host = $$("games") ? $$("games").parentNode : document.body;
+  host.appendChild(view);
+
+  /* ---- browsing ---- */
+  let tabs = [], cur = -1;
+  const resolve = s => { s = (s||"").trim(); if(!s) return "";
+    if(/^https?:\/\//i.test(s)) return s;
+    if(/^[\w-]+(\.[\w-]+)+(\/.*)?$/.test(s)) return "https://" + s;
+    return ENGINES[S.engine].replace("%s", encodeURIComponent(s)); };
+  function openUrl(s){ const u = resolve(s); if(!u) return; tabs.push({url:u, title:u.replace(/^https?:\/\//,"").split("/")[0]}); cur = tabs.length-1; render(); }
+  function render(){
+    const bar = $$("lp-tabs"); bar.innerHTML = "";
+    tabs.forEach((t,i) => { const b = document.createElement("button"); b.type="button"; b.className = i===cur ? "on" : ""; b.textContent = t.title;
+      const x = document.createElement("span"); x.textContent = "  ✕"; x.onclick = e => { e.stopPropagation(); tabs.splice(i,1); cur = Math.min(cur, tabs.length-1); render(); };
+      b.appendChild(x); b.onclick = () => { cur = i; render(); }; bar.appendChild(b); });
+    const p = document.createElement("button"); p.type="button"; p.textContent="＋"; p.title="New tab"; p.onclick = () => { cur = -1; render(); }; bar.appendChild(p);
+    const st = $$("lp-stage"); st.innerHTML = "";
+    if(cur >= 0 && tabs[cur]){ const f = document.createElement("iframe"); f.src = PROXY.encode(tabs[cur].url); f.referrerPolicy = "no-referrer"; st.appendChild(f); $$("lp-addr").value = tabs[cur].url; }
+    else { $$("lp-addr").value = "";
+      const h = document.createElement("div"); h.className = "lp-home";
+      h.innerHTML = '<h2>Los Purebred</h2><p>Search the web or enter a link.</p>';
+      const row = document.createElement("div"); row.className = "lp-short";
+      SHORT.forEach(([n,u]) => { const b = document.createElement("button"); b.type="button"; b.textContent = n; b.onclick = () => openUrl(u); row.appendChild(b); });
+      h.appendChild(row); st.appendChild(h); }
+  }
+  $$("lp-go").onclick = () => openUrl($$("lp-addr").value);
+  $$("lp-addr").onkeydown = e => { if(e.key === "Enter") openUrl(e.target.value); };
+
+  /* ---- settings (gear only exists inside this tab) ---- */
+  function chips(id, items, key){ const el = $$(id); el.innerHTML = "";
+    items.forEach(n => { const b = document.createElement("button"); b.type="button"; b.className = "lp-b" + (S[key]===n ? " on" : ""); b.textContent = n;
+      b.onclick = () => { S[key] = n; save(); applyCloak(); chips(id, items, key); }; el.appendChild(b); }); }
+  function applyCloak(){ if(curTab() === "lpx") document.title = CLOAKS[S.cloak] || origTitle; }
+  const curTab = () => (typeof curCh !== "undefined" ? curCh : "");
+  function openSettings(){
+    chips("lp-cloaks", Object.keys(CLOAKS), "cloak"); chips("lp-auto", ["Off","about:blank","blob:"], "auto"); chips("lp-engines", Object.keys(ENGINES), "engine");
+    $$("lp-key").textContent = S.panic || "Not set"; $$("lp-redir").value = S.redir; $$("lp-dlg").showModal();
+  }
+  $$("lp-gear").onclick = openSettings;
+  $$("lp-close").onclick = () => $$("lp-dlg").close();
+  $$("lp-redir").oninput = e => { S.redir = e.target.value; save(); };
+  $$("lp-key").onclick = () => { $$("lp-key").textContent = "Press a key…";
+    addEventListener("keydown", e => { e.preventDefault(); S.panic = e.key; save(); $$("lp-key").textContent = S.panic; }, {once:true, capture:true}); };
+  addEventListener("keydown", e => { if(S.panic && e.key === S.panic && curTab() === "lpx" && !$$("lp-dlg").open && !/INPUT|TEXTAREA/.test((e.target.tagName||""))) location.href = S.redir; });
+  $$("lp-open").onclick = () => {
+    const html = '<!DOCTYPE html><title>' + (CLOAKS[S.cloak] || origTitle) + '</title><body style="margin:0"><iframe src="' + location.href + '" style="border:0;width:100vw;height:100vh"></iframe>';
+    if(S.auto === "blob:") window.open(URL.createObjectURL(new Blob([html], {type:"text/html"})), "_blank");
+    else { const w = window.open("about:blank", "_blank"); if(w){ w.document.write(html); w.document.close(); } }
+    $$("lp-status").textContent = "Opened";
+  };
+
+  /* ---- hook into the site's tab switcher ---- */
+  const _sc = setChannel;
+  setChannel = function(c){
+    _sc(c);
+    document.body.classList.toggle("in-lpx", c === "lpx");
+    tab.classList.toggle("on", c === "lpx");
+    document.title = c === "lpx" ? (CLOAKS[S.cloak] || origTitle) : origTitle;
+    if(c === "lpx") render();
+  };
+})();
+</script>
 </body>
 </html>
