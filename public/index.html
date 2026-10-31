@@ -13804,7 +13804,7 @@ body.in-lpx #box,body.in-lpx #typing,body.in-lpx #replybar,body.in-lpx #tray,bod
   const $$ = id => document.getElementById(id);
   /* ====== PROXY BACKEND: plug yours in here (Ultraviolet / Scramjet / etc.) ======
      encode(url) must return the address your proxy serves that page from. */
-  const PROXY_HOST = "https://YOUR-PROXY-HOST";   // <-- your deployed proxy-server URL, no trailing slash
+  const PROXY_HOST = "https://lospurebredbackend.alwaysdata.net";   // <-- your deployed proxy-server URL, no trailing slash
   const PROXY = { encode: u => PROXY_HOST + "/embed.html?u=" + encodeURIComponent(u) };
   const ENGINES = {DuckDuckGo:"https://duckduckgo.com/?q=%s", Google:"https://www.google.com/search?q=%s", Bing:"https://www.bing.com/search?q=%s", Brave:"https://search.brave.com/search?q=%s"};
   const SHORT = [["YouTube","youtube.com"],["Twitch","twitch.tv"],["Spotify","open.spotify.com"],["Discord","discord.com/app"]];
